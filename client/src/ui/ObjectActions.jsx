@@ -3,7 +3,7 @@
 // flip,
 // bags and stacks draw,
 // pieces flip and can become decks, locked things only unlock, and cards in
-// your hand only magnify. onDone runs after any action, so a menu can close.
+// your hand or a deck's fan only magnify. Decks also splay, locked or not. onDone runs after any action, so a menu can close.
 export function ObjectActions({ interaction, objectId, onMagnify, onDone = () => {} }) {
   const object = interaction.describe(objectId);
   if (!object) return <p className="menu-note">Someone else has that.</p>;
@@ -23,7 +23,7 @@ export function ObjectActions({ interaction, objectId, onMagnify, onDone = () =>
       Magnify <kbd>Alt</kbd>
     </button>
   );
-  if (object.inHand) return <div className="piece-actions">{magnify}</div>;
+  if (object.inHand || object.inDeck) return <div className="piece-actions">{magnify}</div>;
 
   return (
     <div className="piece-actions">
@@ -51,6 +51,29 @@ export function ObjectActions({ interaction, objectId, onMagnify, onDone = () =>
         <button type="button" className="menu-item" onClick={act(() => interaction.shuffle(objectId))}>
           Shuffle
         </button>
+      )}
+      {deck && (
+        <>
+          <p className="menu-label">Splay</p>
+          <div className="piece-actions-row">
+            {SPLAYS.map(({ direction, label, name }) => (
+              <button key={name} type="button" className="menu-item" aria-label={name}
+                aria-pressed={object.splay === direction}
+                onClick={act(() => interaction.splay(objectId, { direction }))}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="piece-actions-row">
+            {SPLAY_DISTANCES.map((distance) => (
+              <button key={distance} type="button" className="menu-item" aria-label={`Splay ${distance}cm apart`}
+                aria-pressed={object.splayDistance === distance}
+                onClick={act(() => interaction.splay(objectId, { direction: object.splay, distance }))}>
+                {distance}cm
+              </button>
+            ))}
+          </div>
+        </>
       )}
       {object.canFlip && movable && (
         <button type="button" className="menu-item" onClick={act(() => interaction.flip(objectId))}>
@@ -92,6 +115,15 @@ export function ObjectActions({ interaction, objectId, onMagnify, onDone = () =>
     </div>
   );
 }
+
+const SPLAYS = [
+  { direction: "left", label: "←", name: "Splay left" },
+  { direction: "right", label: "→", name: "Splay right" },
+  { direction: "away", label: "↑", name: "Splay away" },
+  { direction: "toward", label: "↓", name: "Splay toward" },
+  { direction: null, label: "Close", name: "Close up" },
+];
+const SPLAY_DISTANCES = [1, 2, 3, 5];
 
 function bagTitle({ count, infinite }) {
   if (infinite) return "Bag: never runs out";

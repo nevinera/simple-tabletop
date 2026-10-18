@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { deckHeight } from "../state/objects";
+import { deckHeight, fanBox } from "../state/objects";
 import { tableRotationToThree, tableToThree } from "./coordinates";
 import { HELD_LIFT, restingTurn } from "./pieces";
 
@@ -78,7 +78,8 @@ export function deckTopImage(def, deckState, cardDef) {
 }
 
 // Places the deck for its state. floor lifts a held deck over whatever is
-// under it; blocked tints its shadow.
+// under it; blocked tints its shadow. A splayed deck shows no box: the scene
+// lays its cards out (see fanSpots), and this places its shadow under them.
 export function applyDeckPlacement(group, def, state, { blocked = false, floor = 0 } = {}) {
   const { box, placeholder, ghost, shadow, top, ghostTop } = group.userData;
   const rest = restingTurn(group, state);
@@ -91,12 +92,13 @@ export function applyDeckPlacement(group, def, state, { blocked = false, floor =
   const [width, depth] = def.size;
   const layer = def.layer;
   const empty = state.members.length === 0;
+  const splayed = Boolean(state.splay) && !empty;
   const height = deckHeight(state.members.length);
   const held = Boolean(state.heldBy);
   const { x, y } = state.drag || state;
   const rotation = tableRotationToThree(state.rotation);
 
-  box.visible = !empty;
+  box.visible = !empty && !splayed;
   placeholder.visible = empty;
   box.scale.set(width, height, depth);
   box.position.y = height / 2;
@@ -109,12 +111,16 @@ export function applyDeckPlacement(group, def, state, { blocked = false, floor =
 
   shadow.visible = held;
   if (held) {
-    shadow.position.fromArray(tableToThree([x, layer.base + floor + SHADOW_LIFT, y]));
+    const fan = fanBox({ kind: "container", def, state }, x, y, state.rotation);
+    const [middleX, middleY] = fan ? fan.middle : [x, y];
+    const [fanWidth, fanDepth] = fan ? fan.size : def.size;
+    shadow.position.fromArray(tableToThree([middleX, layer.base + floor + SHADOW_LIFT, middleY]));
     shadow.rotation.set(-Math.PI / 2, rotation, 0);
+    shadow.scale.set((SHADOW_SCALE * fanWidth) / width, (SHADOW_SCALE * fanDepth) / depth, 1);
     shadow.material.color.setHex(blocked ? BLOCKED_SHADOW_COLOR : 0x000000);
   }
 
-  ghost.visible = held && Boolean(state.drag) && !empty;
+  ghost.visible = held && Boolean(state.drag) && !empty && !splayed;
   if (ghost.visible) {
     ghost.scale.copy(box.scale);
     ghost.position.fromArray(tableToThree([state.x, layer.base + height / 2, state.y]));

@@ -10,14 +10,15 @@
 // - In magnify mode (touch), a tap magnifies what it hits instead.
 // - Anything else (empty table, locked pieces) goes to the camera.
 //
-// Cards in your own hand move like loose pieces. The hand strip drives
+// Cards in your own hand, and in a splayed deck, move like loose pieces,
+// except a splayed deck's top card, which moves the deck. The hand strip drives
 // drags from outside the canvas through the hand* methods.
 //
 // The scene supplies hit testing through `pick` and `tablePoint`, so this
 // runs without WebGL in tests.
 
 import { rollValues } from "../state/dice";
-import { findObject, pieceDef, spawnedId } from "../state/objects";
+import { DEFAULT_SPLAY, fanSpots, findObject, pieceDef, spawnedId } from "../state/objects";
 import { scatter } from "../state/trays";
 import { handId, seatOf } from "../state/seats";
 
@@ -73,6 +74,7 @@ export class PieceInteraction {
     const container = object.kind === "container";
     const die = object.def.shape === "die";
     const inHand = Boolean(object.state.containerId) && object.state.containerId === this.#ownHand();
+    const inDeck = Boolean(object.state.containerId) && this.#object(object.state.containerId).def.kind === "deck";
     const infinite = Boolean(object.def.template);
     return {
       kind: container ? object.def.kind : die ? "die" : "piece",
@@ -81,7 +83,10 @@ export class PieceInteraction {
       infinite,
       canMakeDeck: !container && !object.state.containerId && object.def.kind === "card",
       canFlip: container ? object.def.kind === "deck" : !["die", "board", "standee"].includes(object.def.kind),
+      splay: object.def.kind === "deck" ? object.state.splay : null,
+      splayDistance: object.def.kind === "deck" ? object.state.splayDistance ?? object.def.splayDistance ?? DEFAULT_SPLAY : null,
       inHand,
+      inDeck,
       inTray: die && Boolean(object.state.containerId),
       trayId: die ? object.state.containerId : null,
     };
@@ -169,6 +174,14 @@ export class PieceInteraction {
       [order[i], order[j]] = [order[j], order[i]];
     }
     this.#dispatch("shuffle", deckId, { order });
+  }
+
+  // Fans a deck out toward `direction`, or closes it with null, and with
+  // distance, changes its spacing. A fan that would run into something wiggles.
+  splay(deckId, { direction, distance } = {}) {
+    const extra = { direction };
+    if (distance !== undefined) extra.distance = distance;
+    if (this.#dispatch("splay", deckId, extra).blocked) this.onBlockedRotate(deckId, 1); // any turn wiggles
   }
 
   makeDeck(id) {
@@ -332,13 +345,14 @@ export class PieceInteraction {
     return findObject(this.manifest, this.store.getState(), id);
   }
 
-  // Loose, in your own hand, or a die in a tray nobody else holds; and not
-  // held by someone else.
+  // Loose, in your own hand, a die in a tray, or a card in a splayed deck,
+  // where nobody else holds the tray or deck; and not held by someone else.
   #reachable(object) {
     const { containerId, heldBy } = object.state;
     const free = (holder) => !holder || holder === this.playerId;
-    const tray = containerId && this.store.getState().containers[containerId];
-    const inReach = !containerId || containerId === this.#ownHand() || (tray?.spots && free(tray.heldBy));
+    const holder = containerId && this.store.getState().containers[containerId];
+    const opened = (holder?.spots || holder?.splay) && free(holder.heldBy);
+    const inReach = !containerId || containerId === this.#ownHand() || opened;
     return Boolean(inReach && free(heldBy));
   }
 
@@ -396,12 +410,20 @@ export class PieceInteraction {
     if (!this.#select(gesture.objectId)) return false;
     const object = this.#object(gesture.objectId).state;
     // A held object may be floating away from its resting spot. A card in a
-    // hand has no spot of its own, so it centers on the pointer.
-    const { x, y } = object.drag || object;
+    // hand has no spot of its own, so it centers on the pointer, and a card
+    // in a fan uses its place in the fan.
+    const { x, y } = object.drag || this.#fanSpot(gesture.objectId) || object;
     const point = this.tablePoint(gesture.start.x, gesture.start.y, gesture.objectId);
     gesture.offset = point && x != null ? [x - point[0], y - point[1]] : [0, 0];
     this.setCursor("grabbing");
     return true;
+  }
+
+  #fanSpot(id) {
+    const containerId = this.#object(id).state.containerId;
+    const deck = containerId && this.#object(containerId);
+    if (!deck?.state.splay) return null;
+    return fanSpots(deck)[deck.state.members.indexOf(id)];
   }
 
   // Selecting an object puts back whatever you had selected before.

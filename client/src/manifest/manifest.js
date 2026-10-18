@@ -4,7 +4,7 @@
 
 import { BUILT_IN_DICE, D4_SCALE, DIE_SIDES } from "../state/dice";
 import { HALF_SIDES, SEAT_ORDER, SIDES } from "../state/seats";
-import { canStack, stackKey } from "../state/objects";
+import { DEFAULT_SPLAY, SPLAY_DIRECTIONS, canStack, stackKey } from "../state/objects";
 
 export const DEFAULT_TABLE_COLOR = "#2e6b3f";
 const LAYER_IDS = ["board", "pieces"];
@@ -131,6 +131,7 @@ function normalizeContainers(rawContainers, pieces, layers, image, template) {
       accepts = [...new Set(memberTypes)].map((type) => ({ type }));
     }
     const bag = container.kind === "bag" ? normalizeBag(container, where, image, template) : {};
+    const deck = container.kind === "deck" ? normalizeSplay(container, where) : {};
     // An infinite bag only takes back what it hands out.
     if (bag.template) accepts = [{ type: bag.template.type }];
 
@@ -147,8 +148,20 @@ function normalizeContainers(rawContainers, pieces, layers, image, template) {
       members,
       accepts,
       ...bag,
+      ...deck,
     };
   });
+}
+
+// How a deck starts splayed, if at all, and how far apart its cards fan.
+function normalizeSplay(container, where) {
+  const splay = container.splay ?? null;
+  if (splay != null && !SPLAY_DIRECTIONS[splay]) {
+    throw new ManifestError(`${where} splay must be one of ${Object.keys(SPLAY_DIRECTIONS).join(", ")}.`);
+  }
+  const splayDistance = container.splayDistance ?? DEFAULT_SPLAY;
+  if (!(splayDistance > 0)) throw new ManifestError(`${where} splayDistance must be more than 0.`);
+  return { splay, splayDistance };
 }
 
 // A stack needs at least two tiles, chips, or tokens, all alike.

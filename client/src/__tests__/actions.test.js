@@ -42,6 +42,7 @@ describe("initialState", () => {
     expect(state.pieces.KS).toMatchObject({ x: null, y: null, containerId: "deck" });
     expect(state.containers.deck).toEqual({
       x: 60, y: 60, rotation: 0, faceUp: false, members: ["KS"], heldBy: null, drag: null, locked: false,
+      splay: null, splayDistance: null,
     });
   });
 });
@@ -75,7 +76,7 @@ describe("applyAction", () => {
   });
 
   it("won't drop onto another piece on its layer", () => {
-    const result = act(held(), { type: "drop", id: "AS", x: 32, y: 21 });
+    const result = act(held(), { type: "drop", id: "AS", x: 24, y: 21 });
     expect(result).toMatchObject({ ok: false, reason: expect.stringMatching(/overlap/) });
     expect(result.state.pieces.AS).toMatchObject({ x: 10, y: 20, heldBy: "p1" });
   });

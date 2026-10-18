@@ -240,6 +240,8 @@ To make a custom die, add an entry to `dieTypes`. Set the number of `sides` and 
 | `infinite` | no       | bags: a piece type the bag hands out without end              |
 | `fixed`    | no       | starts locked; players can still take from it                 |
 | `faceUp`   | no       | decks only: which way every card in it faces; defaults to false |
+| `splay`    | no       | decks only: starts fanned out `left`, `right`, `away`, or `toward` |
+| `splayDistance` | no  | decks only: cm between fanned cards; defaults to 2            |
 | `accepts`  | no       | which pieces can be dropped in; see below                     |
 | `members`  | no       | piece ids, top first                                          |
 
@@ -259,7 +261,11 @@ Without `accepts`, decks take pieces of their members' type, trays take dice, an
 
 - **deck:** an ordered stack. Players draw from the top and can shuffle it. It starts 0.8cm tall and grows toward
   4.8cm as cards go in, showing its `image` or else the top card. An empty deck stays on the table
-  as an outlined placeholder.
+  as an outlined placeholder. Dropping a card on a loose card of the same type and size makes a new deck.
+- **splayed deck:** a deck with its cards fanned out, each `splayDistance` past the one under it. The bottom
+  card stays at the deck's position, and the fan runs in the `splay` direction, turned with the deck: `away` runs
+  from its near edge toward its far edge. Players can splay, close, and respace a deck from its menu, and pull
+  any card out of the fan.
 - **bag:** a box with a fixed height. Drawing takes a random member, which keeps the way it faced. Holding Alt
   over a bag lists what's inside. Bags take any piece, dice included, but never another container.
 - **infinite bag:** a bag with `infinite` set to a piece type. Every draw makes a new piece of that type, and a

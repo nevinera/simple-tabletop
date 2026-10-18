@@ -115,17 +115,17 @@ describe("PieceInteraction", () => {
   });
 
   it("keeps holding a piece dropped onto another, until you place it somewhere open", () => {
-    drag([10, 10], [32, 31]);
-    expect(piece("AS")).toMatchObject({ x: 10, y: 10, heldBy: "me", drag: { x: 32, y: 31 } });
+    drag([10, 10], [25, 31]);
+    expect(piece("AS")).toMatchObject({ x: 10, y: 10, heldBy: "me", drag: { x: 25, y: 31 } });
     click(70, 20);
     expect(piece("AS")).toMatchObject({ x: 70, y: 20, heldBy: null });
   });
 
   it("drags a floating piece from where you catch it", () => {
-    drag([10, 10], [32, 31]); // blocked by AH, so it floats there
-    HITS.AS = [32, 31];
+    drag([10, 10], [25, 31]); // blocked by AH, so it floats there
+    HITS.AS = [25, 31];
     try {
-      drag([32, 31], [75, 75]);
+      drag([25, 31], [75, 75]);
     } finally {
       HITS.AS = [10, 10];
     }

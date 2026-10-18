@@ -35,7 +35,7 @@ const move = (state, id, x, y) => act(act(state, { type: "grab", id }).state, { 
 describe("stacks", () => {
   it("forms when a piece drops on one just like it", () => {
     let state = initialState(manifest);
-    expect(landing(manifest, act(state, { type: "grab", id: "g1" }).state, "g1", 20, 10, 0, "me")).toEqual({ stack: "g2" });
+    expect(landing(manifest, act(state, { type: "grab", id: "g1" }).state, "g1", 20, 10, 0, "me")).toEqual({ onto: "g2" });
     state = move(state, "g1", 20, 10).state;
     const [id] = Object.keys(state.containers).filter((key) => key.startsWith("#stack-"));
     expect(state.containers[id]).toMatchObject({ x: 20, y: 10, members: ["g1", "g2"], spec: { kind: "stack" } });
@@ -45,7 +45,7 @@ describe("stacks", () => {
 
   it("matches untyped pieces by their look, and won't mix different ones", () => {
     let state = initialState(manifest);
-    expect(landing(manifest, act(state, { type: "grab", id: "plain-a" }).state, "plain-a", 44, 10, 0, "me")).toEqual({ stack: "plain-b" });
+    expect(landing(manifest, act(state, { type: "grab", id: "plain-a" }).state, "plain-a", 44, 10, 0, "me")).toEqual({ onto: "plain-b" });
     state = act(state, { type: "grab", id: "g1" }).state;
     expect(landing(manifest, state, "g1", 30, 10, 0, "me")).toEqual({ blocked: ["s1"] });
   });

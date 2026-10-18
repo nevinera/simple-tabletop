@@ -104,6 +104,8 @@ Decks, bags, bowls, and hands.
 | `face_up`      | decks: which way every card in the deck faces                 |
 | `spots`        | trays: JSON map of die key to `[x, y]` within the tray        |
 | `spawned`      | infinite bags: how many pieces the bag has handed out         |
+| `splay`        | decks: `left`, `right`, `away`, `toward`, or null when closed |
+| `splay_distance` | decks: a player's spacing for the fan in cm, or null for the deck's own |
 | `member_keys`  | ordered JSON array of piece keys; index 0 is the top          |
 | `held_by_id`   |                                                               |
 | `locked`       | boolean; starts as the manifest's `fixed`                     |
@@ -123,7 +125,8 @@ Dropping a tile, chip, or token on a loose one just like it makes a stack keyed 
 game's `sequence` before the drop. A stack drawn down to one piece is deleted, and that piece goes back on the
 table where the stack was.
 
-A player can turn a loose card into a deck. The client picks the new container's key and sends its `spec`,
+Dropping a card on a loose card of the same type and size makes a deck keyed `#deck-<sequence>`, facing the
+way the card underneath did. A player can also turn a loose card into a deck. The client picks the new container's key and sends its `spec`,
 since the manifest doesn't list it.
 
 ## Held pieces
@@ -163,6 +166,7 @@ There's no free-form multi-select. To move or roll several things together, put 
 | `roll`     | set new `value`s for one die or every die in a tray, and new `spots` in a tray |
 | `draw`     | take a deck's top card, a bag's `pick`, or a new piece from an infinite bag; the drawing player holds it, or with `toHand` it goes in their hand |
 | `makeDeck` | turn a loose card into a new deck holding just that card        |
+| `splay`    | fan a deck's cards out in a `direction`, or close it with null, and set its `distance` |
 | `release`  | let go without changing anything                               |
 
 `flip`, `rotate`, and `lock` also work on things nobody holds, so players can act on what they're pointing at.
@@ -170,8 +174,12 @@ Nobody can act on something someone else holds. Locked things can't move, flip, 
 still be drawn from and shuffled. Flipping a deck turns it over: `face_up` toggles and `member_keys` reverses,
 so the bottom card comes out on top.
 
-Objects on the same layer can't overlap. A drop or rotation that would overlap something is refused, except
-that a piece dropped with its center over a container that accepts it goes in.
+Objects on the same layer can't overlap. A drop, rotation, or splay that would overlap something is refused,
+except that a piece dropped with its center over a container that accepts it goes in. A splayed deck's
+footprint is its whole fan.
+
+Players can pull any card out of a splayed deck nobody else holds, the way they take cards from their hand. A
+card pulled out faces the way the deck does. A locked deck can still splay.
 
 The client that shuffles picks the order, the client that rolls picks the result, and the client that draws
 from a bag picks the member. Clients are trusted, so

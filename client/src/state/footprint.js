@@ -1,7 +1,7 @@
 // Footprints of objects on the table, for keeping objects on one layer from
 // overlapping. Objects whose edges touch don't count as overlapping.
 
-import { accepts, canStack, findObject, looseObjects, pieceDef, restingSpot, stackKey } from "./objects";
+import { accepts, fanBox, findObject, looseObjects, pieceDef, pilesWith, restingSpot } from "./objects";
 import { hasRoom } from "./trays";
 import { seatOf } from "./seats";
 
@@ -39,24 +39,24 @@ export function overlaps(a, b) {
 // Where object `id` would land at (x, y), facing `rotation`, when
 // `playerId` lets go of it:
 //   { into: containerId }  a piece over a container that takes it
-//   { stack: pieceId }     a piece over a loose one just like it, to stack on
+//   { onto: pieceId }      a piece over a loose one it piles with (see pilesWith)
 //   { blocked: [ids] }     overlapping other objects on its layer, or off
 //                          the table (with no ids)
 //   {}                     open table
 // Held objects count at their resting spot.
 export function landing(manifest, state, id, x, y, rotation, playerId) {
   const object = findObject(manifest, state, id);
-  const mine = footprint(object.def, x, y, rotation);
+  const mine = outline(object, x, y, rotation);
   const others = looseObjects(manifest, state)
     .filter((other) => other.id !== id && other.def.layer.id === object.def.layer.id)
-    .map((other) => ({ ...other, outline: footprint(other.def, ...spot(other)) }));
+    .map((other) => ({ ...other, outline: outline(other, ...spot(other)) }));
 
   if (object.kind === "piece") {
     const under = others.find((other) => CONTAINER_TARGETS.includes(other.def.kind) && inside(other.outline, x, y));
     if (under) return takes(manifest, state, under, object, playerId) ? { into: under.id } : { blocked: [under.id] };
-    const twin = canStack(object.def) && others.find((other) => other.kind === "piece" && !other.state.heldBy &&
-      stackKey(other.def) === stackKey(object.def) && inside(other.outline, x, y));
-    if (twin) return { stack: twin.id };
+    const twin = others.find((other) => other.kind === "piece" && !other.state.heldBy &&
+      pilesWith(object.def, other.def) && inside(other.outline, x, y));
+    if (twin) return { onto: twin.id };
   }
 
   const [width, depth] = manifest.table.size;
@@ -81,6 +81,14 @@ export function reachBounds(manifest, state) {
     }
   }
   return bounds;
+}
+
+// An object's footprint at (x, y), turned to `rotation`. A splayed deck
+// covers its whole fan.
+export function outline(object, x, y, rotation) {
+  const fan = fanBox(object, x, y, rotation);
+  if (!fan) return footprint(object.def, x, y, rotation);
+  return footprint({ shape: "rect", size: fan.size }, ...fan.middle, rotation);
 }
 
 function spot(object) {

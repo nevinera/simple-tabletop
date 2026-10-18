@@ -139,6 +139,8 @@ describe("normalizeManifest", () => {
       members: ["AS"],
       // Decks take more of their members' type.
       accepts: [{ type: "card" }],
+      splay: null,
+      splayDistance: 2,
     }]);
   });
 

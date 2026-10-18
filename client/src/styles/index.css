@@ -275,6 +275,9 @@ body,
 .piece-actions { display: flex; flex-direction: column; gap: 4px; }
 .piece-actions-row { display: flex; gap: 4px; }
 .piece-actions-row .menu-item { flex: 1; }
+.piece-actions-row .menu-item { justify-content: center; }
+.menu-item[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.menu-label { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
 
 .menu-item {
   display: flex;

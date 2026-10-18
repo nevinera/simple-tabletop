@@ -15,6 +15,10 @@ const DIE_HEIGHT = 0.85; // times its size, roughly, whatever its shape
 const HAND_MARGIN = 0.5; // cm kept clear at each end of a hand tray
 const HAND_SPACING = 1.08; // times the card width, when there's room
 const BAG_HEIGHT = 0.4; // times a bag's shorter side
+export const DEFAULT_SPLAY = 2; // cm between cards in a splayed deck, unless the module or a player says otherwise
+// Which way each splay direction runs, in a deck's own frame: x to its
+// right, y away from its near edge.
+export const SPLAY_DIRECTIONS = { left: [-1, 0], right: [1, 0], away: [0, 1], toward: [0, -1] };
 export const STACK_SHOWN = 5; // a stack grows up to this many pieces tall, then shows a count instead
 const STACKABLE = ["tile", "chip", "token"];
 
@@ -99,6 +103,55 @@ function stackDef(manifest, state, id, fromManifest) {
     accepts: null,
     fixed: fromManifest?.fixed || false,
   };
+}
+
+// How a deck fans out: { direction, distance, step }, where step is how far
+// each card lies from the one under it, as table [dx, dy] for the deck turned
+// to `rotation`. Null for anything that isn't a splayed deck.
+export function splayOf(object, rotation = object.state.rotation) {
+  const direction = object.def.kind === "deck" && object.state.splay;
+  if (!direction) return null;
+  const distance = object.state.splayDistance ?? object.def.splayDistance ?? DEFAULT_SPLAY;
+  const [lx, ly] = SPLAY_DIRECTIONS[direction];
+  const radians = (rotation * Math.PI) / 180;
+  const [cos, sin] = [Math.cos(radians), Math.sin(radians)];
+  return { direction, distance, step: [(lx * cos + ly * sin) * distance, (-lx * sin + ly * cos) * distance] };
+}
+
+// Where each card of a splayed deck lies, top first, as table { x, y }: the
+// bottom card on the deck's spot, and each one above a step further along.
+export function fanSpots(object, { x, y } = object.state) {
+  const { step } = splayOf(object);
+  const count = object.state.members.length;
+  return object.state.members.map((_, i) => {
+    const along = count - 1 - i;
+    return { x: x + step[0] * along, y: y + step[1] * along };
+  });
+}
+
+// The rectangle a splayed deck's fan covers at (x, y), turned to `rotation`:
+// { size: [width, depth], middle: [x, y] }. Null for a deck that isn't
+// splayed, or has one card or none.
+export function fanBox(object, x, y, rotation) {
+  const fan = object.kind === "container" && object.state.members.length > 1 && splayOf(object, rotation);
+  if (!fan) return null;
+  const extra = fan.distance * (object.state.members.length - 1);
+  const [lx, ly] = SPLAY_DIRECTIONS[fan.direction];
+  const [width, depth] = object.def.size;
+  return {
+    size: [width + Math.abs(lx) * extra, depth + Math.abs(ly) * extra],
+    middle: [x + (fan.step[0] / fan.distance) * (extra / 2), y + (fan.step[1] / fan.distance) * (extra / 2)],
+  };
+}
+
+// Whether a piece dropped on a loose one makes a pile with it: cards of the
+// same type and size make a deck, and tiles, chips, and tokens that are
+// alike make a stack.
+export function pilesWith(def, other) {
+  if (def.kind === "card" && other.kind === "card") {
+    return def.type === other.type && def.size.join("x") === other.size.join("x");
+  }
+  return canStack(def) && canStack(other) && stackKey(def) === stackKey(other);
 }
 
 // Tiles, chips, and tokens stack with others just like them.
@@ -215,5 +268,6 @@ export function objectHeight(object) {
   if (object.def.kind === "tray") return DICE_TRAY_WALL;
   if (object.def.kind === "bag") return bagHeight(object.def);
   if (object.def.kind === "stack") return stackHeight(object.def, object.state.members.length);
+  if (splayOf(object)) return object.def.layer.thickness * object.state.members.length;
   return deckHeight(object.state.members.length);
 }

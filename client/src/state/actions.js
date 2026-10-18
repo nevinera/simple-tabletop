@@ -23,10 +23,15 @@
 // server relays it without saving it. members runs top first, or left to
 // right in a hand. spec describes a container the manifest doesn't list: a
 // deck made during play, { kind, size, layer, accepts }, or a seat's hand,
-// { kind: "hand", seatId }.
+// { kind: "hand", seatId }. A card dropped on a card like it makes a deck
+// with the id "#deck-<sequence>".
+//
+// Decks also carry splay, the way their cards fan out (see SPLAY_DIRECTIONS)
+// or null, and splayDistance, a player's spacing for the fan or null for the
+// deck's own.
 
 import { landing } from "./footprint";
-import { accepts, findObject, handIndex, handSlots, pieceDef, spawnedId } from "./objects";
+import { SPLAY_DIRECTIONS, accepts, fanSpots, findObject, handIndex, handSlots, pieceDef, spawnedId } from "./objects";
 import { nearestFree, scatter, seededRandom, toTray } from "./trays";
 import { handId, openSeats, seatOf } from "./seats";
 
@@ -63,6 +68,7 @@ export function initialState(manifest) {
       locked: container.fixed,
     };
     if (container.template) containers[container.id].spawned = 0;
+    if (container.kind === "deck") Object.assign(containers[container.id], { splay: container.splay, splayDistance: null });
     if (container.kind === "tray") {
       // The same starting layout in every browser.
       const dice = container.members.map((id) => pieceDef(manifest, id));
@@ -105,6 +111,8 @@ export function initialState(manifest) {
 //   rotate:   { degrees }, positive is clockwise
 //   shuffle:  { order }, the deck's members in their new order
 //   makeDeck: { deckId }, the id for the new deck
+//   splay:    { direction }, a SPLAY_DIRECTIONS key or null to close the
+//             deck up, plus { distance } in cm to change its spacing
 export function applyAction(manifest, state, action) {
   if (SEAT_HANDLERS[action.type]) return SEAT_HANDLERS[action.type]({ manifest, state, action });
   const handler = HANDLERS[action.type];
@@ -113,8 +121,8 @@ export function applyAction(manifest, state, action) {
   const object = findObject(manifest, state, action.id);
   if (!object) return reject(state, `Unknown object "${action.id}".`);
   if (object.def.kind === "hand") return reject(state, "Hands stay with their seat.");
-  // Players can pick up, move, and put back cards in their own hand, and
-  // dice in a tray nobody else holds.
+  // Players can pick up, move, and put back cards in their own hand or a
+  // splayed deck, and dice in a tray, that nobody else holds.
   if (object.state.containerId && !reachableMember(state, object, action)) return reject(state, "That's in a container.");
   if (object.state.heldBy && object.state.heldBy !== action.playerId) return reject(state, "Someone else is holding that.");
 
@@ -129,6 +137,7 @@ function reachableMember(state, object, action) {
   const container = state.containers[containerId];
   const tray = object.def.shape === "die" && container.spots;
   const free = !container.heldBy || container.heldBy === action.playerId;
+  if (container.splay && free) return MEMBER_ACTIONS.includes(action.type);
   return Boolean(tray && free && [...MEMBER_ACTIONS, "roll"].includes(action.type));
 }
 
@@ -177,7 +186,8 @@ const HANDLERS = {
     }
     const target = landing(manifest, state, object.id, action.x, action.y, object.state.rotation, action.playerId);
     if (target.blocked) return blocked(state);
-    if (target.stack) return formStack(state, object, target.stack, letGo);
+    if (target.onto && object.def.kind === "card") return formDeck(manifest, state, object, target.onto, letGo);
+    if (target.onto) return formStack(state, object, target.onto, letGo);
     if (target.into && state.containers[target.into].spots) {
       return addToTray(manifest, state, object, target.into, letGo, [action.x, action.y]);
     }
@@ -185,10 +195,12 @@ const HANDLERS = {
     const changes = { ...letGo, x: action.x, y: action.y };
     if (object.kind === "piece") changes.stackOrder = topOfLayer(manifest, state, object.def.layer.id);
     if (object.state.containerId) {
-      // Played from a hand, a card lands facing the way the hand does.
+      // Played from a hand, a card lands facing the way the hand does, and
+      // pulled from a deck's fan, the way the deck does.
       const from = findObject(manifest, state, object.state.containerId);
       changes.containerId = null;
       if (from.def.kind === "hand") changes.rotation = from.def.rotation;
+      if (from.def.kind === "deck") Object.assign(changes, { rotation: from.state.rotation, faceUp: from.state.faceUp });
       return save(withoutMember(state, object), object, changes);
     }
     return save(state, object, changes);
@@ -264,11 +276,13 @@ const HANDLERS = {
       const end = state.containers[hand].members.length;
       return settleStack(manifest, addToContainer(manifest, next, piece, hand, {}, end), object.id);
     }
+    // A splayed deck hands out its top card from where it lies in the fan.
     const from = object.state;
+    const { x, y } = from.splay ? fanSpots(object)[0] : from;
     const changes = {
       containerId: null,
-      x: from.x,
-      y: from.y,
+      x,
+      y,
       rotation: from.rotation,
       stackOrder: topOfLayer(manifest, state, piece.def.layer.id),
       heldBy: action.playerId,
@@ -325,12 +339,61 @@ const HANDLERS = {
       heldBy: null,
       drag: null,
       locked: card.locked,
-      spec: { kind: "deck", size: def.size, layer: def.layer.id, accepts: def.type ? [{ type: def.type }] : null },
+      splay: null,
+      splayDistance: null,
+      spec: deckSpec(def),
     };
     const withDeck = { ...state, containers: { ...state.containers, [action.deckId]: deck } };
     return addToContainer(manifest, withDeck, object, action.deckId, { heldBy: null, drag: null, locked: false });
   },
+
+  // Fans a deck's cards out, or closes them up. It works on a locked deck,
+  // but not when the fan would run into something.
+  splay({ manifest, state, action, def, object }) {
+    if (def.kind !== "deck") return reject(state, "Only decks splay.");
+    const direction = action.direction ?? null;
+    if (direction != null && !SPLAY_DIRECTIONS[direction]) return reject(state, `Unknown splay direction "${direction}".`);
+    const changes = { splay: direction };
+    if (action.distance !== undefined) {
+      if (!(action.distance > 0)) return reject(state, "splay distance must be more than 0.");
+      changes.splayDistance = action.distance;
+    }
+    const result = save(state, object, changes);
+    const { x, y, rotation, heldBy } = result.state.containers[object.id];
+    if (!heldBy && landing(manifest, result.state, object.id, x, y, rotation, action.playerId).blocked) return blocked(state);
+    return result;
+  },
 };
+
+// What a deck made during play from `card` remembers about itself.
+function deckSpec(card) {
+  return { kind: "deck", size: card.size, layer: card.layer.id, accepts: card.type ? [{ type: card.type }] : null };
+}
+
+// Drops a card on a loose one like it: the two become a deck where the one
+// underneath was, facing its way, with the dropped one on top.
+function formDeck(manifest, state, card, underId, changes) {
+  const under = state.pieces[underId];
+  const deckId = `#deck-${state.sequence}`;
+  const deck = {
+    x: under.x,
+    y: under.y,
+    rotation: under.rotation,
+    faceUp: under.faceUp,
+    members: [],
+    heldBy: null,
+    drag: null,
+    locked: false,
+    splay: null,
+    splayDistance: null,
+    spec: deckSpec(pieceDef(manifest, underId)),
+  };
+  let next = withoutMember(state, card);
+  next = { ...next, containers: { ...next.containers, [deckId]: deck } };
+  next = withObject(next, { kind: "piece", id: underId }, { containerId: deckId, x: null, y: null });
+  next = withObject(next, { kind: "container", id: deckId }, { members: [card.id, underId] });
+  return save(next, card, { ...changes, faceUp: under.faceUp, containerId: deckId, x: null, y: null });
+}
 
 // Moves a piece into a container, out of any it was in. A deck takes it on
 // top, turned to face the way the deck does. A hand takes it face-up, at

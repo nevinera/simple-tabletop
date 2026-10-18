@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { landing, reachBounds } from "../state/footprint";
 import {
-  DICE_TRAY_FLOOR, HAND_TRAY_HEIGHT, findObject, handSlots, looseObjects, objectHeight, pieceDef,
+  DICE_TRAY_FLOOR, HAND_TRAY_HEIGHT, fanSpots, findObject, handSlots, looseObjects, objectHeight, pieceDef,
 } from "../state/objects";
 import { fromTray } from "../state/trays";
 import { tableRotationToThree, tableToThree, threeToTable } from "./coordinates";
@@ -137,8 +137,10 @@ export class TableScene {
       }
       if (container.def.kind !== "deck") continue;
       const group = this.#deckGroup(container);
-      applyDeckPlacement(group, container.def, container.state, this.#hover(id, state));
+      const hover = this.#hover(id, state);
+      applyDeckPlacement(group, container.def, container.state, hover);
       this.#updateDeckTop(group, container);
+      if (container.state.splay) this.#renderFan(container, state, hover);
     }
     // Stacks down to one piece are gone.
     for (const [id, group] of this.deckGroups) {
@@ -163,7 +165,12 @@ export class TableScene {
     const targets = [...this.pieceMeshes.values(), ...this.deckGroups.values(), ...this.trays.values(), ...this.diceTrays.values()];
     const hit = this.raycaster.intersectObjects(targets, true)
       .find(({ object }) => object.userData.objectId && shown(object));
-    return hit ? hit.object.userData.objectId : null;
+    if (!hit) return null;
+    // A splayed deck's top card stands for the deck.
+    const id = hit.object.userData.objectId;
+    const deckId = this.state.pieces[id]?.containerId;
+    const deck = deckId && this.state.containers[deckId];
+    return deck?.splay && deck.members[0] === id ? deckId : id;
   }
 
   // Where a screen point meets the plane an object rests on, as table [x, y].
@@ -284,8 +291,10 @@ export class TableScene {
         if (this.state) this.render(this.state);
         continue;
       }
-      const rotation = findObject(this.manifest, this.state, id).state.rotation;
-      mesh.rotation.y = tableRotationToThree(rotation + direction * WIGGLE_DEGREES * Math.sin(Math.PI * t));
+      const object = findObject(this.manifest, this.state, id);
+      const turn = direction * WIGGLE_DEGREES * Math.sin(Math.PI * t);
+      mesh.rotation.y = tableRotationToThree(object.state.rotation + turn);
+      if (object.state.splay) this.#renderFan(object, this.state, {}, turn);
     }
   }
 
@@ -297,7 +306,7 @@ export class TableScene {
     const { x, y } = object.state.drag || object.state;
     if (x == null) return {};
     const target = landing(this.manifest, state, id, x, y, object.state.rotation, object.state.heldBy);
-    const under = [...(target.blocked || []), target.into, target.stack].filter(Boolean);
+    const under = [...(target.blocked || []), target.into, target.onto].filter(Boolean);
     const floor = Math.max(0, ...under.map((other) => objectHeight(findObject(this.manifest, state, other))));
     return { blocked: Boolean(target.blocked), floor };
   }
@@ -404,6 +413,39 @@ export class TableScene {
         }, i);
       });
     }
+  }
+
+  // Lays a splayed deck's cards out along its fan, bottom card lowest, riding
+  // along with the deck while it's held. turn adds to the deck's rotation,
+  // for a wiggle.
+  #renderFan(deck, state, { floor = 0 }, turn = 0) {
+    const pose = { ...deck.state, ...(deck.state.drag || {}), rotation: deck.state.rotation + turn };
+    const lift = deck.state.heldBy ? floor + HELD_LIFT : 0;
+    const moved = { ...deck, state: pose };
+    const spots = fanSpots(moved);
+    const rests = fanSpots({ ...deck, state: { ...deck.state, rotation: pose.rotation } });
+    const count = deck.state.members.length;
+    deck.state.members.forEach((id, i) => {
+      const mesh = this.pieceMeshes.get(id);
+      if (!mesh) return;
+      const def = pieceDef(this.manifest, id);
+      const card = state.pieces[id];
+      const rank = count - 1 - i;
+      if (card.heldBy && card.drag) {
+        // Pulled out of the fan: it floats like a loose card, with its ghost
+        // left in its place.
+        const loose = { ...card, containerId: null, ...rests[i], rotation: deck.state.rotation, faceUp: deck.state.faceUp };
+        applyPlacement(mesh, def, loose, rank, this.#hover(id, state));
+        return;
+      }
+      applyHandSlot(mesh, def, {
+        ...spots[i],
+        height: def.layer.base + lift + def.thickness * rank,
+        rotation: pose.rotation,
+        faceUp: deck.state.faceUp,
+        lifted: Boolean(card.heldBy),
+      }, rank);
+    });
   }
 
   #buildMesh(def) {

@@ -10,6 +10,8 @@ import { ActionBar } from "./ui/ActionBar";
 import { Joysticks } from "./ui/Joysticks";
 
 const ACTION_BAR_SETTING = "simple-tabletop:desktop-action-bar";
+// Everyone is the same local player until seats exist.
+const LOCAL_PLAYER_ID = "local";
 
 export default function App({ manifestUrl, gameId = "sandbox" }) {
   const viewport = useViewportMode();
@@ -65,7 +67,13 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
         setShowActionBar={setDesktopActionBar}
       />
       <main className="table-area">
-        <TableCanvas manifest={manifest} store={store} onScene={setScene} onError={setError} />
+        <TableCanvas
+          manifest={manifest}
+          store={store}
+          playerId={LOCAL_PLAYER_ID}
+          onScene={setScene}
+          onError={setError}
+        />
         {joysticksVisible && <Joysticks scene={scene} onIdle={hideJoysticks} />}
         {error && <div className="table-error" role="alert">{error.message}</div>}
       </main>

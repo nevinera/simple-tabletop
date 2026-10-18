@@ -88,7 +88,6 @@ One row per piece the manifest defines, including fixed board pieces.
 | `stack_order`    | draw order among loose pieces on the same layer               |
 | `container_id`   | null when the piece sits loose on the table                   |
 | `held_by_id`     | player holding it, or null                                    |
-| `held_at`        | when the claim started or last moved                          |
 
 ### `containers`
 
@@ -102,7 +101,6 @@ Decks, bags, bowls, and hands.
 | `rotation`     |                                                               |
 | `member_keys`  | ordered JSON array of piece keys; index 0 is the top          |
 | `held_by_id`   |                                                               |
-| `held_at`      |                                                               |
 
 A piece inside a container has no position of its own. The container's `member_keys` holds the order, so
 shuffling a 500-card deck rewrites one row. Moving a piece in or out of a container updates the piece row and
@@ -120,8 +118,8 @@ A piece or container can only move while one player holds it.
   relays them and doesn't save them.
 - **Drop:** the client sends the final state. The server saves it and releases the hold.
 - **Disconnect:** the server releases everything the player held when their cable connection closes.
-- **Stale holds:** the server releases a hold with no movement for 30 seconds, in case a disconnect slipped
-  through.
+- **No timeouts:** a hold lasts as long as the player wants, since selecting a piece holds it. A cable heartbeat
+  catches dead connections, which then release like any other disconnect.
 - **Containers:** holding a container holds everything in it. Nobody else can take, add, shuffle, or roll its
   members until it's released.
 

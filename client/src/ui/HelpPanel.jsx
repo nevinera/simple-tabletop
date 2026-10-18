@@ -1,10 +1,14 @@
 const POINTER = [
+  ["Move a piece", "Drag it, or click it then click a spot"],
+  ["Set it back down", "Click it again"],
   ["Orbit", "Drag the table"],
   ["Pan", "Right-drag"],
   ["Zoom", "Mouse wheel"],
 ];
 
 const TOUCH = [
+  ["Move a piece", "Drag it, or tap it then tap and hold a spot"],
+  ["Put it back", "Tap empty table"],
   ["Orbit", "Drag the table"],
   ["Pan", "Two-finger drag"],
   ["Zoom", "Pinch"],
@@ -18,6 +22,7 @@ const KEYS = [
   ["Tilt", "_ / +"],
   ["Jump to camera point", "0-9"],
   ["Save camera point", "Shift + 0-9"],
+  ["Put a selected piece back", "Esc"],
 ];
 
 export function HelpPanel({ touch }) {

@@ -3,7 +3,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { tableToThree, threeToTable } from "./coordinates";
 import { FELT_TILE_CM, feltTexture } from "./felt";
 import { buildLabel } from "./labels";
-import { applyPlacement, buildPiece } from "./pieces";
+import { applyPlacement, buildPiece, stackRanks } from "./pieces";
 import { applyMotion, clampTarget, orbit, sumMotions } from "./rig";
 import { TextureCache } from "./textures";
 
@@ -18,6 +18,7 @@ export class TableScene {
     this.motions = new Map();
     this.content = new THREE.Group();
     this.pieceMeshes = new Map(); // piece id -> mesh
+    this.raycaster = new THREE.Raycaster();
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -77,6 +78,7 @@ export class TableScene {
     pieces.forEach((mesh) => {
       mesh.visible = false;
       this.pieceMeshes.set(mesh.name, mesh);
+      this.content.add(mesh.userData.shadow);
     });
     if (this.state) this.render(this.state);
   }
@@ -85,10 +87,54 @@ export class TableScene {
   render(state) {
     this.state = state;
     if (!this.manifest) return;
+    const ranks = stackRanks(this.manifest.pieces, state.pieces);
     for (const def of this.manifest.pieces) {
       const mesh = this.pieceMeshes.get(def.id);
-      if (mesh) applyPlacement(mesh, def, state.pieces[def.id]);
+      if (mesh) applyPlacement(mesh, def, state.pieces[def.id], ranks.get(def.id) || 0);
     }
+  }
+
+  get canvas() {
+    return this.renderer.domElement;
+  }
+
+  // The id of the top piece under a screen point, or null.
+  pick(clientX, clientY) {
+    this.#aim(clientX, clientY);
+    const meshes = [...this.pieceMeshes.values()].filter((mesh) => mesh.visible);
+    const [hit] = this.raycaster.intersectObjects(meshes, false);
+    return hit ? hit.object.name : null;
+  }
+
+  // Where a screen point meets the plane a piece rests on, as table [x, y].
+  tablePoint(clientX, clientY, pieceId) {
+    const def = this.manifest?.pieces.find((p) => p.id === pieceId);
+    if (!def) return null;
+    this.#aim(clientX, clientY);
+    const height = def.layer.base + def.layer.thickness / 2;
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -height);
+    const point = this.raycaster.ray.intersectPlane(plane, new THREE.Vector3());
+    if (!point) return null;
+    const [x, , y] = threeToTable(point.toArray());
+    return [x, y];
+  }
+
+  clampToTable([x, y]) {
+    const [width, depth] = this.manifest.table.size;
+    return [Math.min(width, Math.max(0, x)), Math.min(depth, Math.max(0, y))];
+  }
+
+  setCameraEnabled(enabled) {
+    this.controls.enabled = enabled;
+  }
+
+  #aim(clientX, clientY) {
+    const rect = this.canvas.getBoundingClientRect();
+    const ndc = new THREE.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1
+    );
+    this.raycaster.setFromCamera(ndc, this.camera);
   }
 
   cameraView() {

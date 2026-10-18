@@ -6,7 +6,8 @@ const SLOTS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
 const ZOOM_STEP = 0.8;
 
 export function ActionBar({
-  scene, interaction, selectedObject, cameraPoints, menus, joysticksVisible, setJoysticksVisible,
+  scene, interaction, selectedObject, cameraPoints, menus, joysticksVisible, setJoysticksVisible, magnifyMode,
+  setMagnifyMode,
 }) {
   return (
     <nav className="action-bar" aria-label="Action bar">
@@ -28,6 +29,16 @@ export function ActionBar({
       </button>
       <button type="button" className="bar-button" aria-label="Zoom out" onClick={() => scene?.zoomBy(1 / ZOOM_STEP)}>
         <span aria-hidden="true">－</span>
+      </button>
+      <button
+        type="button"
+        className={`bar-button${magnifyMode ? " active" : ""}`}
+        aria-label="Magnify"
+        aria-pressed={magnifyMode}
+        title="Tap a card to see it up close"
+        onClick={() => setMagnifyMode(!magnifyMode)}
+      >
+        <span aria-hidden="true">🔍</span>
       </button>
       <button
         type="button"

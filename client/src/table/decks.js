@@ -1,12 +1,12 @@
 import * as THREE from "three";
-import { deckCards } from "../state/objects";
+import { deckHeight } from "../state/objects";
 import { tableRotationToThree, tableToThree } from "./coordinates";
 import { HELD_LIFT } from "./pieces";
 
 const SIDE_COLOR = "#9a9a9e";
 const LINE_COLOR = "#6f6f74";
 const BOTTOM_COLOR = 0x8a8a8e;
-const CARDS_PER_LINE = 2; // one drawn line on the sides per this many cards
+const LINE_SPACING = 0.15; // cm between the lines drawn on a deck's sides
 const OUTLINE_COLOR = 0xe8e4da;
 const OUTLINE_LIFT = 0.01; // just above the layer below, so it never z-fights with it
 const SHADOW_OPACITY = 0.35;
@@ -84,7 +84,7 @@ export function applyDeckPlacement(group, def, state, { blocked = false, floor =
   const [width, depth] = def.size;
   const layer = def.layer;
   const empty = state.members.length === 0;
-  const height = layer.thickness * deckCards(state.members.length);
+  const height = deckHeight(def, state.members.length);
   const held = Boolean(state.heldBy);
   const { x, y } = state.drag || state;
   const rotation = tableRotationToThree(state.rotation);
@@ -94,7 +94,7 @@ export function applyDeckPlacement(group, def, state, { blocked = false, floor =
   box.scale.set(width, height, depth);
   box.position.y = height / 2;
   placeholder.position.y = OUTLINE_LIFT;
-  fitSideLines(box.material[0].map, state.members.length);
+  fitSideLines(box.material[0].map, height);
 
   const lift = held ? floor + HELD_LIFT : 0;
   group.position.fromArray(tableToThree([x, layer.base + lift, y]));
@@ -140,7 +140,7 @@ function sideTexture() {
   return texture;
 }
 
-// One line per couple of cards of height.
-function fitSideLines(texture, count) {
-  texture.repeat.set(1, Math.max(1, Math.round(deckCards(count) / CARDS_PER_LINE)));
+// Evenly spaced lines up the sides, however tall the deck is.
+function fitSideLines(texture, height) {
+  texture.repeat.set(1, Math.max(1, Math.round(height / LINE_SPACING)));
 }

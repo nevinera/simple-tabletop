@@ -8,7 +8,7 @@ const manifest = normalizeManifest({
   name: "Test",
   table: { size: [90, 90] },
   layers: [{ id: "board", thickness: 0.3 }, { id: "pieces", thickness: 0.03 }],
-  seats: [{ id: "south", name: "South" }],
+  seats: [{ id: "south", name: "South", side: "south" }],
   pieceTypes: { card: { shape: "rect", size: [6.3, 8.8], back: "back.svg" } },
   pieces: [
     { id: "mat", shape: "circle", size: [40], layer: "board", face: "mat.svg", position: [45, 45], fixed: true },

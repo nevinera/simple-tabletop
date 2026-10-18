@@ -48,7 +48,7 @@ Each client fetches the manifest and its assets on its own.
 3. The server creates the game and returns an invite link.
 4. A player opens the link and picks a name. The server sets a cookie that ties the browser to that player,
    so a refresh or reconnect lands them back in the same seat.
-5. The player claims an empty seat, or watches without one.
+5. The player claims an empty seat. Nobody can touch the table without a seat.
 
 There are no accounts for now.
 
@@ -62,6 +62,7 @@ There are no accounts for now.
 | `manifest_url`  | absolute URL; clients resolve assets from it |
 | `name`          |                                              |
 | `sequence`      | bumped on every change; see [Sync](#sync)    |
+| `seating`       | `four` or `eight`; see [Hands](#hands)       |
 
 ### `players`
 
@@ -70,7 +71,7 @@ There are no accounts for now.
 | `game_id`      |                                          |
 | `name`         |                                          |
 | `cookie_token` | random; matches the player's cookie      |
-| `seat_key`     | manifest seat id, or null when watching  |
+| `seat_key`     | seat id, or null until they pick one     |
 | `host`         | boolean                                  |
 
 ### `pieces`
@@ -177,8 +178,22 @@ is how players roll a handful of dice together. A single loose die can also be r
 
 ## Hands
 
-Each seat in the manifest has a hand: a container that renders in front of that seat. Cards in your hand render
-face-up for you and face-down for everyone else. Dropping a card on your hand zone adds it to your hand.
+With hands on, each seat has a hand: a container keyed `hand-<seat id>` that renders as a tray in front of that
+seat. Its position comes from the seat, not from the row. Cards in your hand render face-up for you and
+face-down for everyone else. You can drag your own hand's cards to reorder them or play them, but not anyone
+else's.
+
+When the module lists no seats, seat ids are the eight half-sides (`south-left` and so on). With `seating` at
+`four`, only the left halves are open, and each one stands for its whole side. The game switches to `eight`
+for good when a fifth player joins.
+
+On screen, a strip along the bottom shows your hand too, and you can drag cards to and from it.
+
+## Magnify
+
+Holding Alt shows the card under the pointer, or the one you hold, enlarged. On touch, a toggle on the action
+bar makes taps magnify instead of select, and the tap-and-hold menu has a Magnify item. Magnify shows the side
+you're allowed to see.
 
 ## Rendering
 

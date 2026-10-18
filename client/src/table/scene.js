@@ -1,12 +1,13 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { landing } from "../state/footprint";
-import { findObject, objectHeight, pieceDef } from "../state/objects";
+import { landing, reachBounds } from "../state/footprint";
+import { HAND_TRAY_HEIGHT, findObject, handSlots, looseObjects, objectHeight, pieceDef } from "../state/objects";
 import { tableRotationToThree, tableToThree, threeToTable } from "./coordinates";
 import { applyDeckPlacement, buildDeck, deckTopImage, setDeckTop } from "./decks";
 import { FELT_TILE_CM, feltTexture } from "./felt";
 import { buildLabel } from "./labels";
-import { applyPlacement, buildPiece, stackRanks } from "./pieces";
+import { buildTray, placeTray } from "./hands";
+import { applyHandSlot, applyPlacement, buildPiece, stackRanks } from "./pieces";
 import { applyMotion, clampTarget, orbit, sumMotions } from "./rig";
 import { TextureCache } from "./textures";
 
@@ -24,6 +25,8 @@ export class TableScene {
     this.content = new THREE.Group();
     this.pieceMeshes = new Map(); // piece id -> mesh
     this.deckGroups = new Map(); // container id -> group
+    this.trays = new Map(); // hand id -> group
+    this.viewerSeat = null; // whose hand shows face-up
     this.wiggles = new Map(); // object id -> { start, direction }
     this.raycaster = new THREE.Raycaster();
 
@@ -108,6 +111,13 @@ export class TableScene {
       applyDeckPlacement(group, deck.def, deck.state, this.#hover(id, state));
       this.#updateDeckTop(group, deck);
     }
+    this.#renderHands(state);
+  }
+
+  // Sets whose hand this browser sees face-up.
+  setViewer(seatId) {
+    this.viewerSeat = seatId;
+    if (this.state) this.render(this.state);
   }
 
   get canvas() {
@@ -117,7 +127,7 @@ export class TableScene {
   // The id of the top object under a screen point, or null.
   pick(clientX, clientY) {
     this.#aim(clientX, clientY);
-    const targets = [...this.pieceMeshes.values(), ...this.deckGroups.values()];
+    const targets = [...this.pieceMeshes.values(), ...this.deckGroups.values(), ...this.trays.values()];
     const hit = this.raycaster.intersectObjects(targets, true)
       .find(({ object }) => object.userData.objectId && shown(object));
     return hit ? hit.object.userData.objectId : null;
@@ -137,9 +147,10 @@ export class TableScene {
     return [x, y];
   }
 
+  // Keeps a dragged object over the table or the hand trays around it.
   clampToTable([x, y]) {
-    const [width, depth] = this.manifest.table.size;
-    return [Math.min(width, Math.max(0, x)), Math.min(depth, Math.max(0, y))];
+    const { minX, maxX, minY, maxY } = reachBounds(this.manifest, this.state);
+    return [Math.min(maxX, Math.max(minX, x)), Math.min(maxY, Math.max(minY, y))];
   }
 
   setCameraEnabled(enabled) {
@@ -245,12 +256,54 @@ export class TableScene {
   // has to float to clear what's under it.
   #hover(id, state) {
     const object = findObject(this.manifest, state, id);
-    if (!object.state.heldBy || object.state.containerId) return {};
+    if (!object.state.heldBy) return {};
     const { x, y } = object.state.drag || object.state;
-    const target = landing(this.manifest, state, id, x, y, object.state.rotation);
+    if (x == null) return {};
+    const target = landing(this.manifest, state, id, x, y, object.state.rotation, object.state.heldBy);
     const under = [...(target.blocked || []), ...(target.into ? [target.into] : [])];
     const floor = Math.max(0, ...under.map((other) => objectHeight(findObject(this.manifest, state, other))));
     return { blocked: Boolean(target.blocked), floor };
+  }
+
+  #renderHands(state) {
+    const hands = looseObjects(this.manifest, state).filter((object) => object.def.kind === "hand");
+    for (const tray of this.trays.values()) tray.visible = false;
+    for (const hand of hands) {
+      let tray = this.trays.get(hand.id);
+      if (!tray) {
+        const seat = this.manifest.seats.find((s) => s.id === hand.def.seatId);
+        tray = buildTray(hand.id, hand.def, seat.color);
+        this.trays.set(hand.id, tray);
+        this.content.add(tray);
+      }
+      tray.visible = true;
+      placeTray(tray, hand.def);
+
+      const members = hand.state.members.map((id) => ({ id, def: pieceDef(this.manifest, id), state: state.pieces[id] }));
+      const cardWidth = Math.max(0, ...members.map((member) => member.def.size[0]));
+      const slots = handSlots(hand.def, members.length, cardWidth);
+      const mine = hand.def.seatId === this.viewerSeat;
+      members.forEach((member, i) => {
+        const mesh = this.pieceMeshes.get(member.id);
+        if (!mesh) return;
+        const slot = slots[i];
+        if (member.state.heldBy && member.state.drag) {
+          // Dragged out of the hand: it floats like a loose piece, with its
+          // ghost left in its spot.
+          const loose = { ...member.state, containerId: null, x: slot.x, y: slot.y, rotation: hand.def.rotation, faceUp: mine };
+          applyPlacement(mesh, member.def, loose, i, this.#hover(member.id, state));
+          return;
+        }
+        applyHandSlot(mesh, member.def, {
+          x: slot.x,
+          y: slot.y,
+          height: hand.def.layer.base + HAND_TRAY_HEIGHT,
+          rotation: hand.def.rotation,
+          faceUp: mine,
+          lifted: Boolean(member.state.heldBy),
+        }, i);
+      });
+    }
   }
 
   #deckGroup(deck) {
@@ -288,6 +341,7 @@ export class TableScene {
     this.content.clear();
     this.pieceMeshes.clear();
     this.deckGroups.clear();
+    this.trays.clear();
   }
 
   #resize() {

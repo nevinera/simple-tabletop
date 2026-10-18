@@ -120,6 +120,21 @@ export function applyPlacement(mesh, def, state, rank, { blocked = false, floor 
   }
 }
 
+// Puts a card on a hand tray: spot is { x, y, height, rotation, faceUp,
+// lifted }, where height is the tray's top and faceUp is whether this
+// viewer gets to see its face.
+export function applyHandSlot(mesh, def, spot, rank) {
+  const { shadow, ghost } = mesh.userData;
+  mesh.visible = true;
+  shadow.visible = false;
+  ghost.visible = false;
+  mesh.userData.restingTurn = null;
+  const lift = spot.lifted ? HELD_LIFT : 0;
+  mesh.position.fromArray(tableToThree([spot.x, spot.height + def.layer.thickness / 2 + lift, spot.y]));
+  mesh.rotation.set(0, tableRotationToThree(spot.rotation), spot.faceUp ? 0 : Math.PI);
+  for (const material of mesh.material) material.polygonOffsetUnits = rank * POLYGON_OFFSET_PER_RANK;
+}
+
 // Each loose piece's rank within its layer, by stackOrder.
 export function stackRanks(defs, pieces) {
   const byLayer = new Map();

@@ -1,7 +1,8 @@
 // Footprints of objects on the table, for keeping objects on one layer from
 // overlapping. Objects whose edges touch don't count as overlapping.
 
-import { accepts, findObject, looseObjects } from "./objects";
+import { accepts, findObject, looseObjects, restingSpot } from "./objects";
+import { seatOf } from "./seats";
 
 const TOUCH_CM = 0.01; // overlaps shallower than this are just touching
 
@@ -33,26 +34,60 @@ export function overlaps(a, b) {
   return polygonsOverlap(a.polygon, b.polygon);
 }
 
-// Where object `id` would land at (x, y), facing `rotation`:
-//   { into: containerId }  a piece over a deck that takes it
-//   { blocked: [ids] }     overlapping other objects on its layer
+// Where object `id` would land at (x, y), facing `rotation`, when
+// `playerId` lets go of it:
+//   { into: containerId }  a piece over a deck or hand that takes it
+//   { blocked: [ids] }     overlapping other objects on its layer, or off
+//                          the table (with no ids)
 //   {}                     open table
-// Held objects count at their saved spot.
-export function landing(manifest, state, id, x, y, rotation) {
+// Held objects count at their resting spot.
+export function landing(manifest, state, id, x, y, rotation, playerId) {
   const object = findObject(manifest, state, id);
   const mine = footprint(object.def, x, y, rotation);
-  const others = looseObjects(manifest, state).filter((other) => other.id !== id && other.def.layer.id === object.def.layer.id);
+  const others = looseObjects(manifest, state)
+    .filter((other) => other.id !== id && other.def.layer.id === object.def.layer.id)
+    .map((other) => ({ ...other, outline: footprint(other.def, ...spot(other)) }));
 
   if (object.kind === "piece") {
-    const under = others.find((other) =>
-      other.def.kind === "deck" && contains(footprint(other.def, other.state.x, other.state.y, other.state.rotation).polygon, x, y));
-    if (under) return !under.state.heldBy && accepts(under.def, object.def) ? { into: under.id } : { blocked: [under.id] };
+    const under = others.find((other) => CONTAINER_TARGETS.includes(other.def.kind) && contains(other.outline.polygon, x, y));
+    if (under) return takes(manifest, state, under, object, playerId) ? { into: under.id } : { blocked: [under.id] };
   }
 
-  const blocked = others
-    .filter((other) => overlaps(mine, footprint(other.def, other.state.x, other.state.y, other.state.rotation)))
-    .map((other) => other.id);
+  const [width, depth] = manifest.table.size;
+  if (x < 0 || y < 0 || x > width || y > depth) return { blocked: [] };
+  const blocked = others.filter((other) => overlaps(mine, other.outline)).map((other) => other.id);
   return blocked.length ? { blocked } : {};
+}
+
+const CONTAINER_TARGETS = ["deck", "hand"];
+
+// The area a dragged object can move over: the table, plus the hand trays
+// around it. Returns { minX, maxX, minY, maxY }.
+export function reachBounds(manifest, state) {
+  const [width, depth] = manifest.table.size;
+  const bounds = { minX: 0, maxX: width, minY: 0, maxY: depth };
+  for (const hand of looseObjects(manifest, state).filter((object) => object.def.kind === "hand")) {
+    for (const [x, y] of footprint(hand.def, ...spot(hand)).polygon) {
+      bounds.minX = Math.min(bounds.minX, x);
+      bounds.maxX = Math.max(bounds.maxX, x);
+      bounds.minY = Math.min(bounds.minY, y);
+      bounds.maxY = Math.max(bounds.maxY, y);
+    }
+  }
+  return bounds;
+}
+
+function spot(object) {
+  const { x, y, rotation } = restingSpot(object);
+  return [x, y, rotation];
+}
+
+// Whether a container takes a piece from this player. Anyone can add to a
+// hand when the module allows passing; otherwise only its own player can.
+function takes(manifest, state, container, piece, playerId) {
+  if (container.state.heldBy || !accepts(container.def, piece.def)) return false;
+  if (container.def.kind !== "hand") return true;
+  return manifest.hands.passing || seatOf(state, playerId) === container.def.seatId;
 }
 
 // Separating axis test: two convex polygons overlap unless some edge's

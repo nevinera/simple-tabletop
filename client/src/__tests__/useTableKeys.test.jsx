@@ -32,12 +32,12 @@ describe("useTableKeys", () => {
     expect(interaction.rotate.mock.calls).toEqual([[-45], [45], [-22.5], [22.5]]);
   });
 
-  it("draws with G, saving Shift+G for hands, and locks with L", () => {
+  it("draws with G, into your hand with Shift+G, and locks with L", () => {
     key("KeyG");
     key("KeyG", { shiftKey: true });
     key("KeyL");
     key("KeyL", { repeat: true });
-    expect(interaction.draw).toHaveBeenCalledOnce();
+    expect(interaction.draw.mock.calls).toEqual([[undefined, { toHand: false }], [undefined, { toHand: true }]]);
     expect(interaction.lock).toHaveBeenCalledOnce();
   });
 

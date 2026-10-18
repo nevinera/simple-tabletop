@@ -4,16 +4,20 @@
 //
 // State:
 //   sequence:   bumped on every saved change; drag doesn't count
+//   seating:    "four" or "eight"; see state/seats.js
+//   players:    { [playerId]: { seatId } }
 //   pieces:     { [id]: { x, y, rotation, faceUp, stackOrder, containerId, heldBy, drag, locked } }
 //   containers: { [id]: { x, y, rotation, faceUp, members, heldBy, drag, locked, spec } }
 //
 // drag is the in-progress position of a held object, { x, y }, or null. The
-// server relays it without saving it. members runs top first. spec describes
-// a container made during play, which the manifest doesn't list:
-// { kind, size, layer, accepts }.
+// server relays it without saving it. members runs top first, or left to
+// right in a hand. spec describes a container the manifest doesn't list: a
+// deck made during play, { kind, size, layer, accepts }, or a seat's hand,
+// { kind: "hand", seatId }.
 
 import { landing } from "./footprint";
-import { findObject } from "./objects";
+import { findObject, handIndex, handSlots } from "./objects";
+import { handId, openSeats, seatOf } from "./seats";
 
 export function initialState(manifest) {
   const containerOf = new Map();
@@ -53,31 +57,82 @@ export function initialState(manifest) {
     };
   }
 
-  return { sequence: 0, pieces, containers };
+  if (manifest.hands.enabled) {
+    for (const seat of manifest.seats) {
+      containers[handId(seat.id)] = {
+        x: null,
+        y: null,
+        rotation: 0,
+        faceUp: true,
+        members: [],
+        heldBy: null,
+        drag: null,
+        locked: false,
+        spec: { kind: "hand", seatId: seat.id },
+      };
+    }
+  }
+
+  return { sequence: 0, seating: "four", players: {}, pieces, containers };
 }
 
 // Applies one action. Returns { ok: true, state } with a new state object, or
 // { ok: false, reason, state } with the state unchanged. A rejection for
 // overlapping another object also carries blocked: true.
 //
-// Actions all carry { type, id, playerId }, where id names a piece or a
-// container, plus:
+// join carries { type, playerId, seatId }, and leave { type, playerId }.
+// Every other action carries { type, id, playerId }, where id names a piece
+// or a container, plus:
 //   drag:     { x, y }
-//   drop:     { x, y }
+//   drop:     { x, y }, or { into, index } to put a piece in a hand
+//   draw:     { toHand: true } to draw into the player's hand
 //   rotate:   { degrees }, positive is clockwise
 //   shuffle:  { order }, the deck's members in their new order
 //   makeDeck: { deckId }, the id for the new deck
 export function applyAction(manifest, state, action) {
+  if (SEAT_HANDLERS[action.type]) return SEAT_HANDLERS[action.type]({ manifest, state, action });
   const handler = HANDLERS[action.type];
   if (!handler) return reject(state, `Unknown action "${action.type}".`);
 
   const object = findObject(manifest, state, action.id);
   if (!object) return reject(state, `Unknown object "${action.id}".`);
-  if (object.state.containerId) return reject(state, "That's in a container.");
+  if (object.def.kind === "hand") return reject(state, "Hands stay with their seat.");
+  // Players can pick up, move, and put back cards in their own hand.
+  const inOwnHand = object.state.containerId === ownHand(state, action.playerId);
+  if (object.state.containerId && !(inOwnHand && HAND_ACTIONS.includes(action.type))) {
+    return reject(state, "That's in a container.");
+  }
   if (object.state.heldBy && object.state.heldBy !== action.playerId) return reject(state, "Someone else is holding that.");
 
   return handler({ manifest, state, action, object, kind: object.kind, def: object.def });
 }
+
+const HAND_ACTIONS = ["grab", "drag", "drop", "release"];
+
+const SEAT_HANDLERS = {
+  // Taking a seat that isn't there yet, the other half of a side, splits the
+  // table into eight seats for good.
+  join({ manifest, state, action }) {
+    const seat = openSeats(manifest, state).find((s) => s.id === action.seatId);
+    if (!seat) return reject(state, "That seat isn't open.");
+    const seating = manifest.seats.indexOf(seat) >= 4 ? "eight" : state.seating;
+    const left = state.players[action.playerId] ? leaveSeat(state, action.playerId) : state;
+    return {
+      ok: true,
+      state: {
+        ...left,
+        seating,
+        players: { ...left.players, [action.playerId]: { seatId: seat.id } },
+        sequence: state.sequence + 1,
+      },
+    };
+  },
+
+  leave({ state, action }) {
+    if (!state.players[action.playerId]) return reject(state, "You aren't seated.");
+    return { ok: true, state: { ...leaveSeat(state, action.playerId), sequence: state.sequence + 1 } };
+  },
+};
 
 const HANDLERS = {
   grab({ state, action, object }) {
@@ -92,12 +147,23 @@ const HANDLERS = {
 
   drop({ manifest, state, action, object }) {
     if (object.state.heldBy !== action.playerId) return reject(state, "Grab it first.");
-    const target = landing(manifest, state, object.id, action.x, action.y, object.state.rotation);
-    if (target.blocked) return blocked(state);
     const letGo = { heldBy: null, drag: null };
-    if (target.into) return addToContainer(state, object, target.into, letGo);
+    if (action.into) {
+      if (action.into !== ownHand(state, action.playerId)) return reject(state, "That isn't your hand.");
+      return addToContainer(manifest, state, object, action.into, letGo, action.index);
+    }
+    const target = landing(manifest, state, object.id, action.x, action.y, object.state.rotation, action.playerId);
+    if (target.blocked) return blocked(state);
+    if (target.into) return addToContainer(manifest, state, object, target.into, letGo, null, [action.x, action.y]);
     const changes = { ...letGo, x: action.x, y: action.y };
     if (object.kind === "piece") changes.stackOrder = topOfLayer(manifest, state, object.def.layer.id);
+    if (object.state.containerId) {
+      // Played from a hand: it lands facing the way the hand does.
+      const hand = findObject(manifest, state, object.state.containerId);
+      changes.containerId = null;
+      changes.rotation = hand.def.rotation;
+      return save(withoutMember(state, object), object, changes);
+    }
     return save(state, object, changes);
   },
 
@@ -118,7 +184,7 @@ const HANDLERS = {
     if (!Number.isFinite(action.degrees)) return reject(state, "rotate needs degrees.");
     const rotation = normalizeDegrees(object.state.rotation + action.degrees);
     // A held object is off the table; dropping it checks for overlap instead.
-    if (!object.state.heldBy && landing(manifest, state, object.id, object.state.x, object.state.y, rotation).blocked) {
+    if (!object.state.heldBy && landing(manifest, state, object.id, object.state.x, object.state.y, rotation, action.playerId).blocked) {
       return blocked(state);
     }
     return save(state, object, { rotation });
@@ -137,6 +203,12 @@ const HANDLERS = {
     if (!top) return reject(state, "That deck is empty.");
     const deck = object.state;
     const card = findObject(manifest, state, top);
+    if (action.toHand) {
+      const hand = ownHand(state, action.playerId);
+      if (!hand) return reject(state, "You don't have a hand.");
+      const end = state.containers[hand].members.length;
+      return addToContainer(manifest, state, card, hand, {}, end);
+    }
     const withDeck = withObject(state, object, { members: rest });
     return save(withDeck, card, {
       containerId: null,
@@ -160,7 +232,7 @@ const HANDLERS = {
     return save(state, object, { members: [...order] });
   },
 
-  makeDeck({ state, action, kind, def, object }) {
+  makeDeck({ manifest, state, action, kind, def, object }) {
     if (kind !== "piece" || def.shape !== "rect") return reject(state, "Only cards can become decks.");
     if (!action.deckId || state.pieces[action.deckId] || state.containers[action.deckId]) {
       return reject(state, "makeDeck needs an unused deckId.");
@@ -178,23 +250,52 @@ const HANDLERS = {
       spec: { kind: "deck", size: def.size, layer: def.layer.id, accepts: def.type ? [{ type: def.type }] : null },
     };
     const withDeck = { ...state, containers: { ...state.containers, [action.deckId]: deck } };
-    return addToContainer(withDeck, object, action.deckId, { heldBy: null, drag: null, locked: false });
+    return addToContainer(manifest, withDeck, object, action.deckId, { heldBy: null, drag: null, locked: false });
   },
 };
 
-// Puts a piece on top of a container, facing the way the container does.
-function addToContainer(state, piece, containerId, changes) {
-  const container = state.containers[containerId];
-  const withContainer = withObject(state, { kind: "container", id: containerId }, {
-    members: [piece.id, ...container.members],
+// Moves a piece into a container, out of any it was in. A deck takes it on
+// top, turned to face the way the deck does. A hand takes it face-up, at
+// `index` or where `point` falls among its cards, so it plays face-up.
+function addToContainer(manifest, state, piece, containerId, changes, index = null, point = null) {
+  const without = withoutMember(state, piece);
+  const container = findObject(manifest, without, containerId);
+  const members = container.state.members;
+  let at = 0;
+  if (container.def.kind === "hand") {
+    at = index ?? handIndex(container.def, handSlots(container.def, members.length, piece.def.size[0]), ...point);
+    at = Math.max(0, Math.min(at, members.length));
+  }
+  const withContainer = withObject(without, container, {
+    members: [...members.slice(0, at), piece.id, ...members.slice(at)],
   });
-  return save(withContainer, piece, {
-    ...changes,
-    containerId,
-    x: null,
-    y: null,
-    faceUp: container.faceUp,
-  });
+  const facing = { faceUp: container.def.kind === "deck" ? container.state.faceUp : true };
+  return save(withContainer, piece, { ...changes, ...facing, containerId, x: null, y: null });
+}
+
+function withoutMember(state, piece) {
+  const from = piece.state.containerId;
+  if (!from) return state;
+  const members = state.containers[from].members.filter((id) => id !== piece.id);
+  return withObject(state, { kind: "container", id: from }, { members });
+}
+
+function ownHand(state, playerId) {
+  const seatId = seatOf(state, playerId);
+  return seatId && state.containers[handId(seatId)] ? handId(seatId) : null;
+}
+
+// Puts back whatever the player held, then frees their seat. Their hand stays
+// with the seat.
+function leaveSeat(state, playerId) {
+  let next = state;
+  for (const key of ["pieces", "containers"]) {
+    for (const [id, object] of Object.entries(state[key])) {
+      if (object.heldBy === playerId) next = withObject(next, { kind: key === "pieces" ? "piece" : "container", id }, { heldBy: null, drag: null });
+    }
+  }
+  const { [playerId]: _gone, ...players } = next.players;
+  return { ...next, players };
 }
 
 function topOfLayer(manifest, state, layerId) {

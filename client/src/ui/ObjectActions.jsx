@@ -1,8 +1,8 @@
 // Buttons for one object, shared by the action bar's Selected menu and the
 // context menu. What shows depends on the object: decks draw and shuffle,
-// pieces flip and can become decks, and locked things only unlock. onDone
-// runs after any action, so a menu can close.
-export function ObjectActions({ interaction, objectId, onDone = () => {} }) {
+// pieces flip and can become decks, locked things only unlock, and cards in
+// your hand only magnify. onDone runs after any action, so a menu can close.
+export function ObjectActions({ interaction, objectId, onMagnify, onDone = () => {} }) {
   const object = interaction.describe(objectId);
   if (!object) return <p className="menu-note">Someone else has that.</p>;
 
@@ -11,10 +11,17 @@ export function ObjectActions({ interaction, objectId, onDone = () => {} }) {
     onDone();
   };
   const deck = object.kind === "deck";
-  const movable = !object.locked;
+  const movable = !object.locked && !object.inHand;
+  const magnify = onMagnify && (
+    <button type="button" className="menu-item" onClick={act(() => onMagnify(objectId))}>
+      Magnify <kbd>Alt</kbd>
+    </button>
+  );
+  if (object.inHand) return <div className="piece-actions">{magnify}</div>;
 
   return (
     <div className="piece-actions">
+      {magnify}
       {deck && <p className="menu-title">{deckTitle(object.count)}</p>}
       {deck && object.count > 0 && (
         <button type="button" className="menu-item" onClick={act(() => interaction.draw(objectId))}>

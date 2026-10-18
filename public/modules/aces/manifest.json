@@ -15,9 +15,7 @@
       "back": "assets/back.svg"
     }
   },
-  "seats": [
-    { "id": "south", "name": "South" }
-  ],
+  "hands": true,
   "pieces": [
     { "id": "mat", "shape": "circle", "size": [44], "layer": "board", "face": "assets/mat.svg", "position": [45, 45], "fixed": true },
     { "id": "AS", "type": "card", "face": "assets/AS.svg", "position": [45, 57], "rotation": 0 },

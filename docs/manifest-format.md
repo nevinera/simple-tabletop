@@ -28,12 +28,14 @@ Modules are data only. They place pieces and describe how they look. They can't 
       "back": "assets/card-back.png"
     }
   },
+  "hands": true,
   "seats": [
     {
       "id": "south",
       "name": "South",
+      "side": "south",
       "color": "#c0392b",
-      "hand": { "position": [50, 8], "rotation": 0, "size": [40, 10] },
+      "hand": { "position": [50, -8], "rotation": 0, "size": [40, 10] },
       "cameras": {
         "1": { "position": [50, 60, -10], "target": [50, 0, 40] }
       }
@@ -83,7 +85,9 @@ Modules are data only. They place pieces and describe how they look. They can't 
 | `sheets`        | no       | image grids that many pieces share                       |
 | `pieceTypes`    | no       | shared defaults that pieces inherit                      |
 | `dieTypes`      | no       | custom dice; see [Dice](#dice)                           |
-| `seats`         | yes      | at least one                                             |
+| `hands`         | no       | `true`, or `{ "passing": false }`; see [Hands](#hands)   |
+| `maxSeats`      | no       | 1 to 8; defaults to 8, ignored when `seats` is given     |
+| `seats`         | no       | see [Seats](#seats)                                      |
 | `pieces`        | yes      | every piece in the game                                  |
 | `containers`    | no       | decks, bags, bowls, and trays                            |
 | `labels`        | no       | text drawn on the table; see [Labels](#labels)           |
@@ -231,8 +235,8 @@ Without `accepts`, decks take pieces of their members' type, trays take dice, an
 
 ### Kinds
 
-- **deck:** an ordered stack. Players draw from the top and can shuffle it. It grows from two cards thick
-  toward forty as cards go in, showing its `image` or else the top card. An empty deck stays on the table
+- **deck:** an ordered stack. Players draw from the top and can shuffle it. It starts twice as tall as the board
+  layer and grows toward six times that as cards go in, showing its `image` or else the top card. An empty deck stays on the table
   as an outlined placeholder.
 - **bag:** players can't see inside. Drawing takes a random member.
 - **bowl:** contents sit visible in a pile. Players pick any member.
@@ -256,16 +260,36 @@ Labels are text drawn flat on the table, for naming boards, regions, and piles. 
 
 ## Seats
 
+Players pick a seat when they join, and can't touch the table without one.
+
+Without `seats`, the table seats up to `maxSeats` players. It starts with one seat per side: south, north,
+east, and west. When a fifth player joins, each side splits in two, and it stays split even if players leave.
+A player who was seated keeps the left half of their side, as they see it.
+
 | field     | required | notes                                                            |
 |-----------|----------|------------------------------------------------------------------|
 | `id`      | yes      |                                                                  |
 | `name`    | yes      |                                                                  |
+| `side`    | yes      | `south`, `north`, `east`, or `west`, or half of one: `south-left` and so on |
 | `color`   | no       | hex                                                              |
-| `hand`    | no       | `position`, `rotation`, and `size` of the hand zone              |
+| `hand`    | no       | `position`, `rotation`, and `size` of the hand tray              |
 | `cameras` | no       | starting camera slots, keyed `"0"` to `"9"`                      |
 
+South is the near edge (y = 0). Left and right are as seen by the player sitting on that side.
+
 A camera is a `position` and a `target`, each `[x, height, y]` in table units. Players' own saved slots replace
-these. A slot with no camera starts at a default view of the whole table.
+these. A slot with no camera starts at a view of the whole table from the seat's side.
+
+## Hands
+
+With `hands` on, each seat has a hand tray on the table. Its cards spread out across the tray, face-up for the
+seat's player and face-down for everyone else. Without a `hand` placement, the tray sits just off the table
+edge on the seat's side, facing the player.
+
+Dropping a card on a tray puts it in that hand, between the cards on either side of where it lands. Players can
+drop cards into each other's hands unless `hands` is `{ "passing": false }`.
+
+Piece and container ids can't start with `hand-`, which hands use.
 
 ## Hosting
 

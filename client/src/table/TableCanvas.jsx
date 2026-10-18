@@ -6,7 +6,9 @@ import { PieceInteraction } from "./interaction";
 // the store changes, and turns pointer events into piece actions. The scene
 // and the PieceInteraction go up to the parent through onScene and
 // onInteraction, for keys and menus.
-export default function TableCanvas({ manifest, store, playerId, onScene, onInteraction, onContextMenu, onError }) {
+export default function TableCanvas({
+  manifest, store, playerId, onScene, onInteraction, onContextMenu, onHover, onMagnify, onError,
+}) {
   const containerRef = useRef(null);
   const [scene, setScene] = useState(null);
 
@@ -44,6 +46,8 @@ export default function TableCanvas({ manifest, store, playerId, onScene, onInte
       setCursor: (cursor) => { canvas.style.cursor = cursor; },
       onContextMenu: (menu) => onContextMenu(menu),
       onBlockedRotate: (id, degrees) => scene.wiggle(id, degrees),
+      onHover: (id) => onHover(id),
+      onMagnify: (id) => onMagnify(id),
     });
     onInteraction(interaction);
 
@@ -70,7 +74,7 @@ export default function TableCanvas({ manifest, store, playerId, onScene, onInte
       canvas.removeEventListener("pointercancel", onPointerCancel);
       canvas.removeEventListener("pointerleave", onPointerLeave);
     };
-  }, [scene, store, manifest, playerId, onInteraction, onContextMenu]);
+  }, [scene, store, manifest, playerId, onInteraction, onContextMenu, onHover, onMagnify]);
 
   return <div className="table-canvas" ref={containerRef} />;
 }

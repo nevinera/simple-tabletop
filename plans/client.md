@@ -55,6 +55,7 @@ Keys check the physical key (`event.code`), and are ignored while focus is in on
 | G                      | draw from the hovered deck, to place         |
 | Shift+G                | draw from the hovered deck into your hand    |
 | L                      | lock or unlock the selected or hovered thing |
+| hold Alt               | magnify the hovered or selected card         |
 
 Camera keys work while holding a piece. Every camera point starts at the starting view.
 
@@ -118,5 +119,7 @@ Update docs/manifest-format.md before building on them.
 4. **Flip and rotate.** Keys on selected and hovered pieces, the action bar, and the context menu.
 5. **Containers.** Decks as one stack, drawing by drag, G, and the menu, adding by drop with `accepts`,
    shuffling, empty placeholders, locking, and making a deck from a card. Bags and bowls come later.
-6. **Hands.** A local seat picker stands in for players. Cards in your hand zone render face-up only for you.
+6. **Hands.** Picking a seat when you join, generated seats that split from four to eight, hand trays on the
+   table, the hand strip on screen, dropping into hands with ordering, Shift+G, and magnify (Alt, or the
+   touch toggle and menu item). Without a server, one browser is one player.
 7. **Dice and trays.**

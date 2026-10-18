@@ -7,12 +7,17 @@
 // - With something selected, a mouse click on open table places it there,
 //   and on touch a tap-and-hold does. A plain tap on open table cancels.
 // - Right-click an object, or tap and hold it on touch, for its context menu.
+// - In magnify mode (touch), a tap magnifies what it hits instead.
 // - Anything else (empty table, locked pieces) goes to the camera.
+//
+// Cards in your own hand move like loose pieces. The hand strip drives
+// drags from outside the canvas through the hand* methods.
 //
 // The scene supplies hit testing through `pick` and `tablePoint`, so this
 // runs without WebGL in tests.
 
 import { findObject } from "../state/objects";
+import { handId, seatOf } from "../state/seats";
 
 export const DRAG_THRESHOLD_PX = 6;
 export const LONG_PRESS_MS = 500;
@@ -27,14 +32,17 @@ export class PieceInteraction {
     setCursor, // (css cursor string)
     onContextMenu = () => {}, // ({ objectId, clientX, clientY, pointerType })
     onBlockedRotate = () => {}, // (id, degrees): turning would overlap something
+    onHover = () => {}, // (id or null): whatever is under the mouse, movable or not
+    onMagnify = () => {}, // (id or null): a magnify-mode tap
     schedule = setTimeout,
     unschedule = clearTimeout,
     random = Math.random,
   }) {
     Object.assign(this, {
       store, manifest, playerId, pick, tablePoint, clampToTable, setCameraEnabled, setCursor, onContextMenu,
-      onBlockedRotate, random,
+      onBlockedRotate, onHover, onMagnify, random,
     });
+    this.magnifyMode = false;
     // Wrapped, since the browser's timer functions throw when called as methods.
     this.schedule = (fn, ms) => schedule(fn, ms);
     this.unschedule = (id) => unschedule(id);
@@ -57,13 +65,15 @@ export class PieceInteraction {
   // What the context menu offers for an object, or null if it can't have one.
   describe(id) {
     const object = this.#object(id);
-    if (!object || !this.#reachable(object)) return null;
+    if (!object || object.def.kind === "hand" || !this.#reachable(object)) return null;
     const deck = object.kind === "container";
+    const inHand = Boolean(object.state.containerId);
     return {
       kind: deck ? "deck" : "piece",
       locked: object.state.locked,
       count: deck ? object.state.members.length : null,
-      canMakeDeck: !deck && object.def.shape === "rect",
+      canMakeDeck: !deck && !inHand && object.def.shape === "rect",
+      inHand,
     };
   }
 
@@ -82,13 +92,36 @@ export class PieceInteraction {
   }
 
   // Draws the top card of a deck into your grip, putting back whatever you
-  // held. With no deck given, uses the hovered deck, or the selected one.
-  draw(deckId = this.#drawTarget()) {
+  // held, or with toHand, into your hand. With no deck given, uses the
+  // hovered deck, or the selected one.
+  draw(deckId = this.#drawTarget(), { toHand = false } = {}) {
     if (!deckId || !this.#object(deckId)?.state.members.length) return null;
     const top = this.#object(deckId).state.members[0];
+    if (toHand) return this.#dispatch("draw", deckId, { toHand }).ok ? top : null;
     const previous = this.selectedId();
     if (previous) this.#dispatch("release", previous);
     return this.#dispatch("draw", deckId).ok ? top : null;
+  }
+
+  // A card in your hand, picked up from the hand strip.
+  handGrab(cardId) {
+    return this.#select(cardId);
+  }
+
+  handMove(cardId, clientX, clientY) {
+    const point = this.tablePoint(clientX, clientY, cardId);
+    if (!point) return;
+    const [x, y] = this.clampToTable(point);
+    this.#dispatch("drag", cardId, { x, y });
+  }
+
+  // Let go over the strip at `index`, or over the table where the card
+  // floats, or anywhere else to put it back.
+  handDrop(cardId, { index = null, overTable = false } = {}) {
+    const card = this.#object(cardId).state;
+    if (index != null) this.#dispatch("drop", cardId, { into: this.#ownHand(), index });
+    else if (overTable && card.drag) this.#dispatch("drop", cardId, card.drag);
+    else this.#dispatch("release", cardId);
   }
 
   shuffle(deckId) {
@@ -123,6 +156,11 @@ export class PieceInteraction {
     const hit = this.pick(event.clientX, event.clientY);
     const selected = this.selectedId();
     const base = { pointerId: event.pointerId, start, moved: false, done: false };
+
+    if (this.magnifyMode) {
+      this.gesture = { ...base, kind: "magnify" };
+      return false;
+    }
 
     if (hit && this.#canMove(hit)) {
       this.setCameraEnabled(false);
@@ -162,6 +200,7 @@ export class PieceInteraction {
     if (!gesture) {
       if (event.pointerType === "mouse") {
         const hit = this.pick(event.clientX, event.clientY);
+        this.onHover(hit);
         this.hoveredId = hit && this.describe(hit) ? hit : null;
         this.setCursor(hit && (this.#canMove(hit) || this.#canDrawFrom(hit)) ? "grab" : "");
       }
@@ -198,6 +237,8 @@ export class PieceInteraction {
 
     if (gesture.done) {
       // A long press already did its thing.
+    } else if (gesture.kind === "magnify") {
+      if (!gesture.moved) this.onMagnify(this.pick(event.clientX, event.clientY));
     } else if (gesture.kind === "secondary") {
       if (!gesture.moved) {
         const hit = this.pick(event.clientX, event.clientY);
@@ -206,8 +247,11 @@ export class PieceInteraction {
     } else if (gesture.kind === "object") {
       const object = this.#object(gesture.objectId);
       // Dropping where you let go, or clicking the selected object, sets it
-      // down where it floats.
-      if (gesture.moved || object.state.heldBy === this.playerId) {
+      // down where it floats. A card still in your hand just goes back.
+      if (object.state.containerId && !object.state.drag) {
+        if (object.state.heldBy === this.playerId) this.#dispatch("release", gesture.objectId);
+        else this.#select(gesture.objectId);
+      } else if (gesture.moved || object.state.heldBy === this.playerId) {
         const { x, y } = object.state.drag || object.state;
         this.#dispatch("drop", gesture.objectId, { x, y });
       } else {
@@ -237,6 +281,7 @@ export class PieceInteraction {
 
   pointerLeave() {
     this.hoveredId = null;
+    this.onHover(null);
   }
 
   // Esc: put the selected object back where it was.
@@ -249,14 +294,20 @@ export class PieceInteraction {
     return findObject(this.manifest, this.store.getState(), id);
   }
 
-  // Not in a container, and not held by someone else.
+  // Loose or in your own hand, and not held by someone else.
   #reachable(object) {
-    return !object.state.containerId && (!object.state.heldBy || object.state.heldBy === this.playerId);
+    const { containerId, heldBy } = object.state;
+    return (!containerId || containerId === this.#ownHand()) && (!heldBy || heldBy === this.playerId);
+  }
+
+  #ownHand() {
+    const seatId = seatOf(this.store.getState(), this.playerId);
+    return seatId && handId(seatId);
   }
 
   #canMove(id) {
     const object = this.#object(id);
-    return Boolean(object && this.#reachable(object) && !object.state.locked);
+    return Boolean(object && object.def.kind !== "hand" && this.#reachable(object) && !object.state.locked);
   }
 
   #canDrawFrom(id) {
@@ -288,10 +339,11 @@ export class PieceInteraction {
   #startDrag(gesture) {
     if (!this.#select(gesture.objectId)) return false;
     const object = this.#object(gesture.objectId).state;
-    // A held object may be floating away from its resting spot.
+    // A held object may be floating away from its resting spot. A card in a
+    // hand has no spot of its own, so it centers on the pointer.
     const { x, y } = object.drag || object;
     const point = this.tablePoint(gesture.start.x, gesture.start.y, gesture.objectId);
-    gesture.offset = point ? [x - point[0], y - point[1]] : [0, 0];
+    gesture.offset = point && x != null ? [x - point[0], y - point[1]] : [0, 0];
     this.setCursor("grabbing");
     return true;
   }

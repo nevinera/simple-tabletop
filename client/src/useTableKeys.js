@@ -6,8 +6,8 @@ const FINE_ROTATE_STEP = 22.5;
 
 // Wires keys to the table: held camera keys drive continuous motion, digits
 // jump to or (with Shift) save camera points, F/R/T flip and rotate the
-// selected or hovered object, G draws from the hovered deck, L locks and
-// unlocks, and Esc calls onEscape.
+// selected or hovered object, G draws from the hovered deck (Shift+G into
+// your hand), L locks and unlocks, and Esc calls onEscape.
 export function useTableKeys({ scene, cameraPoints, interaction, onEscape }) {
   useEffect(() => {
     if (!scene) return undefined;
@@ -38,8 +38,7 @@ export function useTableKeys({ scene, cameraPoints, interaction, onEscape }) {
           interaction?.rotate(event.shiftKey ? FINE_ROTATE_STEP : ROTATE_STEP);
           return;
         case "KeyG":
-          // Shift+G will draw into your hand, once hands exist.
-          if (!event.repeat && !event.shiftKey) interaction?.draw();
+          if (!event.repeat) interaction?.draw(undefined, { toHand: event.shiftKey });
           return;
         case "KeyL":
           if (!event.repeat) interaction?.lock();

@@ -2,11 +2,16 @@
 // shape the table renders from: piece types merged in, defaults filled, and
 // every image resolved to an absolute URL.
 
+import { HALF_SIDES, SEAT_ORDER, SIDES } from "../state/seats";
+
 export const DEFAULT_TABLE_COLOR = "#2e6b3f";
 const LAYER_IDS = ["board", "pieces"];
 const SHAPES = ["rect", "circle"];
 const CONTAINER_KINDS = ["deck", "bag", "bowl", "tray"];
 const CAMERA_SLOTS = /^[0-9]$/;
+const MAX_SEATS = 8;
+const HAND_PREFIX = "hand-"; // hand containers' ids; see state/seats.js
+const SEAT_COLORS = ["#c0392b", "#2980b9", "#27ae60", "#8e44ad", "#d35400", "#16a085", "#c2185b", "#7f8c8d"];
 
 export class ManifestError extends Error {}
 
@@ -24,7 +29,7 @@ export async function fetchManifest(url) {
 
 export function normalizeManifest(raw, baseUrl) {
   if (raw?.formatVersion !== 1) throw new ManifestError("formatVersion must be 1.");
-  for (const field of ["id", "name", "table", "layers", "seats", "pieces"]) {
+  for (const field of ["id", "name", "table", "layers", "pieces"]) {
     if (raw[field] == null) throw new ManifestError(`Missing required field "${field}".`);
   }
 
@@ -47,7 +52,10 @@ export function normalizeManifest(raw, baseUrl) {
     name: raw.name,
     table: normalizeTable(raw.table, image),
     layers,
-    seats: raw.seats.map(normalizeSeat),
+    hands: normalizeHands(raw.hands),
+    listedSeats: Boolean(raw.seats),
+    maxSeats: raw.seats ? raw.seats.length : normalizeMaxSeats(raw.maxSeats),
+    seats: raw.seats ? normalizeSeats(raw.seats) : madeUpSeats(),
     pieces,
     containers: normalizeContainers(raw.containers || [], pieces, layers, image),
     labels: (raw.labels || []).map((label, i) => normalizeLabel(label, i, layers)),
@@ -64,6 +72,7 @@ function normalizeContainers(rawContainers, pieces, layers, image) {
     if (!container?.id) throw new ManifestError("Every container needs an id.");
     if (ids.has(container.id)) throw new ManifestError(`Duplicate container id "${container.id}".`);
     if (pieceIds.has(container.id)) throw new ManifestError(`${where} has the same id as a piece.`);
+    if (container.id.startsWith(HAND_PREFIX)) throw new ManifestError(`${where} can't start with "${HAND_PREFIX}".`);
     ids.add(container.id);
     if (!CONTAINER_KINDS.includes(container.kind)) throw new ManifestError(`${where} has unknown kind "${container.kind}".`);
     if (!Array.isArray(container.position)) throw new ManifestError(`${where} needs a position.`);
@@ -128,8 +137,49 @@ function findLayer(layers, id, where) {
   return layer;
 }
 
-function normalizeSeat(seat) {
+function normalizeHands(hands) {
+  if (hands == null || hands === false) return { enabled: false, passing: false };
+  if (hands === true) return { enabled: true, passing: true };
+  if (typeof hands !== "object") throw new ManifestError("hands must be true, false, or { passing }.");
+  return { enabled: true, passing: hands.passing ?? true };
+}
+
+function normalizeMaxSeats(maxSeats) {
+  if (maxSeats == null) return MAX_SEATS;
+  if (!Number.isInteger(maxSeats) || maxSeats < 1 || maxSeats > MAX_SEATS) {
+    throw new ManifestError(`maxSeats must be 1 to ${MAX_SEATS}.`);
+  }
+  return maxSeats;
+}
+
+function normalizeSeats(rawSeats) {
+  if (!Array.isArray(rawSeats) || rawSeats.length === 0 || rawSeats.length > MAX_SEATS) {
+    throw new ManifestError(`seats must list 1 to ${MAX_SEATS} seats.`);
+  }
+  const ids = new Set();
+  return rawSeats.map((rawSeat, i) => {
+    const seat = normalizeSeat(rawSeat, i);
+    if (ids.has(seat.id)) throw new ManifestError(`Duplicate seat id "${seat.id}".`);
+    ids.add(seat.id);
+    return seat;
+  });
+}
+
+// Without listed seats, the table offers the eight half-sides; see
+// state/seats.js for how they open up.
+function madeUpSeats() {
+  return SEAT_ORDER.map((side, i) => ({ id: side, name: side, side, color: SEAT_COLORS[i], hand: null, cameras: {} }));
+}
+
+function normalizeSeat(seat, index) {
   if (!seat?.id || !seat.name) throw new ManifestError("Every seat needs an id and a name.");
+  if (![...SIDES, ...HALF_SIDES].includes(seat.side)) {
+    throw new ManifestError(`Seat "${seat.id}" needs a side, like "south" or "south-left".`);
+  }
+  const hand = seat.hand ?? null;
+  if (hand && (!Array.isArray(hand.position) || !(hand.size?.[0] > 0 && hand.size?.[1] > 0))) {
+    throw new ManifestError(`Seat "${seat.id}" hand needs a position and a size.`);
+  }
   const cameras = {};
   for (const [slot, view] of Object.entries(seat.cameras || {})) {
     if (!CAMERA_SLOTS.test(slot)) throw new ManifestError(`Seat "${seat.id}" camera slot "${slot}" must be 0 to 9.`);
@@ -138,7 +188,14 @@ function normalizeSeat(seat) {
     }
     cameras[slot] = { position: view.position, target: view.target };
   }
-  return { id: seat.id, name: seat.name, color: seat.color || null, cameras };
+  return {
+    id: seat.id,
+    name: seat.name,
+    side: seat.side,
+    color: seat.color || SEAT_COLORS[index],
+    hand: hand && { position: hand.position, rotation: hand.rotation || 0, size: hand.size },
+    cameras,
+  };
 }
 
 function isPoint(value) {
@@ -201,6 +258,7 @@ function normalizePiece(rawPiece, raw, layers, image, contained) {
   const where = `Piece "${piece.id}"`;
 
   if (!piece.id) throw new ManifestError("Every piece needs an id.");
+  if (piece.id.startsWith(HAND_PREFIX)) throw new ManifestError(`${where} can't start with "${HAND_PREFIX}".`);
   if (!SHAPES.includes(piece.shape)) throw new ManifestError(`${where} has unsupported shape "${piece.shape}".`);
   if (!Array.isArray(piece.size) || !(piece.size[0] > 0)) throw new ManifestError(`${where} needs a size.`);
   if (!piece.face) throw new ManifestError(`${where} needs a face image.`);

@@ -13,7 +13,7 @@ function manifest(overrides = {}) {
       { id: "board", thickness: 0.3 },
       { id: "pieces", thickness: 0.03 },
     ],
-    seats: [{ id: "south", name: "South" }],
+    seats: [{ id: "south", name: "South", side: "south" }],
     pieceTypes: {
       card: { shape: "rect", size: [6.3, 8.8], back: "assets/back.svg", categories: ["cards"] },
     },
@@ -78,7 +78,7 @@ describe("normalizeManifest", () => {
 
   it("keeps seat cameras", () => {
     const view = { position: [45, 60, -10], target: [45, 0, 45] };
-    const seats = [{ id: "south", name: "South", cameras: { 0: view } }];
+    const seats = [{ id: "south", name: "South", side: "south", cameras: { 0: view } }];
     expect(normalizeManifest(manifest({ seats }), BASE).seats[0].cameras).toEqual({ 0: view });
   });
 
@@ -119,6 +119,17 @@ describe("normalizeManifest", () => {
     }]);
   });
 
+  it("makes up eight seats when the module lists none, and reads hands", () => {
+    const normalized = normalizeManifest(manifest({ seats: undefined, hands: { passing: false } }), BASE);
+    expect(normalized.listedSeats).toBe(false);
+    expect(normalized.maxSeats).toBe(8);
+    expect(normalized.seats.map((seat) => seat.id)).toEqual([
+      "south-left", "north-left", "east-left", "west-left", "south-right", "north-right", "east-right", "west-right",
+    ]);
+    expect(normalized.hands).toEqual({ enabled: true, passing: false });
+    expect(normalizeManifest(manifest(), BASE).hands).toEqual({ enabled: false, passing: false });
+  });
+
   it("lets an empty deck take anything", () => {
     const containers = [{ id: "pile", kind: "deck", position: [10, 10], size: [6.3, 8.8] }];
     expect(normalizeManifest(manifest({ containers }), BASE).containers[0].accepts).toBeNull();
@@ -144,7 +155,7 @@ describe("normalizeManifest", () => {
       pieces: [{ id: "AS", type: "card", face: { sheet: "nope", index: 0 }, position: [0, 0] }],
     }, /unknown sheet/],
     ["a bad camera slot", {
-      seats: [{ id: "s", name: "S", cameras: { 10: { position: [0, 0, 0], target: [0, 0, 0] } } }],
+      seats: [{ id: "s", name: "S", side: "south", cameras: { 10: { position: [0, 0, 0], target: [0, 0, 0] } } }],
     }, /0 to 9/],
     ["a label without text", { labels: [{ position: [0, 0] }] }, /needs text/],
     ["an unknown container kind", { containers: [{ id: "c", kind: "box", position: [0, 0] }] }, /unknown kind/],
@@ -161,6 +172,9 @@ describe("normalizeManifest", () => {
     ["a container with a piece's id", {
       containers: [{ id: "AS", kind: "bag", position: [0, 0] }],
     }, /same id/],
+    ["a seat without a side", { seats: [{ id: "s", name: "S" }] }, /side/],
+    ["too many seats", { seats: undefined, maxSeats: 9 }, /maxSeats/],
+    ["a piece id that hands use", { pieces: [{ id: "hand-x", type: "card", face: "a.svg", position: [0, 0] }] }, /hand-/],
     ["an empty accepts matcher", {
       containers: [{ id: "c", kind: "bag", position: [0, 0], accepts: [{}] }],
     }, /accepts/],

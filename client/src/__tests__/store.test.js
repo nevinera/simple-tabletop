@@ -8,7 +8,7 @@ const manifest = normalizeManifest({
   name: "Test",
   table: { size: [90, 90] },
   layers: [{ id: "pieces", thickness: 0.03 }],
-  seats: [{ id: "south", name: "South" }],
+  seats: [{ id: "south", name: "South", side: "south" }],
   pieces: [{ id: "AS", shape: "rect", size: [6.3, 8.8], face: "AS.svg", position: [10, 20] }],
 }, "https://example.com/manifest.json");
 

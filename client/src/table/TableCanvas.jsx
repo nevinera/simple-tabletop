@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { TableScene } from "./scene";
 import { PieceInteraction } from "./interaction";
-import { isTypingTarget } from "./keys";
 
-// Mounts a TableScene, hands it to the parent through onScene, shows the
-// manifest on it, re-renders pieces whenever the store changes, and turns
-// pointer events into piece actions.
-export default function TableCanvas({ manifest, store, playerId, onScene, onError }) {
+// Mounts a TableScene, shows the manifest on it, re-renders pieces whenever
+// the store changes, and turns pointer events into piece actions. The scene
+// and the PieceInteraction go up to the parent through onScene and
+// onInteraction, for keys and menus.
+export default function TableCanvas({ manifest, store, playerId, onScene, onInteraction, onContextMenu, onError }) {
   const containerRef = useRef(null);
   const [scene, setScene] = useState(null);
 
@@ -42,7 +42,9 @@ export default function TableCanvas({ manifest, store, playerId, onScene, onErro
       clampToTable: (point) => scene.clampToTable(point),
       setCameraEnabled: (enabled) => scene.setCameraEnabled(enabled),
       setCursor: (cursor) => { canvas.style.cursor = cursor; },
+      onContextMenu: (menu) => onContextMenu(menu),
     });
+    onInteraction(interaction);
 
     // Capture phase, so a piece gesture can turn the camera off before
     // OrbitControls sees the same pointerdown.
@@ -52,23 +54,22 @@ export default function TableCanvas({ manifest, store, playerId, onScene, onErro
     const onPointerMove = (event) => interaction.pointerMove(event);
     const onPointerUp = (event) => interaction.pointerUp(event);
     const onPointerCancel = (event) => interaction.pointerCancel(event);
-    const onKeyDown = (event) => {
-      if (event.code === "Escape" && !isTypingTarget(event.target)) interaction.cancelSelection();
-    };
+    const onPointerLeave = () => interaction.pointerLeave();
 
     canvas.addEventListener("pointerdown", onPointerDown, { capture: true });
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerup", onPointerUp);
     canvas.addEventListener("pointercancel", onPointerCancel);
-    window.addEventListener("keydown", onKeyDown);
+    canvas.addEventListener("pointerleave", onPointerLeave);
     return () => {
+      onInteraction(null);
       canvas.removeEventListener("pointerdown", onPointerDown, { capture: true });
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerup", onPointerUp);
       canvas.removeEventListener("pointercancel", onPointerCancel);
-      window.removeEventListener("keydown", onKeyDown);
+      canvas.removeEventListener("pointerleave", onPointerLeave);
     };
-  }, [scene, store, manifest, playerId]);
+  }, [scene, store, manifest, playerId, onInteraction, onContextMenu]);
 
   return <div className="table-canvas" ref={containerRef} />;
 }

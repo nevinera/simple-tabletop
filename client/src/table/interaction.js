@@ -5,6 +5,7 @@
 // - Press on a piece and drag to move it; releasing drops it.
 // - With a piece selected, a mouse click on open table places it there, and
 //   on touch a tap-and-hold does. A plain tap on open table cancels.
+// - Right-click a piece, or tap and hold it on touch, for its context menu.
 // - Anything else (empty table, fixed pieces) goes to the camera.
 //
 // The scene supplies hit testing through `pick` and `tablePoint`, so this
@@ -21,15 +22,17 @@ export class PieceInteraction {
     clampToTable, // ([x, y]) -> [x, y]
     setCameraEnabled, // (bool)
     setCursor, // (css cursor string)
+    onContextMenu = () => {}, // ({ pieceId, clientX, clientY, pointerType })
     schedule = setTimeout,
     unschedule = clearTimeout,
   }) {
-    Object.assign(this, { store, playerId, pick, tablePoint, clampToTable, setCameraEnabled, setCursor });
+    Object.assign(this, { store, playerId, pick, tablePoint, clampToTable, setCameraEnabled, setCursor, onContextMenu });
     // Wrapped, since the browser's timer functions throw when called as methods.
     this.schedule = (fn, ms) => schedule(fn, ms);
     this.unschedule = (id) => unschedule(id);
     this.defs = new Map(manifest.pieces.map((def) => [def.id, def]));
     this.gesture = null;
+    this.hoveredId = null;
   }
 
   selectedId() {
@@ -37,16 +40,48 @@ export class PieceInteraction {
     return Object.keys(pieces).find((id) => pieces[id].heldBy === this.playerId) || null;
   }
 
+  // The piece that flip and rotate keys act on: the selected one, or else
+  // the one under the mouse.
+  actionTarget() {
+    const selected = this.selectedId();
+    if (selected) return selected;
+    return this.hoveredId && this.#canMove(this.hoveredId) ? this.hoveredId : null;
+  }
+
+  flip(pieceId = this.actionTarget()) {
+    if (pieceId) this.#dispatch("flip", pieceId);
+  }
+
+  // degrees: positive is clockwise.
+  rotate(degrees, pieceId = this.actionTarget()) {
+    if (pieceId) this.#dispatch("rotate", pieceId, { degrees });
+  }
+
   // Returns true when the event starts a piece gesture, so the caller can
   // capture the pointer.
   pointerDown(event) {
-    if (event.button !== 0 || !event.isPrimary) return false;
+    if (!event.isPrimary) return false;
     const start = { x: event.clientX, y: event.clientY };
-    const hit = this.pick(event.clientX, event.clientY);
 
+    // Right-drag pans, so the camera keeps it; a right-click without moving
+    // opens a menu on release.
+    if (event.button === 2) {
+      this.gesture = { kind: "secondary", pointerId: event.pointerId, start, moved: false };
+      return false;
+    }
+    if (event.button !== 0) return false;
+
+    const hit = this.pick(event.clientX, event.clientY);
     if (hit && this.#canMove(hit)) {
       this.setCameraEnabled(false);
-      this.gesture = { kind: "piece", pointerId: event.pointerId, pieceId: hit, start, moved: false };
+      const gesture = { kind: "piece", pointerId: event.pointerId, pieceId: hit, start, moved: false, done: false };
+      this.gesture = gesture;
+      if (event.pointerType === "touch") {
+        gesture.timer = this.schedule(() => {
+          gesture.done = true;
+          this.onContextMenu({ pieceId: hit, clientX: start.x, clientY: start.y, pointerType: event.pointerType });
+        }, LONG_PRESS_MS);
+      }
       return true;
     }
 
@@ -67,11 +102,12 @@ export class PieceInteraction {
     if (!gesture) {
       if (event.pointerType === "mouse") {
         const hit = this.pick(event.clientX, event.clientY);
-        this.setCursor(hit && this.#canMove(hit) ? "grab" : "");
+        this.hoveredId = hit && this.#canMove(hit) ? hit : null;
+        this.setCursor(this.hoveredId ? "grab" : "");
       }
       return;
     }
-    if (event.pointerId !== gesture.pointerId) return;
+    if (event.pointerId !== gesture.pointerId || gesture.done) return;
 
     if (!gesture.moved) {
       const dx = event.clientX - gesture.start.x;
@@ -97,7 +133,16 @@ export class PieceInteraction {
     const gesture = this.gesture;
     if (!gesture || event.pointerId !== gesture.pointerId) return;
 
-    if (gesture.kind === "piece") {
+    if (gesture.done) {
+      // A long press already did its thing.
+    } else if (gesture.kind === "secondary") {
+      if (!gesture.moved) {
+        const hit = this.pick(event.clientX, event.clientY);
+        if (hit && this.#canMove(hit)) {
+          this.onContextMenu({ pieceId: hit, clientX: event.clientX, clientY: event.clientY, pointerType: event.pointerType });
+        }
+      }
+    } else if (gesture.kind === "piece") {
       const piece = this.store.getState().pieces[gesture.pieceId];
       if (gesture.moved) {
         const { x, y } = piece.drag || piece;
@@ -108,7 +153,7 @@ export class PieceInteraction {
       } else {
         this.#select(gesture.pieceId);
       }
-    } else if (!gesture.moved && !gesture.done) {
+    } else if (!gesture.moved) {
       const selected = this.selectedId();
       if (selected && event.pointerType === "touch") this.#dispatch("release", selected);
       else if (selected) this.#place(selected, event.clientX, event.clientY);
@@ -123,6 +168,10 @@ export class PieceInteraction {
     if (!gesture || event.pointerId !== gesture.pointerId) return;
     if (gesture.kind === "piece" && gesture.moved) this.#dispatch("release", gesture.pieceId);
     this.#end();
+  }
+
+  pointerLeave() {
+    this.hoveredId = null;
   }
 
   // Esc: put the selected piece back where it was.

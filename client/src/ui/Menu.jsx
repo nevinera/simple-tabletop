@@ -1,7 +1,7 @@
 // A bar button that opens a panel. Only one menu is open at a time; the
-// parent tracks which one in openMenu.
+// parent tracks which one in openMenu. A menu that becomes disabled closes.
 export function Menu({ id, label, icon, openMenu, setOpenMenu, disabled, title, children }) {
-  const open = openMenu === id;
+  const open = openMenu === id && !disabled;
   return (
     <div className="menu">
       <button

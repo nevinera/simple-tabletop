@@ -26,11 +26,13 @@ let store;
 let interaction;
 let camera;
 let timers;
+let menus;
 
 beforeEach(() => {
   store = createTableStore(manifest);
   camera = { enabled: true };
   timers = [];
+  menus = [];
   interaction = new PieceInteraction({
     store,
     manifest,
@@ -40,6 +42,7 @@ beforeEach(() => {
     clampToTable: ([x, y]) => [Math.min(90, Math.max(0, x)), Math.min(90, Math.max(0, y))],
     setCameraEnabled: (enabled) => { camera.enabled = enabled; },
     setCursor: () => {},
+    onContextMenu: (menu) => menus.push(menu),
     schedule: (fn, ms) => { timers.push({ fn, ms }); return timers.length; },
     unschedule: (id) => { if (id) timers[id - 1] = null; },
   });
@@ -130,10 +133,60 @@ describe("PieceInteraction", () => {
     expect(piece("AS")).toMatchObject({ x: 10, y: 10, heldBy: "them" });
   });
 
-  it("ignores right-drags, which pan", () => {
-    interaction.pointerDown(pointer(10, 10, { button: 2 }));
+  it("leaves right-drags to the camera, which pans", () => {
+    drag([10, 10], [50, 50], { button: 2 });
     expect(camera.enabled).toBe(true);
-    expect(interaction.gesture).toBeNull();
+    expect(menus).toEqual([]);
+    expect(piece("AS")).toMatchObject({ x: 10, y: 10, heldBy: null });
+  });
+
+  it("opens a piece's context menu on right-click", () => {
+    click(10, 10, { button: 2 });
+    expect(menus).toEqual([{ pieceId: "AS", clientX: 10, clientY: 10, pointerType: "mouse" }]);
+    expect(piece("AS").heldBy).toBeNull();
+  });
+
+  it("has no context menu for fixed pieces or open table", () => {
+    click(45, 45, { button: 2 });
+    click(70, 70, { button: 2 });
+    expect(menus).toEqual([]);
+  });
+
+  describe("flip and rotate", () => {
+    it("act on the selected piece", () => {
+      click(10, 10);
+      interaction.flip();
+      interaction.rotate(-45);
+      expect(piece("AS")).toMatchObject({ faceUp: false, rotation: 315, heldBy: "me" });
+    });
+
+    it("act on the hovered piece when nothing is selected", () => {
+      interaction.pointerMove(pointer(30, 30));
+      interaction.flip();
+      interaction.rotate(22.5);
+      expect(piece("AH")).toMatchObject({ faceUp: false, rotation: 22.5, heldBy: null });
+    });
+
+    it("prefer the selected piece over the hovered one", () => {
+      click(10, 10);
+      interaction.pointerMove(pointer(30, 30));
+      interaction.flip();
+      expect(piece("AS").faceUp).toBe(false);
+      expect(piece("AH").faceUp).toBe(true);
+    });
+
+    it("do nothing once the pointer leaves the table", () => {
+      interaction.pointerMove(pointer(30, 30));
+      interaction.pointerLeave();
+      interaction.flip();
+      expect(piece("AH").faceUp).toBe(true);
+    });
+
+    it("leave fixed pieces alone", () => {
+      interaction.pointerMove(pointer(45, 45));
+      interaction.flip();
+      expect(piece("mat").faceUp).toBe(true);
+    });
   });
 
   describe("on touch", () => {
@@ -147,6 +200,23 @@ describe("PieceInteraction", () => {
       expect(piece("AS")).toMatchObject({ x: 70, y: 20, heldBy: null });
       interaction.pointerUp(pointer(70, 20, touch));
       expect(piece("AS")).toMatchObject({ x: 70, y: 20, heldBy: null });
+    });
+
+    it("opens a piece's context menu with a tap and hold, without selecting it", () => {
+      interaction.pointerDown(pointer(10, 10, touch));
+      timers.at(-1).fn();
+      interaction.pointerMove(pointer(40, 40, touch));
+      interaction.pointerUp(pointer(40, 40, touch));
+      expect(menus).toEqual([{ pieceId: "AS", clientX: 10, clientY: 10, pointerType: "touch" }]);
+      expect(piece("AS")).toMatchObject({ x: 10, y: 10, heldBy: null, drag: null });
+      expect(camera.enabled).toBe(true);
+    });
+
+    it("drags instead of opening a menu when the finger moves first", () => {
+      drag([10, 10], [40, 40], touch);
+      expect(timers.filter(Boolean)).toHaveLength(0);
+      expect(menus).toEqual([]);
+      expect(piece("AS")).toMatchObject({ x: 40, y: 40 });
     });
 
     it("cancels with a plain tap on open table", () => {

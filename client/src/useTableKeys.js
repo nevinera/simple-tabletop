@@ -1,9 +1,13 @@
 import { useEffect } from "react";
 import { cameraSlotForKey, isTypingTarget, motionFromKeys } from "./table/keys";
 
-// Wires the camera keys to the scene: held keys drive continuous motion, and
-// digits jump to or (with Shift) save camera points.
-export function useTableKeys(scene, cameraPoints) {
+const ROTATE_STEP = 45;
+const FINE_ROTATE_STEP = 22.5;
+
+// Wires keys to the table: held camera keys drive continuous motion, digits
+// jump to or (with Shift) save camera points, F/R/T flip and rotate the
+// selected or hovered piece, and Esc calls onEscape.
+export function useTableKeys({ scene, cameraPoints, interaction, onEscape }) {
   useEffect(() => {
     if (!scene) return undefined;
     const pressed = new Set();
@@ -18,6 +22,20 @@ export function useTableKeys(scene, cameraPoints) {
           else cameraPoints.jump(slot);
         }
         return;
+      }
+      switch (event.code) {
+        case "Escape":
+          onEscape();
+          return;
+        case "KeyF":
+          if (!event.repeat) interaction?.flip();
+          return;
+        case "KeyR":
+          interaction?.rotate(-(event.shiftKey ? FINE_ROTATE_STEP : ROTATE_STEP));
+          return;
+        case "KeyT":
+          interaction?.rotate(event.shiftKey ? FINE_ROTATE_STEP : ROTATE_STEP);
+          return;
       }
       pressed.add(event.code);
       update();
@@ -41,5 +59,5 @@ export function useTableKeys(scene, cameraPoints) {
       window.removeEventListener("blur", onBlur);
       scene.setMotion("keys", null);
     };
-  }, [scene, cameraPoints]);
+  }, [scene, cameraPoints, interaction, onEscape]);
 }

@@ -5,6 +5,8 @@ import { fetchManifest } from "./manifest/manifest";
 import { createTableStore } from "./state/store";
 import { useViewportMode } from "./useViewportMode";
 import { useTableKeys } from "./useTableKeys";
+import { useSelectedPiece } from "./useSelectedPiece";
+import { ContextMenu } from "./ui/ContextMenu";
 import { Toolbar } from "./ui/Toolbar";
 import { ActionBar } from "./ui/ActionBar";
 import { Joysticks } from "./ui/Joysticks";
@@ -20,6 +22,8 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
   const [manifest, setManifest] = useState(null);
   const [error, setError] = useState(null);
   const [scene, setScene] = useState(null);
+  const [interaction, setInteraction] = useState(null);
+  const [contextMenu, setContextMenu] = useState(null);
   const [openMenu, setOpenMenu] = useState(null);
   const [joysticksVisible, setJoysticksVisible] = useState(false);
   const [desktopActionBar, setDesktopActionBar] = useDesktopActionBarSetting();
@@ -51,9 +55,21 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
       save: (slot) => scene && slots.save(slot, scene.cameraView()),
     };
   }, [scene, gameId]);
-  useTableKeys(scene, cameraPoints);
+  const selectedPiece = useSelectedPiece(store, LOCAL_PLAYER_ID);
+  const closeContextMenu = useCallback(() => setContextMenu(null), []);
+  const openContextMenu = useCallback((menu) => {
+    setOpenMenu(null);
+    setContextMenu(menu);
+  }, []);
+  const onEscape = useCallback(() => {
+    if (openMenu) setOpenMenu(null);
+    else if (contextMenu) setContextMenu(null);
+    else interaction?.cancelSelection();
+  }, [openMenu, contextMenu, interaction]);
+  useTableKeys({ scene, cameraPoints, interaction, onEscape });
 
   useCloseMenuOnOutsideClick(openMenu, setOpenMenu);
+  useCloseMenuOnOutsideClick(contextMenu, closeContextMenu);
   const menus = { openMenu, setOpenMenu };
   const hideJoysticks = useCallback(() => setJoysticksVisible(false), []);
 
@@ -72,14 +88,26 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
           store={store}
           playerId={LOCAL_PLAYER_ID}
           onScene={setScene}
+          onInteraction={setInteraction}
+          onContextMenu={openContextMenu}
           onError={setError}
         />
         {joysticksVisible && <Joysticks scene={scene} onIdle={hideJoysticks} />}
         {error && <div className="table-error" role="alert">{error.message}</div>}
       </main>
+      {contextMenu && interaction && (
+        <ContextMenu
+          menu={contextMenu}
+          interaction={interaction}
+          popover={contextMenu.pointerType === "touch" || layout !== "desktop"}
+          onClose={closeContextMenu}
+        />
+      )}
       {showActionBar && (
         <ActionBar
           scene={scene}
+          interaction={interaction}
+          selectedPiece={selectedPiece}
           cameraPoints={cameraPoints}
           menus={menus}
           joysticksVisible={joysticksVisible}

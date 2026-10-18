@@ -176,6 +176,12 @@ export class PieceInteraction {
     this.#dispatch("shuffle", deckId, { order });
   }
 
+  // Puts a deck's cards in the order a player chose, top first. Returns
+  // whether it took, which it won't if the deck changed meanwhile.
+  reorder(deckId, order) {
+    return this.#dispatch("reorder", deckId, { order }).ok;
+  }
+
   // Fans a deck out toward `direction`, or closes it with null, and with
   // distance, changes its spacing. A fan that would run into something wiggles.
   splay(deckId, { direction, distance } = {}) {

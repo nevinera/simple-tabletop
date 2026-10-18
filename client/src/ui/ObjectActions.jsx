@@ -4,7 +4,7 @@
 // bags and stacks draw,
 // pieces flip and can become decks, locked things only unlock, and cards in
 // your hand or a deck's fan only magnify. Decks also splay, locked or not. onDone runs after any action, so a menu can close.
-export function ObjectActions({ interaction, objectId, onMagnify, onDone = () => {} }) {
+export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onDone = () => {} }) {
   const object = interaction.describe(objectId);
   if (!object) return <p className="menu-note">Someone else has that.</p>;
 
@@ -74,6 +74,11 @@ export function ObjectActions({ interaction, objectId, onMagnify, onDone = () =>
             ))}
           </div>
         </>
+      )}
+      {deck && onReorder && object.count > 1 && (
+        <button type="button" className="menu-item" onClick={act(() => onReorder(objectId))}>
+          Reorder…
+        </button>
       )}
       {object.canFlip && movable && (
         <button type="button" className="menu-item" onClick={act(() => interaction.flip(objectId))}>

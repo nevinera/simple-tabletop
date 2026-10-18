@@ -10,6 +10,7 @@ import { sameIds, useStoreValue } from "./useStoreValue";
 import { useMagnifyKey } from "./useMagnifyKey";
 import { TableSounds, soundFor } from "./sound/sounds";
 import { handId, openSeats, seatName, seatOf, seatView } from "./state/seats";
+import { pieceDef } from "./state/objects";
 import { magnifiable, visibleSide } from "./state/visibility";
 import { SeatPicker } from "./ui/SeatPicker";
 import { HandStrip } from "./ui/HandStrip";
@@ -17,6 +18,7 @@ import { Magnifier } from "./ui/Magnifier";
 import { ContextMenu } from "./ui/ContextMenu";
 import { Toolbar } from "./ui/Toolbar";
 import { HelpPanel } from "./ui/HelpPanel";
+import { ReorderPanel } from "./ui/ReorderPanel";
 import { ActionBar } from "./ui/ActionBar";
 import { Joysticks } from "./ui/Joysticks";
 
@@ -38,6 +40,7 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
   const [contextMenu, setContextMenu] = useState(null);
   const [openMenu, setOpenMenu] = useState(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [reordering, setReordering] = useState(null); // deck id
   const [joysticksVisible, setJoysticksVisible] = useState(false);
   const [desktopActionBar, setDesktopActionBar] = useStoredFlag(ACTION_BAR_SETTING, false);
   const [handStripVisible, setHandStripVisible] = useStoredFlag(HAND_STRIP_SETTING, true);
@@ -126,12 +129,18 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
   }, []);
   const closeHelp = useCallback(() => setHelpOpen(false), []);
   const onEscape = useCallback(() => {
-    if (helpOpen) setHelpOpen(false);
+    if (reordering) setReordering(null);
+    else if (helpOpen) setHelpOpen(false);
     else if (openMenu) setOpenMenu(null);
     else if (contextMenu) setContextMenu(null);
     else if (magnified) setMagnified(null);
     else interaction?.cancelSelection();
-  }, [helpOpen, openMenu, contextMenu, magnified, interaction]);
+  }, [reordering, helpOpen, openMenu, contextMenu, magnified, interaction]);
+  const startReorder = useCallback((deckId) => {
+    setOpenMenu(null);
+    setReordering(deckId);
+  }, []);
+  const closeReorder = useCallback(() => setReordering(null), []);
   const tableInteraction = seated ? interaction : null;
   useTableKeys({ scene, cameraPoints, interaction: tableInteraction, onEscape, onHelp: toggleHelp });
 
@@ -203,10 +212,21 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
           interaction={interaction}
           popover={contextMenu.pointerType === "touch" || layout !== "desktop"}
           onMagnify={setMagnified}
+          onReorder={startReorder}
           onClose={closeContextMenu}
         />
       )}
       {helpOpen && <HelpPanel touch={layout !== "desktop"} onClose={closeHelp} />}
+      {reordering && interaction && store.getState().containers[reordering] && (
+        <ReorderPanel
+          cards={store.getState().containers[reordering].members.map((id) => {
+            const def = pieceDef(manifest, id);
+            return { id, label: def.id, side: { image: def.face, size: def.size } };
+          })}
+          onSave={(order) => interaction.reorder(reordering, order)}
+          onClose={closeReorder}
+        />
+      )}
       {showActionBar && (
         <ActionBar
           scene={scene}
@@ -218,6 +238,7 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
           menus={menus}
           joysticksVisible={joysticksVisible}
           setJoysticksVisible={setJoysticksVisible}
+          onReorder={startReorder}
         />
       )}
     </div>

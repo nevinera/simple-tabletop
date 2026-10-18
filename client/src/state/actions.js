@@ -110,6 +110,7 @@ export function initialState(manifest) {
 //             plus { spots } for a tray
 //   rotate:   { degrees }, positive is clockwise
 //   shuffle:  { order }, the deck's members in their new order
+//   reorder:  { order }, the same, for an order a player chose
 //   makeDeck: { deckId }, the id for the new deck
 //   splay:    { direction }, a SPLAY_DIRECTIONS key or null to close the
 //             deck up, plus { distance } in cm to change its spacing
@@ -316,12 +317,14 @@ const HANDLERS = {
 
   shuffle({ state, action, def, object }) {
     if (def.kind !== "deck") return reject(state, "Only decks can be shuffled.");
-    const members = object.state.members;
-    const order = action.order;
-    const same = Array.isArray(order) && order.length === members.length &&
-      [...order].sort().join("\n") === [...members].sort().join("\n");
-    if (!same) return reject(state, "shuffle needs the deck's members in a new order.");
-    return save(state, object, { members: [...order] });
+    if (!sameMembers(object.state.members, action.order)) return reject(state, "shuffle needs the deck's members in a new order.");
+    return save(state, object, { members: [...action.order] });
+  },
+
+  reorder({ state, action, def, object }) {
+    if (def.kind !== "deck") return reject(state, "Only decks can be reordered.");
+    if (!sameMembers(object.state.members, action.order)) return reject(state, "The deck changed since you opened it.");
+    return save(state, object, { members: [...action.order] });
   },
 
   makeDeck({ manifest, state, action, kind, def, object }) {
@@ -364,6 +367,11 @@ const HANDLERS = {
     return result;
   },
 };
+
+function sameMembers(members, order) {
+  return Array.isArray(order) && order.length === members.length &&
+    [...order].sort().join("\n") === [...members].sort().join("\n");
+}
 
 // What a deck made during play from `card` remembers about itself.
 function deckSpec(card) {

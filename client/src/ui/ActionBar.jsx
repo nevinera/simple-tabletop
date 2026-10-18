@@ -7,7 +7,7 @@ const ZOOM_STEP = 0.8;
 
 export function ActionBar({
   scene, interaction, selectedObject, cameraPoints, menus, joysticksVisible, setJoysticksVisible, magnifyMode,
-  setMagnifyMode,
+  setMagnifyMode, onReorder,
 }) {
   return (
     <nav className="action-bar" aria-label="Action bar">
@@ -22,7 +22,7 @@ export function ActionBar({
         title={selectedObject ? "Act on what you've selected" : "Select something to act on it"}
         {...menus}
       >
-        <ObjectActions interaction={interaction} objectId={selectedObject} />
+        <ObjectActions interaction={interaction} objectId={selectedObject} onReorder={onReorder} />
       </Menu>
       <button type="button" className="bar-button" aria-label="Zoom in" onClick={() => scene?.zoomBy(ZOOM_STEP)}>
         <span aria-hidden="true">＋</span>

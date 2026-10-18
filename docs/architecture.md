@@ -163,6 +163,7 @@ There's no free-form multi-select. To move or roll several things together, put 
 | `rotate`   | turn a piece or container by some degrees, clockwise when positive |
 | `lock`     | toggle `locked`                                                |
 | `shuffle`  | replace a container's `member_keys` with a new order            |
+| `reorder`  | the same, for an order a player chose; refused if the deck changed meanwhile |
 | `roll`     | set new `value`s for one die or every die in a tray, and new `spots` in a tray |
 | `draw`     | take a deck's top card, a bag's `pick`, or a new piece from an infinite bag; the drawing player holds it, or with `toHand` it goes in their hand |
 | `makeDeck` | turn a loose card into a new deck holding just that card        |
@@ -171,7 +172,8 @@ There's no free-form multi-select. To move or roll several things together, put 
 
 `flip`, `rotate`, and `lock` also work on things nobody holds, so players can act on what they're pointing at.
 Nobody can act on something someone else holds. Locked things can't move, flip, or rotate, but a locked deck can
-still be drawn from and shuffled. Flipping a deck turns it over: `face_up` toggles and `member_keys` reverses,
+still be drawn from, shuffled, and reordered. Reordering shows the player every card's face, even in a face-down
+deck. Flipping a deck turns it over: `face_up` toggles and `member_keys` reverses,
 so the bottom card comes out on top.
 
 Objects on the same layer can't overlap. A drop, rotation, or splay that would overlap something is refused,

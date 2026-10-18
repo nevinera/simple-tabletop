@@ -138,4 +138,5 @@ Update docs/manifest-format.md before building on them.
 10. **Standees.** Upright cut-out figures in clear holders, as thick as tiles. The holder is the footprint, and
     turning replaces flipping.
 11. **Splay.** Cards dropped on cards like them make decks. Decks fan out left, right, away, or toward, by a
-    spacing from the module or the player, and any card in the fan can be pulled out.
+    spacing from the module or the player, and any card in the fan can be pulled out. Reorder shows a deck's
+    faces in a list to drag into order.

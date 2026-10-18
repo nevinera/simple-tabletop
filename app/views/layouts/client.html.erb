@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Simple Tabletop</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <%= vite_stylesheet_tags("src/main.jsx") %>
+  </head>
+  <body>
+    <%= yield %>
+    <%= vite_script_tags("src/main.jsx", "/client/main.js") %>
+  </body>
+</html>

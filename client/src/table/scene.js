@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { tableToThree, threeToTable } from "./coordinates";
+import { blockers } from "../state/footprint";
+import { tableRotationToThree, tableToThree, threeToTable } from "./coordinates";
 import { FELT_TILE_CM, feltTexture } from "./felt";
 import { buildLabel } from "./labels";
 import { applyPlacement, buildPiece, stackRanks } from "./pieces";
@@ -9,6 +10,8 @@ import { TextureCache } from "./textures";
 
 const BACKGROUND = 0x1b1b1f;
 const TARGET_MARGIN = 0.1; // how far past the table edge the orbit target may go, as a fraction of its size
+const WIGGLE_MS = 250;
+const WIGGLE_DEGREES = 8; // how far a blocked rotation turns before springing back
 
 // Owns the Three scene for one table. Camera views come in and go out in
 // table coordinates; see coordinates.js.
@@ -18,6 +21,7 @@ export class TableScene {
     this.motions = new Map();
     this.content = new THREE.Group();
     this.pieceMeshes = new Map(); // piece id -> mesh
+    this.wiggles = new Map(); // piece id -> { start, direction }
     this.raycaster = new THREE.Raycaster();
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -34,7 +38,7 @@ export class TableScene {
 
     this.camera = new THREE.PerspectiveCamera(45, 1, 0.1, 5000);
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.enableDamping = true;
+    this.controls.enableDamping = false; // the camera stops when the drag stops
     this.controls.screenSpacePanning = false; // pan across the table, not the screen
     this.controls.minPolarAngle = 0.01; // not exactly top-down, so "forward" stays defined
     this.controls.maxPolarAngle = Math.PI / 2 - 0.05; // stay above the table
@@ -78,7 +82,7 @@ export class TableScene {
     pieces.forEach((mesh) => {
       mesh.visible = false;
       this.pieceMeshes.set(mesh.name, mesh);
-      this.content.add(mesh.userData.shadow);
+      this.content.add(mesh.userData.shadow, mesh.userData.ghost);
     });
     if (this.state) this.render(this.state);
   }
@@ -90,7 +94,7 @@ export class TableScene {
     const ranks = stackRanks(this.manifest.pieces, state.pieces);
     for (const def of this.manifest.pieces) {
       const mesh = this.pieceMeshes.get(def.id);
-      if (mesh) applyPlacement(mesh, def, state.pieces[def.id], ranks.get(def.id) || 0);
+      if (mesh) applyPlacement(mesh, def, state.pieces[def.id], ranks.get(def.id) || 0, this.#blocked(def, state));
     }
   }
 
@@ -156,6 +160,12 @@ export class TableScene {
   }
 
   // Continuous camera motion from one input (keys, a joystick). null stops it.
+  // Starts turning a piece the given way, then springs it back: a rotation
+  // that couldn't happen.
+  wiggle(pieceId, degrees) {
+    this.wiggles.set(pieceId, { start: performance.now(), direction: Math.sign(degrees) });
+  }
+
   setMotion(source, motion) {
     if (motion) this.motions.set(source, motion);
     else this.motions.delete(source);
@@ -178,6 +188,7 @@ export class TableScene {
       applyMotion(this.camera.position, this.controls.target, sumMotions(this.motions.values()), dt, this.controls);
     }
     this.controls.update();
+    this.#animateWiggles();
     if (this.bounds) clampTarget(this.camera.position, this.controls.target, this.bounds);
     this.renderer.render(this.scene, this.camera);
   }
@@ -198,6 +209,29 @@ export class TableScene {
     mesh.rotation.x = -Math.PI / 2;
     mesh.position.fromArray(tableToThree([width / 2, 0, depth / 2]));
     return mesh;
+  }
+
+  #animateWiggles() {
+    if (!this.wiggles.size) return;
+    const now = performance.now();
+    for (const [pieceId, { start, direction }] of this.wiggles) {
+      const mesh = this.pieceMeshes.get(pieceId);
+      const t = (now - start) / WIGGLE_MS;
+      if (!mesh || t >= 1) {
+        this.wiggles.delete(pieceId);
+        if (this.state) this.render(this.state);
+        continue;
+      }
+      const piece = this.state.pieces[pieceId];
+      mesh.rotation.y = tableRotationToThree(piece.rotation + direction * WIGGLE_DEGREES * Math.sin(Math.PI * t));
+    }
+  }
+
+  #blocked(def, state) {
+    const piece = state.pieces[def.id];
+    if (!piece.heldBy || piece.containerId) return false;
+    const { x, y } = piece.drag || piece;
+    return blockers(this.manifest, state.pieces, def.id, x, y, piece.rotation).length > 0;
   }
 
   #clearContent() {

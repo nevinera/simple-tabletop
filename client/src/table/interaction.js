@@ -23,10 +23,13 @@ export class PieceInteraction {
     setCameraEnabled, // (bool)
     setCursor, // (css cursor string)
     onContextMenu = () => {}, // ({ pieceId, clientX, clientY, pointerType })
+    onBlockedRotate = () => {}, // (pieceId, degrees): turning would overlap another piece
     schedule = setTimeout,
     unschedule = clearTimeout,
   }) {
-    Object.assign(this, { store, playerId, pick, tablePoint, clampToTable, setCameraEnabled, setCursor, onContextMenu });
+    Object.assign(this, {
+      store, playerId, pick, tablePoint, clampToTable, setCameraEnabled, setCursor, onContextMenu, onBlockedRotate,
+    });
     // Wrapped, since the browser's timer functions throw when called as methods.
     this.schedule = (fn, ms) => schedule(fn, ms);
     this.unschedule = (id) => unschedule(id);
@@ -54,7 +57,8 @@ export class PieceInteraction {
 
   // degrees: positive is clockwise.
   rotate(degrees, pieceId = this.actionTarget()) {
-    if (pieceId) this.#dispatch("rotate", pieceId, { degrees });
+    if (!pieceId) return;
+    if (this.#dispatch("rotate", pieceId, { degrees }).blocked) this.onBlockedRotate(pieceId, degrees);
   }
 
   // Returns true when the event starts a piece gesture, so the caller can
@@ -149,7 +153,8 @@ export class PieceInteraction {
         this.#dispatch("drop", gesture.pieceId, { x, y });
       } else if (piece.heldBy === this.playerId) {
         // Clicking the selected piece sets it down where it is.
-        this.#dispatch("drop", gesture.pieceId, { x: piece.x, y: piece.y });
+        const { x, y } = piece.drag || piece;
+        this.#dispatch("drop", gesture.pieceId, { x, y });
       } else {
         this.#select(gesture.pieceId);
       }
@@ -192,8 +197,10 @@ export class PieceInteraction {
   #startDrag(gesture) {
     if (!this.#select(gesture.pieceId)) return false;
     const piece = this.store.getState().pieces[gesture.pieceId];
+    // A held piece may be floating away from its resting spot.
+    const { x, y } = piece.drag || piece;
     const point = this.tablePoint(gesture.start.x, gesture.start.y, gesture.pieceId);
-    gesture.offset = point ? [piece.x - point[0], piece.y - point[1]] : [0, 0];
+    gesture.offset = point ? [x - point[0], y - point[1]] : [0, 0];
     this.setCursor("grabbing");
     return true;
   }

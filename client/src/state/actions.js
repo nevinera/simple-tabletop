@@ -1,6 +1,8 @@
 // Table state and the actions that change it. This mirrors what the server
 // will store and accept (see docs/architecture.md), so the client can run
 // against a local store now and the server later.
+
+import { blockers } from "./footprint";
 //
 // State:
 //   sequence:   bumped on every saved change; drag doesn't count
@@ -48,7 +50,8 @@ export function initialState(manifest) {
 }
 
 // Applies one action. Returns { ok: true, state } with a new state object, or
-// { ok: false, reason, state } with the state unchanged.
+// { ok: false, reason, state } with the state unchanged. A rejection for
+// overlapping another piece also carries blocked: true.
 //
 // Actions all carry { type, pieceId, playerId }, plus:
 //   drag:   { x, y }
@@ -80,6 +83,9 @@ const HANDLERS = {
 
   drop({ manifest, state, action, piece, def }) {
     if (piece.heldBy !== action.playerId) return reject(state, "Grab it first.");
+    if (blockers(manifest, state.pieces, action.pieceId, action.x, action.y, piece.rotation).length) {
+      return blocked(state);
+    }
     return save(state, action.pieceId, {
       x: action.x,
       y: action.y,
@@ -100,10 +106,15 @@ const HANDLERS = {
     return save(state, action.pieceId, { faceUp: !piece.faceUp });
   },
 
-  rotate({ state, action, piece }) {
+  rotate({ manifest, state, action, piece }) {
     if (piece.heldBy && piece.heldBy !== action.playerId) return reject(state, "Someone else is holding that.");
     if (!Number.isFinite(action.degrees)) return reject(state, "rotate needs degrees.");
-    return save(state, action.pieceId, { rotation: normalizeDegrees(piece.rotation + action.degrees) });
+    const rotation = normalizeDegrees(piece.rotation + action.degrees);
+    // A held piece is off the table; dropping it checks for overlap instead.
+    if (!piece.heldBy && blockers(manifest, state.pieces, action.pieceId, piece.x, piece.y, rotation).length) {
+      return blocked(state);
+    }
+    return save(state, action.pieceId, { rotation });
   },
 };
 
@@ -134,4 +145,8 @@ function withPiece(state, pieceId, changes) {
 
 function reject(state, reason) {
   return { ok: false, reason, state };
+}
+
+function blocked(state) {
+  return { ...reject(state, "That would overlap another piece."), blocked: true };
 }

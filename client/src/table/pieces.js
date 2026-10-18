@@ -4,8 +4,11 @@ import { tableRotationToThree, tableToThree } from "./coordinates";
 const EDGE_COLOR = 0xe8e4da;
 export const HELD_LIFT = 0.3; // cm a held piece floats above its resting height
 const SHADOW_OPACITY = 0.35;
+const SHADOW_COLOR = 0x000000;
+const BLOCKED_SHADOW_COLOR = 0xd0302a; // the piece can't land here
 const SHADOW_SCALE = 1.08; // a bit bigger than the piece, so it shows around the edges
 const SHADOW_LIFT = 0.003; // just above the layer below, so it never z-fights with it
+const GHOST_OPACITY = 0.35;
 // Pieces on one layer all rest at the same height, so overlapping ones would
 // z-fight. Depth bias per stacking rank keeps the higher-ranked one in front
 // at any camera distance.
@@ -31,7 +34,26 @@ export async function buildPiece(piece, textures) {
   mesh.name = piece.id;
   for (const material of [edge, top, bottom]) material.polygonOffset = true;
   mesh.userData.shadow = buildShadow(piece);
+  mesh.userData.ghost = buildGhost(mesh);
   return mesh;
+}
+
+// A see-through copy of the piece left at its resting spot while it's
+// dragged, so you can see where it came from.
+function buildGhost(mesh) {
+  const materials = mesh.material.map((material) => {
+    const ghost = material.clone();
+    ghost.transparent = true;
+    ghost.opacity = GHOST_OPACITY;
+    // Opacity scales the alpha that alphaTest sees, so scale the cutoff too,
+    // or the whole face gets cut away.
+    ghost.alphaTest = material.alphaTest * GHOST_OPACITY;
+    ghost.depthWrite = false;
+    return ghost;
+  });
+  const ghost = new THREE.Mesh(mesh.geometry, materials);
+  ghost.visible = false;
+  return ghost;
 }
 
 // A dark footprint on the surface under a held piece, showing where it will
@@ -43,7 +65,7 @@ function buildShadow(piece) {
     : new THREE.PlaneGeometry(width, depth);
   const shadow = new THREE.Mesh(
     geometry,
-    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: SHADOW_OPACITY, depthWrite: false })
+    new THREE.MeshBasicMaterial({ color: SHADOW_COLOR, transparent: true, opacity: SHADOW_OPACITY, depthWrite: false })
   );
   shadow.rotation.order = "YXZ";
   shadow.scale.setScalar(SHADOW_SCALE);
@@ -66,11 +88,17 @@ export function placement(def, state) {
 }
 
 // rank is the piece's place in its layer's stacking order, 0 at the bottom.
-export function applyPlacement(mesh, def, state, rank) {
+// blocked means a held piece would overlap another piece where it hovers.
+export function applyPlacement(mesh, def, state, rank, blocked = false) {
   const place = placement(def, state);
-  const shadow = mesh.userData.shadow;
+  const { shadow, ghost } = mesh.userData;
+  // The ghost keeps the orientation the piece had when it was picked up.
+  mesh.userData.restingTurn = state.heldBy
+    ? mesh.userData.restingTurn || { rotation: state.rotation, faceUp: state.faceUp }
+    : null;
   mesh.visible = Boolean(place);
   shadow.visible = Boolean(place && state.heldBy);
+  ghost.visible = Boolean(place && state.heldBy && state.drag);
   if (!place) return;
 
   mesh.position.fromArray(place.position);
@@ -81,6 +109,12 @@ export function applyPlacement(mesh, def, state, rank) {
     const { x, y } = state.drag || state;
     shadow.position.fromArray(tableToThree([x, def.layer.base + SHADOW_LIFT, y]));
     shadow.rotation.set(-Math.PI / 2, place.rotation[1], 0);
+    shadow.material.color.setHex(blocked ? BLOCKED_SHADOW_COLOR : SHADOW_COLOR);
+  }
+  if (ghost.visible) {
+    const rest = placement(def, { ...state, ...mesh.userData.restingTurn, heldBy: null, drag: null });
+    ghost.position.fromArray(rest.position);
+    ghost.rotation.set(...rest.rotation);
   }
 }
 

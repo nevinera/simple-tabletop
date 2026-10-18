@@ -71,6 +71,18 @@ describe("applyAction", () => {
     expect(result.state.sequence).toBe(dragged.sequence + 1);
   });
 
+  it("won't drop onto another piece on its layer", () => {
+    const result = act(held(), { type: "drop", pieceId: "AS", x: 32, y: 21 });
+    expect(result).toMatchObject({ ok: false, reason: expect.stringMatching(/overlap/) });
+    expect(result.state.pieces.AS).toMatchObject({ x: 10, y: 20, heldBy: "p1" });
+  });
+
+  it("drops right up against another piece", () => {
+    // AH is turned 90°, so it reaches 4.4cm to either side of x 30.
+    const result = act(held(), { type: "drop", pieceId: "AS", x: 30 - 4.4 - 3.15, y: 20 });
+    expect(result.ok).toBe(true);
+  });
+
   it("releases without moving", () => {
     const dragged = act(held(), { type: "drag", pieceId: "AS", x: 50, y: 50 }).state;
     const result = act(dragged, { type: "release", pieceId: "AS" });
@@ -87,6 +99,17 @@ describe("applyAction", () => {
     expect(flipped.pieces.AS.faceUp).toBe(false);
     const rotated = act(flipped, { type: "rotate", pieceId: "AH", degrees: -135 }).state;
     expect(rotated.pieces.AH.rotation).toBe(315);
+  });
+
+  it("won't rotate a resting piece into another, but will rotate a held one", () => {
+    // AH, turned a quarter, reaches left to x 25.6. Upright at x 22, AS
+    // reaches right to 25.15; turned a quarter, it would reach 26.4.
+    const state = initialState(manifest);
+    const crowded = { ...state, pieces: { ...state.pieces, AS: { ...state.pieces.AS, x: 22 } } };
+    expect(act(crowded, { type: "rotate", pieceId: "AS", degrees: 180 }).ok).toBe(true);
+    expect(act(crowded, { type: "rotate", pieceId: "AS", degrees: 90 })).toMatchObject({ ok: false, blocked: true });
+    const grabbed = act(crowded, { type: "grab", pieceId: "AS" }).state;
+    expect(act(grabbed, { type: "rotate", pieceId: "AS", degrees: 90 }).ok).toBe(true);
   });
 
   it("won't flip or rotate a piece someone else holds", () => {

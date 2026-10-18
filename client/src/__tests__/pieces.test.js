@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HELD_LIFT, placement } from "../table/pieces";
+import { HELD_LIFT, applyPlacement, buildPiece, placement } from "../table/pieces";
 
 const def = { layer: { base: 0.3, thickness: 0.04 } };
 const state = { x: 10, y: 20, rotation: 90, faceUp: true, containerId: null, heldBy: null, drag: null };
@@ -27,5 +27,45 @@ describe("placement", () => {
 
   it("hides pieces inside containers", () => {
     expect(placement(def, { ...state, containerId: "deck" })).toBeNull();
+  });
+});
+
+describe("applyPlacement", () => {
+  const piece = { id: "card", shape: "rect", size: [6, 9], layer: def.layer, face: "f.png", back: "b.png" };
+  const textures = { get: async () => null };
+
+  it("leaves a ghost at the resting spot while the piece is dragged", async () => {
+    const mesh = await buildPiece(piece, textures);
+    const { ghost } = mesh.userData;
+
+    applyPlacement(mesh, def, { ...state, heldBy: "p1" }, 0);
+    expect(ghost.visible).toBe(false);
+
+    applyPlacement(mesh, def, { ...state, heldBy: "p1", drag: { x: 50, y: 60 } }, 0);
+    expect(ghost.visible).toBe(true);
+    expect(ghost.position.toArray()).toEqual(placement(def, state).position);
+    for (const material of ghost.material) {
+      expect(material.transparent).toBe(true);
+      expect(material.alphaTest).toBeLessThan(material.opacity);
+    }
+    expect(mesh.position.x).toBe(50);
+
+    applyPlacement(mesh, def, state, 0);
+    expect(ghost.visible).toBe(false);
+  });
+
+  it("keeps the ghost's orientation from when the piece was picked up", async () => {
+    const mesh = await buildPiece(piece, textures);
+    const { ghost } = mesh.userData;
+
+    applyPlacement(mesh, def, { ...state, heldBy: "p1" }, 0);
+    applyPlacement(mesh, def, { ...state, heldBy: "p1", faceUp: false, rotation: 135, drag: { x: 50, y: 60 } }, 0);
+    expect(ghost.rotation.toArray().slice(0, 3)).toEqual(placement(def, state).rotation);
+    expect(mesh.rotation.z).toBe(Math.PI);
+
+    // Picked up again later, it starts from its new orientation.
+    applyPlacement(mesh, def, { ...state, faceUp: false }, 0);
+    applyPlacement(mesh, def, { ...state, faceUp: false, heldBy: "p1", drag: { x: 50, y: 60 } }, 0);
+    expect(ghost.rotation.z).toBe(Math.PI);
   });
 });

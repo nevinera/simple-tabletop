@@ -5,7 +5,9 @@ const PIXELS_PER_CM = 64;
 const MAX_CANVAS = 4096;
 const LINE_HEIGHT = 1.25; // times the font size
 const FONT_FAMILY = "system-ui, -apple-system, 'Segoe UI', sans-serif";
-const LIFT = 0.005; // just above the layer, so the label never z-fights with it
+const LIFT = 0.005; // just above the layer
+// Depth bias, so the layer's surface never shows through the text at a distance.
+const POLYGON_OFFSET_UNITS = -4;
 
 // Draws a manifest label as text on a transparent plane lying on its layer.
 export function buildLabel(label) {
@@ -34,7 +36,13 @@ export function buildLabel(label) {
   texture.colorSpace = THREE.SRGBColorSpace;
   const mesh = new THREE.Mesh(
     new THREE.PlaneGeometry(canvas.width / scale, canvas.height / scale),
-    new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false })
+    new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetUnits: POLYGON_OFFSET_UNITS,
+    })
   );
   mesh.rotation.order = "YXZ";
   mesh.rotation.set(-Math.PI / 2, tableRotationToThree(label.rotation), 0);

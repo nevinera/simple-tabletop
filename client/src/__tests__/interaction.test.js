@@ -27,12 +27,14 @@ let interaction;
 let camera;
 let timers;
 let menus;
+let wiggles;
 
 beforeEach(() => {
   store = createTableStore(manifest);
   camera = { enabled: true };
   timers = [];
   menus = [];
+  wiggles = [];
   interaction = new PieceInteraction({
     store,
     manifest,
@@ -43,6 +45,7 @@ beforeEach(() => {
     setCameraEnabled: (enabled) => { camera.enabled = enabled; },
     setCursor: () => {},
     onContextMenu: (menu) => menus.push(menu),
+    onBlockedRotate: (pieceId, degrees) => wiggles.push([pieceId, degrees]),
     schedule: (fn, ms) => { timers.push({ fn, ms }); return timers.length; },
     unschedule: (id) => { if (id) timers[id - 1] = null; },
   });
@@ -105,6 +108,31 @@ describe("PieceInteraction", () => {
     click(10, 10);
     click(10, 10);
     expect(piece("AS")).toMatchObject({ x: 10, y: 10, heldBy: null });
+  });
+
+  it("keeps holding a piece dropped onto another, until you place it somewhere open", () => {
+    drag([10, 10], [32, 31]);
+    expect(piece("AS")).toMatchObject({ x: 10, y: 10, heldBy: "me", drag: { x: 32, y: 31 } });
+    click(70, 20);
+    expect(piece("AS")).toMatchObject({ x: 70, y: 20, heldBy: null });
+  });
+
+  it("drags a floating piece from where you catch it", () => {
+    drag([10, 10], [32, 31]); // blocked by AH, so it floats there
+    HITS.AS = [32, 31];
+    try {
+      drag([32, 31], [60, 60]);
+    } finally {
+      HITS.AS = [10, 10];
+    }
+    expect(piece("AS")).toMatchObject({ x: 60, y: 60, heldBy: null });
+  });
+
+  it("reports a rotation blocked by a neighbor", () => {
+    drag([10, 10], [23, 30]); // just left of AH, which spans x 26.85 to 33.15
+    interaction.rotate(90, "AS");
+    expect(piece("AS").rotation).toBe(0);
+    expect(wiggles).toEqual([["AS", 90]]);
   });
 
   it("puts the first piece back when you select another", () => {

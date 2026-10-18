@@ -13,7 +13,7 @@ const raw = (overrides = {}) => ({
   table: { size: [90, 60] },
   layers: [{ id: "pieces", thickness: 0.03 }],
   hands: true,
-  pieceTypes: { card: { shape: "rect", size: [6, 9], back: "back.svg" } },
+  pieceTypes: { card: { kind: "card", size: [6, 9], back: "back.svg" } },
   pieces: [
     { id: "AS", type: "card", face: "AS.svg", position: [20, 20] },
     { id: "AH", type: "card", face: "AH.svg", position: [40, 20] },
@@ -142,7 +142,7 @@ describe("hands", () => {
   it("magnifies cards, not boards", () => {
     const boards = normalizeManifest(raw({
       layers: [{ id: "board", thickness: 0.3 }, { id: "pieces", thickness: 0.03 }],
-      pieces: [...raw().pieces, { id: "mat", shape: "rect", size: [40, 40], layer: "board", face: "mat.svg", position: [45, 30] }],
+      pieces: [...raw().pieces, { id: "mat", kind: "board", shape: "rect", size: [40, 40], layer: "board", face: "mat.svg", position: [45, 30] }],
     }), "https://example.com/m.json");
     const state = initialState(boards);
     expect(magnifiable(boards, state, "AS")).toBe(true);

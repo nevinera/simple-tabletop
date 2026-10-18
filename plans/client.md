@@ -27,6 +27,8 @@ pointer, selecting a different piece puts the first one back.
 | drag a movable deck                            | move the deck                                              |
 | drag a locked deck                             | draw the top card and move it                              |
 | drag a locked bag                              | draw a random piece and move it                            |
+| drag a locked stack                            | take the top piece and move it                             |
+| drop a tile, chip, or token on one just like it | make a stack of the two                                   |
 | drag empty table or a locked piece             | orbit the camera                                           |
 | right-drag, or two-finger drag                 | pan                                                        |
 | wheel, or pinch                                | zoom                                                       |
@@ -130,3 +132,6 @@ Update docs/manifest-format.md before building on them.
 8. **Bags.** Boxes with a color, side text, and a circled lid image. Drawing a random piece by drag, G, and
    the menu, adding by drop, Alt to list what's inside, and infinite bags that make and delete pieces.
    Bowls come later.
+9. **Piece kinds and stacks.** Every piece has a kind (card, board, tile, chip, token, die) that decides its
+   shape, thickness, and where it can go. Tiles, chips, and tokens that are alike stack, up to five tall, then
+   show a count.

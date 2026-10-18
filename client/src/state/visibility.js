@@ -19,6 +19,7 @@ export function visibleSide(manifest, state, id, viewerSeat) {
 
   if (object.kind === "container") {
     if (object.def.kind === "bag") return bagContents(manifest, object);
+    if (object.def.kind === "stack") return visibleSide(manifest, state, object.state.members[0], viewerSeat);
     if (object.def.kind !== "deck") return null;
     const top = object.state.members[0];
     if (object.def.image) return { image: object.def.image, size: object.def.size };
@@ -31,6 +32,7 @@ export function visibleSide(manifest, state, id, viewerSeat) {
   if (def.shape === "die") return { die: def.die, value: piece.value };
   if (piece.containerId) {
     const container = findObject(manifest, state, piece.containerId);
+    if (container.def.kind === "stack") return { image: piece.faceUp ? def.face : def.back, size: def.size };
     if (container.def.kind !== "hand") return null;
     return { image: container.def.seatId === viewerSeat ? def.face : def.back, size: def.size };
   }

@@ -107,7 +107,7 @@ Decks, bags, bowls, and hands.
 | `member_keys`  | ordered JSON array of piece keys; index 0 is the top          |
 | `held_by_id`   |                                                               |
 | `locked`       | boolean; starts as the manifest's `fixed`                     |
-| `spec`         | JSON for decks made during play: `kind`, `size`, `layer`, `accepts` |
+| `spec`         | JSON for containers made during play: decks have `kind`, `size`, `layer`, `accepts`; stacks have `kind: "stack"` |
 
 A piece inside a container has no position of its own. The container's `member_keys` holds the order, so
 shuffling a 500-card deck rewrites one row. Moving a piece in or out of a container updates the piece row and
@@ -118,6 +118,10 @@ server doesn't check, because clients are trusted.
 
 A piece drawn from an infinite bag gets a new piece row keyed `<bag key>#<n>`, where `n` is the bag's `spawned`
 count after the draw. Dropping it back in deletes the row.
+
+Dropping a tile, chip, or token on a loose one just like it makes a stack keyed `#stack-<sequence>`, using the
+game's `sequence` before the drop. A stack drawn down to one piece is deleted, and that piece goes back on the
+table where the stack was.
 
 A player can turn a loose card into a deck. The client picks the new container's key and sends its `spec`,
 since the manifest doesn't list it.

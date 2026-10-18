@@ -14,6 +14,7 @@ import { FELT_TILE_CM, feltTexture } from "./felt";
 import { buildTray, placeTray } from "./hands";
 import { buildLabel } from "./labels";
 import { HELD_LIFT, applyHandSlot, applyPlacement, buildPiece, stackRanks } from "./pieces";
+import { applyStackPlacement, buildStack, faceCamera, setStackTop } from "./stacks";
 import { applyMotion, clampTarget, orbit, sumMotions } from "./rig";
 import { TextureCache } from "./textures";
 
@@ -31,7 +32,7 @@ export class TableScene {
     this.motions = new Map();
     this.content = new THREE.Group();
     this.pieceMeshes = new Map(); // piece id -> mesh
-    this.deckGroups = new Map(); // deck or bag id -> group
+    this.deckGroups = new Map(); // deck, bag, or stack id -> group
     this.trays = new Map(); // hand id -> group
     this.diceTrays = new Map(); // tray id -> group
     this.rollsSeen = new Map(); // die id -> roll count already shown
@@ -127,10 +128,19 @@ export class TableScene {
       if (container.def.kind === "bag") {
         applyBagPlacement(this.#bagGroup(container), container.def, container.state, this.#hover(id, state));
       }
+      if (container.def.kind === "stack") {
+        const group = this.#stackGroup(container);
+        applyStackPlacement(group, container.def, container.state, this.#hover(id, state));
+        this.#updateTop(group, this.#stackTopImage(container, state), setStackTop);
+      }
       if (container.def.kind !== "deck") continue;
       const group = this.#deckGroup(container);
       applyDeckPlacement(group, container.def, container.state, this.#hover(id, state));
       this.#updateDeckTop(group, container);
+    }
+    // Stacks down to one piece are gone.
+    for (const [id, group] of this.deckGroups) {
+      if (!state.containers[id]) group.visible = group.userData.ghost.visible = group.userData.shadow.visible = false;
     }
     this.#renderHands(state);
   }
@@ -236,6 +246,9 @@ export class TableScene {
     this.controls.update();
     this.#animateWiggles();
     this.#animateSwirls();
+    for (const group of this.deckGroups.values()) {
+      if (group.visible && group.userData.counter) faceCamera(group, this.camera.position);
+    }
     if (this.bounds) clampTarget(this.camera.position, this.controls.target, this.bounds);
     this.renderer.render(this.scene, this.camera);
   }
@@ -282,7 +295,7 @@ export class TableScene {
     const { x, y } = object.state.drag || object.state;
     if (x == null) return {};
     const target = landing(this.manifest, state, id, x, y, object.state.rotation, object.state.heldBy);
-    const under = [...(target.blocked || []), ...(target.into ? [target.into] : [])];
+    const under = [...(target.blocked || []), target.into, target.stack].filter(Boolean);
     const floor = Math.max(0, ...under.map((other) => objectHeight(findObject(this.manifest, state, other))));
     return { blocked: Boolean(target.blocked), floor };
   }
@@ -433,16 +446,35 @@ export class TableScene {
     return group;
   }
 
-  // Loads the image for the deck's top when it changes.
+  #stackGroup(stack) {
+    let group = this.deckGroups.get(stack.id);
+    if (!group) {
+      group = buildStack(stack.id, stack.def);
+      this.deckGroups.set(stack.id, group);
+      this.content.add(group, group.userData.ghost, group.userData.shadow);
+    }
+    return group;
+  }
+
+  #stackTopImage(stack, state) {
+    const topId = stack.state.members[0];
+    const def = pieceDef(this.manifest, topId);
+    return state.pieces[topId].faceUp ? def.face : def.back;
+  }
+
   #updateDeckTop(group, deck) {
     const top = deck.state.members[0];
-    const image = deckTopImage(deck.def, deck.state, top && pieceDef(this.manifest, top));
+    this.#updateTop(group, deckTopImage(deck.def, deck.state, top && pieceDef(this.manifest, top)), setDeckTop);
+  }
+
+  // Loads the image for a deck's or stack's top when it changes.
+  #updateTop(group, image, set) {
     const key = image ? `${image.url}#${image.index ?? ""}` : null;
     if (group.userData.topKey === key) return;
     group.userData.topKey = key;
     if (!image) return;
     this.textures.get(image).then((texture) => {
-      if (group.userData.topKey === key) setDeckTop(group, texture);
+      if (group.userData.topKey === key) set(group, texture);
     });
   }
 

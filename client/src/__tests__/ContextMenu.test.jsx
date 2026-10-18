@@ -4,7 +4,7 @@ import { ContextMenu } from "../ui/ContextMenu";
 
 const menu = { objectId: "AS", clientX: 100, clientY: 120, pointerType: "mouse" };
 
-const PIECE = { kind: "piece", locked: false, count: null, canMakeDeck: true };
+const PIECE = { kind: "piece", locked: false, count: null, canMakeDeck: true, canFlip: true };
 
 function renderMenu(props = {}, object = PIECE) {
   const interaction = {

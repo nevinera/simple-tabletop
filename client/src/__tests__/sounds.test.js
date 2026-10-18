@@ -10,9 +10,9 @@ const manifest = normalizeManifest({
   table: { size: [90, 60] },
   layers: [{ id: "pieces", thickness: 0.03 }],
   pieces: [
-    { id: "die", shape: "die", die: "d6", size: [2], position: [10, 10] },
-    { id: "blue", shape: "die", die: "d20", size: [2] },
-    { id: "card", shape: "rect", size: [6, 9], face: "c.svg", position: [30, 30] },
+    { id: "die", kind: "die", die: "d6", size: [2], position: [10, 10] },
+    { id: "blue", kind: "die", die: "d20", size: [2] },
+    { id: "card", kind: "card", size: [6, 9], face: "c.svg", position: [30, 30] },
   ],
   containers: [{ id: "tray", kind: "tray", position: [60, 30], size: [20, 14], members: ["blue"] }],
 }, "https://example.com/m.json");

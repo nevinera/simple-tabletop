@@ -15,7 +15,7 @@ function manifest(overrides = {}) {
     ],
     seats: [{ id: "south", name: "South", side: "south" }],
     pieceTypes: {
-      card: { shape: "rect", size: [6.3, 8.8], back: "assets/back.svg", categories: ["cards"] },
+      card: { kind: "card", size: [6.3, 8.8], back: "assets/back.svg", categories: ["cards"] },
     },
     pieces: [{ id: "AS", type: "card", face: "assets/AS.svg", position: [45, 57] }],
     ...overrides,
@@ -27,6 +27,7 @@ describe("normalizeManifest", () => {
     const [piece] = normalizeManifest(manifest(), BASE).pieces;
     expect(piece).toEqual({
       id: "AS",
+      kind: "card",
       shape: "rect",
       size: [6.3, 8.8],
       type: "card",
@@ -175,6 +176,8 @@ describe("normalizeManifest", () => {
     }, /same id/],
     ["a seat without a side", { seats: [{ id: "s", name: "S" }] }, /side/],
     ["too many seats", { seats: undefined, maxSeats: 9 }, /maxSeats/],
+    ["a piece with no kind", { pieces: [{ id: "x", shape: "rect", size: [1, 1], face: "a.svg", position: [0, 0] }] }, /kind/],
+    ["a kind with the wrong shape", { pieces: [{ id: "x", kind: "chip", shape: "rect", size: [1, 1], face: "a.svg", position: [0, 0] }] }, /can't be a rect/],
     ["a piece id that hands use", { pieces: [{ id: "hand-x", type: "card", face: "a.svg", position: [0, 0] }] }, /hand-/],
     ["an empty accepts matcher", {
       containers: [{ id: "c", kind: "bag", position: [0, 0], size: [5, 5], accepts: [{}] }],

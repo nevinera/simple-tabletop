@@ -105,7 +105,7 @@ export function seatView(manifest, state, seat) {
 function cardDepth(manifest) {
   const top = manifest.layers.at(-1).id;
   const depths = manifest.pieces
-    .filter((piece) => piece.shape === "rect" && piece.layer.id === top)
+    .filter((piece) => piece.kind === "card" && piece.layer.id === top)
     .map((piece) => piece.size[1]);
   return depths.length ? Math.max(...depths) : DEFAULT_CARD_DEPTH;
 }

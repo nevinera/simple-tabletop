@@ -1,6 +1,6 @@
 // Buttons for one object, shared by the action bar's Selected menu and the
 // context menu. What shows depends on the object: decks draw and shuffle,
-// bags draw,
+// bags and stacks draw,
 // pieces flip and can become decks, locked things only unlock, and cards in
 // your hand only magnify. onDone runs after any action, so a menu can close.
 export function ObjectActions({ interaction, objectId, onMagnify, onDone = () => {} }) {
@@ -15,6 +15,7 @@ export function ObjectActions({ interaction, objectId, onMagnify, onDone = () =>
   const die = object.kind === "die";
   const tray = object.kind === "tray";
   const bag = object.kind === "bag";
+  const stack = object.kind === "stack";
   const movable = !object.locked && !object.inHand;
   const magnify = onMagnify && (
     <button type="button" className="menu-item" onClick={act(() => onMagnify(objectId))}>
@@ -28,6 +29,7 @@ export function ObjectActions({ interaction, objectId, onMagnify, onDone = () =>
       {!die && !tray && magnify}
       {deck && <p className="menu-title">{deckTitle(object.count)}</p>}
       {bag && <p className="menu-title">{bagTitle(object)}</p>}
+      {stack && <p className="menu-title">Stack of {object.count}</p>}
       {die && (
         <button type="button" className="menu-item" onClick={act(() => interaction.roll(objectId))}>
           Roll <kbd>X</kbd>
@@ -39,7 +41,7 @@ export function ObjectActions({ interaction, objectId, onMagnify, onDone = () =>
           Roll the tray <kbd>Shift X</kbd>
         </button>
       )}
-      {(deck || bag) && (object.infinite || object.count > 0) && (
+      {(deck || bag || stack) && (object.infinite || object.count > 0) && (
         <button type="button" className="menu-item" onClick={act(() => interaction.draw(objectId))}>
           Draw <kbd>G</kbd>
         </button>
@@ -49,7 +51,7 @@ export function ObjectActions({ interaction, objectId, onMagnify, onDone = () =>
           Shuffle
         </button>
       )}
-      {!deck && !bag && !die && !tray && movable && (
+      {object.canFlip && movable && (
         <button type="button" className="menu-item" onClick={act(() => interaction.flip(objectId))}>
           Flip <kbd>F</kbd>
         </button>

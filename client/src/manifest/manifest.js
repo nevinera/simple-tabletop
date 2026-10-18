@@ -4,19 +4,28 @@
 
 import { BUILT_IN_DICE, D4_SCALE, DIE_SIDES } from "../state/dice";
 import { HALF_SIDES, SEAT_ORDER, SIDES } from "../state/seats";
+import { canStack, stackKey } from "../state/objects";
 
 export const DEFAULT_TABLE_COLOR = "#2e6b3f";
 const LAYER_IDS = ["board", "pieces"];
-const SHAPES = ["rect", "circle", "die"];
+// What each kind of piece can look like. The first shape is its default.
+const KIND_SHAPES = {
+  card: ["rect"],
+  board: ["rect", "circle"],
+  tile: ["rect"],
+  chip: ["circle"],
+  token: ["circle", "rect"],
+  die: ["die"],
+};
 const DEFAULT_DIE_COLOR = "#f4efe2";
-const CONTAINER_KINDS = ["deck", "bag", "bowl", "tray"];
+const CONTAINER_KINDS = ["deck", "bag", "bowl", "tray", "stack"];
 const CAMERA_SLOTS = /^[0-9]$/;
 const MAX_SEATS = 8;
 const HAND_PREFIX = "hand-"; // hand containers' ids; see state/seats.js
 const RESERVED_ID_CHARACTER = "#"; // for pieces drawn from infinite bags; see state/objects.js
 const DEFAULT_BAG_COLOR = "#7a5230";
 const MAX_BAG_TEXT = 16;
-const TOKEN_THICKNESS = 0.5; // a top-layer circle's default thickness, as a share of the board layer's
+const SOLID_THICKNESS = 0.5; // tiles, chips, and tokens: their default thickness, as a share of the board layer's
 const SEAT_COLORS = ["#c0392b", "#2980b9", "#27ae60", "#8e44ad", "#d35400", "#16a085", "#c2185b", "#7f8c8d"];
 
 export class ManifestError extends Error {}
@@ -76,6 +85,7 @@ export function normalizeManifest(raw, baseUrl) {
 
 // template(bagId, type) makes the piece an infinite bag hands out.
 function normalizeContainers(rawContainers, pieces, layers, image, template) {
+  const byId = new Map(pieces.map((piece) => [piece.id, piece]));
   const pieceTypes = new Map(pieces.map((piece) => [piece.id, piece.type]));
   const pieceIds = new Set(pieceTypes.keys());
   const ids = new Set();
@@ -102,6 +112,8 @@ function normalizeContainers(rawContainers, pieces, layers, image, template) {
       }
       claimed.set(member, container.id);
     }
+
+    if (container.kind === "stack") checkStack(members.map((id) => byId.get(id)), where);
 
     let accepts = container.accepts ?? null;
     if (accepts && (!Array.isArray(accepts) || accepts.some((m) => !m?.type && !m?.category))) {
@@ -135,6 +147,14 @@ function normalizeContainers(rawContainers, pieces, layers, image, template) {
   });
 }
 
+// A stack needs at least two tiles, chips, or tokens, all alike.
+function checkStack(members, where) {
+  if (members.length < 2) throw new ManifestError(`${where} needs at least two members.`);
+  if (!members.every(canStack)) throw new ManifestError(`${where} can only hold tiles, chips, and tokens.`);
+  const key = stackKey(members[0]);
+  if (members.some((piece) => stackKey(piece) !== key)) throw new ManifestError(`${where} members must all be alike.`);
+}
+
 // A bag's look, and for an infinite bag, the piece it hands out.
 function normalizeBag(container, where, image, template) {
   const text = container.text ?? null;
@@ -148,12 +168,11 @@ function normalizeBag(container, where, image, template) {
   return { ...bag, template: template(container.id, container.infinite) };
 }
 
-// Tokens (circles on the top layer) stand thicker than cards: half the board
-// layer. Everything else is as thick as its layer.
-function defaultThickness(shape, layer, layers) {
+// Tiles, chips, and tokens stand thicker than cards: half the board layer.
+// Cards and boards are as thick as their layer.
+function defaultThickness(kind, layer, layers) {
   const board = layers.find((l) => l.id === "board");
-  const top = layer === layers.at(-1);
-  return shape === "circle" && top && board ? board.thickness * TOKEN_THICKNESS : layer.thickness;
+  return ["tile", "chip", "token"].includes(kind) && board ? board.thickness * SOLID_THICKNESS : layer.thickness;
 }
 
 // Each layer sits on the ones below it, so its base is their total thickness.
@@ -325,11 +344,14 @@ function normalizePiece(rawPiece, raw, layers, image, contained, dieTypes) {
 
   if (!piece.id) throw new ManifestError("Every piece needs an id.");
   if (piece.id.startsWith(HAND_PREFIX)) throw new ManifestError(`${where} can't start with "${HAND_PREFIX}".`);
-  if (!SHAPES.includes(piece.shape)) throw new ManifestError(`${where} has unsupported shape "${piece.shape}".`);
+  const shapes = KIND_SHAPES[piece.kind];
+  if (!shapes) throw new ManifestError(`${where} needs a kind: ${Object.keys(KIND_SHAPES).join(", ")}.`);
+  piece.shape ??= shapes[0];
+  if (!shapes.includes(piece.shape)) throw new ManifestError(`${where} is a ${piece.kind}, so it can't be a ${piece.shape}.`);
   if (!Array.isArray(piece.size) || !(piece.size[0] > 0)) throw new ManifestError(`${where} needs a size.`);
   if (!piece.face && piece.shape !== "die") throw new ManifestError(`${where} needs a face image.`);
 
-  const layer = findLayer(layers, piece.layer || "pieces", where);
+  const layer = findLayer(layers, piece.layer || (piece.kind === "board" ? "board" : "pieces"), where);
 
   const inContainer = contained.has(piece.id);
   if (!inContainer && !Array.isArray(piece.position)) {
@@ -341,6 +363,7 @@ function normalizePiece(rawPiece, raw, layers, image, contained, dieTypes) {
     const width = piece.size[0] * (die.sides === 4 ? D4_SCALE : 1);
     return {
       id: piece.id,
+      kind: "die",
       shape: "die",
       size: [width, width],
       type: rawPiece.type || null,
@@ -361,9 +384,10 @@ function normalizePiece(rawPiece, raw, layers, image, contained, dieTypes) {
   if (piece.thickness != null && !(piece.thickness > 0)) throw new ManifestError(`${where} thickness must be positive.`);
   return {
     id: piece.id,
+    kind: piece.kind,
     shape: piece.shape,
     size: piece.shape === "circle" ? [piece.size[0], piece.size[0]] : piece.size,
-    thickness: piece.thickness ?? defaultThickness(piece.shape, layer, layers),
+    thickness: piece.thickness ?? defaultThickness(piece.kind, layer, layers),
     type: rawPiece.type || null,
     categories: [...new Set([...(type.categories || []), ...(rawPiece.categories || [])])],
     layer,

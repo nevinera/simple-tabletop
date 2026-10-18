@@ -13,7 +13,9 @@
 //               for infinite bags, counting the pieces they've handed out
 //
 // Pieces drawn from an infinite bag join pieces under ids from spawnedId(),
-// and leave it again when they go back in.
+// and leave it again when they go back in. A stack made during play gets the
+// id "#stack-<sequence>" and spec { kind: "stack" }, and goes away once only
+// one piece is left in it.
 //
 // rolls counts a die's rolls, so every browser can show each one.
 //
@@ -175,6 +177,7 @@ const HANDLERS = {
     }
     const target = landing(manifest, state, object.id, action.x, action.y, object.state.rotation, action.playerId);
     if (target.blocked) return blocked(state);
+    if (target.stack) return formStack(state, object, target.stack, letGo);
     if (target.into && state.containers[target.into].spots) {
       return addToTray(manifest, state, object, target.into, letGo, [action.x, action.y]);
     }
@@ -198,8 +201,9 @@ const HANDLERS = {
 
   // Flip, rotate, and lock also work on an object nobody holds, for hover keys.
   flip({ state, kind, def, object }) {
-    if (kind !== "piece") return reject(state, "Decks can't be flipped.");
-    if (def.shape === "die") return reject(state, "Dice roll instead.");
+    if (kind !== "piece") return reject(state, "Containers can't be flipped.");
+    if (def.kind === "die") return reject(state, "Dice roll instead.");
+    if (def.kind === "board") return reject(state, "Boards don't flip.");
     if (object.state.locked) return reject(state, "That's locked.");
     return save(state, object, { faceUp: !object.state.faceUp });
   },
@@ -220,11 +224,14 @@ const HANDLERS = {
     return save(state, object, { locked: !object.state.locked, heldBy: null, drag: null });
   },
 
-  // Takes a piece out of a deck or bag, held by the player who drew it so
-  // they can place it, or with toHand, into their hand. A deck gives its top
-  // card, a bag the member the action picks, and an infinite bag a new piece.
+  // Takes a piece out of a deck, bag, or stack, held by the player who drew
+  // it so they can place it, or with toHand, into their hand. A deck or
+  // stack gives its top piece, a bag the member the action picks, and an
+  // infinite bag a new piece.
   draw({ manifest, state, action, kind, def, object }) {
-    if (kind !== "container" || !["deck", "bag"].includes(def.kind)) return reject(state, "Only decks and bags can be drawn from.");
+    if (kind !== "container" || !["deck", "bag", "stack"].includes(def.kind)) {
+      return reject(state, "Only decks, bags, and stacks can be drawn from.");
+    }
     let next = state;
     let pieceId;
     if (def.template) {
@@ -249,7 +256,7 @@ const HANDLERS = {
       if (!hand) return reject(state, "You don't have a hand.");
       if (!accepts(findObject(manifest, state, hand).def, piece.def)) return reject(state, "That can't go in a hand.");
       const end = state.containers[hand].members.length;
-      return addToContainer(manifest, next, piece, hand, {}, end);
+      return settleStack(manifest, addToContainer(manifest, next, piece, hand, {}, end), object.id);
     }
     const from = object.state;
     const changes = {
@@ -262,7 +269,7 @@ const HANDLERS = {
       drag: null,
     };
     if (def.kind === "deck") changes.faceUp = from.faceUp;
-    return save(withoutMember(next, piece), piece, changes);
+    return settleStack(manifest, save(withoutMember(next, piece), piece, changes), object.id);
   },
 
   // A die rolls in place. A tray rolls all its dice and scatters them.
@@ -298,7 +305,7 @@ const HANDLERS = {
   },
 
   makeDeck({ manifest, state, action, kind, def, object }) {
-    if (kind !== "piece" || def.shape !== "rect") return reject(state, "Only cards can become decks.");
+    if (kind !== "piece" || def.kind !== "card") return reject(state, "Only cards can become decks.");
     if (!action.deckId || state.pieces[action.deckId] || state.containers[action.deckId]) {
       return reject(state, "makeDeck needs an unused deckId.");
     }
@@ -344,6 +351,46 @@ function addToContainer(manifest, state, piece, containerId, changes, index = nu
   if (container.def.kind === "deck") facing.faceUp = container.state.faceUp;
   if (container.def.kind === "hand") facing.faceUp = true;
   return save(withContainer, piece, { ...changes, ...facing, containerId, x: null, y: null });
+}
+
+// Drops a piece on a loose one just like it: the two become a stack where
+// the one underneath was, with the dropped one on top.
+function formStack(state, piece, underId, changes) {
+  const under = state.pieces[underId];
+  const stackId = `#stack-${state.sequence}`;
+  const stack = {
+    x: under.x,
+    y: under.y,
+    rotation: under.rotation,
+    faceUp: true,
+    members: [piece.id, underId],
+    heldBy: null,
+    drag: null,
+    locked: false,
+    spec: { kind: "stack" },
+  };
+  let next = withoutMember(state, piece);
+  next = { ...next, containers: { ...next.containers, [stackId]: stack } };
+  next = withObject(next, { kind: "piece", id: underId }, { containerId: stackId, x: null, y: null });
+  return save(next, piece, { ...changes, containerId: stackId, x: null, y: null });
+}
+
+// After a draw: a stack down to one piece stops being a stack, leaving that
+// piece loose where the stack was.
+function settleStack(manifest, result, containerId) {
+  const stack = result.ok && result.state.containers[containerId];
+  if (!stack || stack.members.length !== 1 || findObject(manifest, result.state, containerId).def.kind !== "stack") return result;
+  const [lastId] = stack.members;
+  const lastDef = pieceDef(manifest, lastId);
+  const { [containerId]: _gone, ...containers } = result.state.containers;
+  const state = withObject({ ...result.state, containers }, { kind: "piece", id: lastId }, {
+    containerId: null,
+    x: stack.x,
+    y: stack.y,
+    rotation: stack.rotation,
+    stackOrder: topOfLayer(manifest, result.state, lastDef.layer.id),
+  });
+  return { ...result, state };
 }
 
 // A piece's state before it's anywhere: off the table, in nothing.

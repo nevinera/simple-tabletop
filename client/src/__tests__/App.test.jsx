@@ -13,7 +13,7 @@ vi.mock("../manifest/manifest", async (importActual) => {
     table: { size: [90, 90] },
     layers: [{ id: "pieces", thickness: 0.03 }],
     hands: true,
-    pieces: [{ id: "AS", shape: "rect", size: [6.3, 8.8], face: "AS.svg", position: [45, 45] }],
+    pieces: [{ id: "AS", kind: "card", size: [6.3, 8.8], face: "AS.svg", position: [45, 45] }],
   };
   return { ...actual, fetchManifest: () => Promise.resolve(actual.normalizeManifest(raw, "https://example.com/m.json")) };
 });

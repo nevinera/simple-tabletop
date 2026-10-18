@@ -15,17 +15,17 @@ const raw = (overrides = {}) => ({
   table: { size: [90, 60] },
   layers: [{ id: "pieces", thickness: 0.03 }],
   pieceTypes: {
-    chip: { shape: "circle", size: [2], face: "chip.svg" },
-    heart: { shape: "circle", size: [2], face: "heart.svg" },
+    chip: { kind: "chip", size: [2], face: "chip.svg" },
+    heart: { kind: "token", size: [2], face: "heart.svg" },
   },
   hands: true,
   pieces: [
     { id: "c1", type: "chip" },
     { id: "c2", type: "chip" },
-    { id: "d6", shape: "die", die: "d6", size: [2] },
+    { id: "d6", kind: "die", die: "d6", size: [2] },
     { id: "loose", type: "chip", position: [30, 30] },
     { id: "lonely-heart", type: "heart", position: [40, 30] },
-    { id: "card", shape: "rect", size: [6, 9], face: "c.svg", position: [50, 30] },
+    { id: "card", kind: "card", size: [6, 9], face: "c.svg", position: [50, 30] },
   ],
   containers: [
     { id: "bag", kind: "bag", position: [10, 10], size: [8, 8], text: "Chips", color: "#204080", image: "lid.svg",
@@ -87,10 +87,9 @@ describe("bags", () => {
     expect(state.pieces.loose).toMatchObject({ containerId: "bag", x: null });
   });
 
-  it("can't send a die into a hand", () => {
-    const result = act(seated(), { type: "draw", id: "bag", pick: "d6", toHand: true });
-    expect(result.reason).toMatch(/hand/);
-    expect(act(seated(), { type: "draw", id: "bag", pick: "c1", toHand: true }).state.pieces.c1.containerId).toMatch(/^hand-/);
+  it("only sends cards and tiles into a hand", () => {
+    expect(act(seated(), { type: "draw", id: "bag", pick: "d6", toHand: true }).reason).toMatch(/hand/);
+    expect(act(seated(), { type: "draw", id: "bag", pick: "c1", toHand: true }).reason).toMatch(/hand/);
   });
 
   it("doesn't shuffle", () => {
@@ -105,8 +104,8 @@ describe("infinite bags", () => {
     expect(state.pieces["hearts#1"]).toMatchObject({ x: 70, y: 10, heldBy: "me", containerId: null });
     expect(pieceDef(manifest, "hearts#1")).toMatchObject({ id: "hearts#1", type: "heart" });
     state = act(state, { type: "drop", id: "hearts#1", x: 70, y: 30 }).state;
-    state = act(state, { type: "draw", id: "hearts", toHand: true }).state;
-    expect(state.pieces["hearts#2"].containerId).toMatch(/^hand-/);
+    state = act(state, { type: "draw", id: "hearts" }).state;
+    expect(state.pieces["hearts#2"].heldBy).toBe("me");
     expect(state.containers.hearts).toMatchObject({ spawned: 2, members: [] });
     expect(looseObjects(manifest, state).map((o) => o.id)).toContain("hearts#1");
   });

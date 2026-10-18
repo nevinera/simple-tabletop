@@ -15,6 +15,8 @@ const DIE_HEIGHT = 0.85; // times its size, roughly, whatever its shape
 const HAND_MARGIN = 0.5; // cm kept clear at each end of a hand tray
 const HAND_SPACING = 1.08; // times the card width, when there's room
 const BAG_HEIGHT = 0.4; // times a bag's shorter side
+export const STACK_SHOWN = 5; // a stack grows up to this many pieces tall, then shows a count instead
+const STACKABLE = ["tile", "chip", "token"];
 
 const pieceIndexes = new WeakMap();
 
@@ -50,6 +52,9 @@ export function findObject(manifest, state, id) {
 // play, from the spec in its state. Hands follow their seat.
 export function containerDef(manifest, state, id) {
   const fromManifest = manifest.containers.find((c) => c.id === id);
+  if (fromManifest?.kind === "stack" || state.containers[id]?.spec?.kind === "stack") {
+    return stackDef(manifest, state, id, fromManifest);
+  }
   if (fromManifest) return { ...fromManifest, shape: "rect", minHeight: deckMinHeight(manifest) };
   const { spec } = state.containers[id];
   if (spec.kind === "hand") {
@@ -78,6 +83,36 @@ export function containerDef(manifest, state, id) {
     accepts: spec.accepts,
     minHeight: deckMinHeight(manifest),
   };
+}
+
+// A stack looks like the pieces in it, and takes more of the same.
+function stackDef(manifest, state, id, fromManifest) {
+  const piece = pieceDef(manifest, state.containers[id].members[0]);
+  return {
+    id,
+    kind: "stack",
+    shape: piece.shape,
+    size: piece.size,
+    layer: piece.layer,
+    thickness: piece.thickness,
+    stackKey: stackKey(piece),
+    image: null,
+    accepts: null,
+    fixed: fromManifest?.fixed || false,
+  };
+}
+
+// Tiles, chips, and tokens stack with others just like them.
+export function canStack(def) {
+  return STACKABLE.includes(def.kind);
+}
+
+// What makes pieces alike enough to stack: the same piece type, or for
+// untyped pieces, the same kind, shape, size, and images.
+export function stackKey(def) {
+  if (def.type) return `type:${def.type}`;
+  const image = (img) => (img ? `${img.url}#${img.index ?? ""}` : "");
+  return `look:${def.kind}|${def.shape}|${def.size.join("x")}|${image(def.face)}|${image(def.back)}`;
 }
 
 // Twice the board layer, so even a one-card deck doesn't pass for a card.
@@ -140,10 +175,19 @@ function handAxis(handDef) {
   return [Math.cos(radians), -Math.sin(radians)];
 }
 
-// Trays only take dice, and dice only go in trays and bags.
+// What each kind of container takes, before its own accepts list: trays
+// take dice, decks take cards, hands take cards and tiles, and bags take
+// anything but boards.
+const CONTAINER_TAKES = {
+  tray: ["die"],
+  deck: ["card"],
+  hand: ["card", "tile"],
+  bag: ["card", "tile", "chip", "token", "die"],
+};
+
 export function accepts(containerDef, pieceDef) {
-  const die = pieceDef.shape === "die";
-  if (containerDef.kind === "tray" ? !die : die && containerDef.kind !== "bag") return false;
+  if (containerDef.kind === "stack") return canStack(pieceDef) && stackKey(pieceDef) === containerDef.stackKey;
+  if (!CONTAINER_TAKES[containerDef.kind]?.includes(pieceDef.kind)) return false;
   if (!containerDef.accepts) return true;
   return containerDef.accepts.some((matcher) =>
     (!matcher.shape || matcher.shape === pieceDef.shape) &&
@@ -159,6 +203,11 @@ export function deckHeight(deckDef, count) {
   return min + (min * MAX_DECK_HEIGHT - min) * (1 - Math.exp(-extra / DECK_GROWTH));
 }
 
+// A stack grows a piece taller per piece, up to STACK_SHOWN.
+export function stackHeight(stackDef, count) {
+  return stackDef.thickness * Math.min(count, STACK_SHOWN);
+}
+
 export function bagHeight(bagDef) {
   return Math.min(...bagDef.size) * BAG_HEIGHT;
 }
@@ -169,5 +218,6 @@ export function objectHeight(object) {
   if (object.def.kind === "hand") return HAND_TRAY_HEIGHT;
   if (object.def.kind === "tray") return DICE_TRAY_WALL;
   if (object.def.kind === "bag") return bagHeight(object.def);
+  if (object.def.kind === "stack") return stackHeight(object.def, object.state.members.length);
   return deckHeight(object.def, object.state.members.length);
 }

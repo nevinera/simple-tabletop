@@ -13,10 +13,10 @@ const raw = (overrides = {}) => ({
   table: { size: [90, 60] },
   layers: [{ id: "pieces", thickness: 0.03 }],
   pieces: [
-    { id: "red", shape: "die", die: "d6", size: [2], position: [10, 10], value: 2 },
-    { id: "blue", shape: "die", die: "d20", size: [2] },
-    { id: "green", shape: "die", die: "d10t", size: [2] },
-    { id: "card", shape: "rect", size: [6, 9], face: "c.svg", position: [30, 30] },
+    { id: "red", kind: "die", die: "d6", size: [2], position: [10, 10], value: 2 },
+    { id: "blue", kind: "die", die: "d20", size: [2] },
+    { id: "green", kind: "die", die: "d10t", size: [2] },
+    { id: "card", kind: "card", size: [6, 9], face: "c.svg", position: [30, 30] },
   ],
   containers: [{ id: "tray", kind: "tray", position: [60, 30], size: [20, 14], members: ["blue", "green"] }],
   ...overrides,
@@ -31,7 +31,7 @@ describe("dice", () => {
     expect(manifest.pieces[2].die.labels).toEqual(["00", "10", "20", "30", "40", "50", "60", "70", "80", "90"]);
     const custom = normalizeManifest(raw({
       dieTypes: { fate: { sides: 6, faces: ["+.png", "+.png", "0.png", "0.png", "-.png", "-.png"] } },
-      pieces: [{ id: "f", shape: "die", die: "fate", size: [2], position: [5, 5] }],
+      pieces: [{ id: "f", kind: "die", die: "fate", size: [2], position: [5, 5] }],
       containers: [],
     }), "https://example.com/m.json");
     expect(custom.pieces[0].die.images[0].url).toBe("https://example.com/+.png");
@@ -39,7 +39,7 @@ describe("dice", () => {
 
   it("grows a d4 by half, so it doesn't look small next to other dice", () => {
     const d4 = normalizeManifest(raw({
-      pieces: [{ id: "x", shape: "die", die: "d4", size: [2], position: [5, 5] }],
+      pieces: [{ id: "x", kind: "die", die: "d4", size: [2], position: [5, 5] }],
       containers: [],
     }), "https://example.com/m.json");
     expect(d4.pieces[0].size).toEqual([3, 3]);
@@ -52,10 +52,10 @@ describe("dice", () => {
   });
 
   it.each([
-    ["an unknown die", { pieces: [{ id: "x", shape: "die", die: "d7", size: [2], position: [0, 0] }], containers: [] }, /unknown die/],
+    ["an unknown die", { pieces: [{ id: "x", kind: "die", die: "d7", size: [2], position: [0, 0] }], containers: [] }, /unknown die/],
     ["a built-in name reused", { dieTypes: { d6: { sides: 6, faces: [] } } }, /built-in/],
     ["the wrong number of faces", { dieTypes: { odd: { sides: 6, faces: ["a.png"] } } }, /exactly 6/],
-    ["an out-of-range value", { pieces: [{ id: "x", shape: "die", die: "d4", size: [2], position: [0, 0], value: 4 }], containers: [] }, /value/],
+    ["an out-of-range value", { pieces: [{ id: "x", kind: "die", die: "d4", size: [2], position: [0, 0], value: 4 }], containers: [] }, /value/],
   ])("rejects %s", (_name, overrides, message) => {
     expect(() => normalizeManifest(raw(overrides), "https://example.com/m.json")).toThrow(message);
   });

@@ -3,7 +3,7 @@
 //
 // - Click or tap a movable object to select it: you grab it and it lifts.
 // - Press on a movable object and drag to move it; releasing drops it.
-// - Drag a locked deck or bag to draw from it.
+// - Drag a locked deck, bag, or stack to draw from it.
 // - With something selected, a mouse click on open table places it there,
 //   and on touch a tap-and-hold does. A plain tap on open table cancels.
 // - Right-click an object, or tap and hold it on touch, for its context menu.
@@ -23,6 +23,7 @@ import { handId, seatOf } from "../state/seats";
 
 export const DRAG_THRESHOLD_PX = 6;
 export const LONG_PRESS_MS = 500;
+const DRAWABLE = ["deck", "bag", "stack"];
 
 export class PieceInteraction {
   constructor({
@@ -78,7 +79,8 @@ export class PieceInteraction {
       locked: object.state.locked,
       count: container && !infinite ? object.state.members.length : null,
       infinite,
-      canMakeDeck: !container && !object.state.containerId && object.def.shape === "rect",
+      canMakeDeck: !container && !object.state.containerId && object.def.kind === "card",
+      canFlip: !container && !["die", "board"].includes(object.def.kind),
       inHand,
       inTray: die && Boolean(object.state.containerId),
       trayId: die ? object.state.containerId : null,
@@ -117,9 +119,9 @@ export class PieceInteraction {
     if (id) this.#dispatch("lock", id);
   }
 
-  // Draws from a deck or bag into your grip, putting back whatever you
-  // held, or with toHand, into your hand. A deck gives its top card and a
-  // bag a random piece. With no container given, uses the hovered one, or
+  // Draws from a deck, bag, or stack into your grip, putting back whatever
+  // you held, or with toHand, into your hand. A deck or stack gives its top
+  // piece and a bag a random one. With no container given, uses the hovered one, or
   // the selected one. Returns the drawn piece's id, or null.
   draw(containerId = this.#drawTarget(), { toHand = false } = {}) {
     const container = containerId && this.#object(containerId);
@@ -355,9 +357,9 @@ export class PieceInteraction {
     return Boolean(object && this.#hasSomething(object) && this.#reachable(object));
   }
 
-  // A deck or bag with something to draw. An infinite bag always has.
+  // A deck, bag, or stack with something to draw. An infinite bag always has.
   #hasSomething(object) {
-    if (object.kind !== "container" || !["deck", "bag"].includes(object.def.kind)) return false;
+    if (object.kind !== "container" || !DRAWABLE.includes(object.def.kind)) return false;
     return Boolean(object.def.template || object.state.members.length);
   }
 
@@ -371,7 +373,7 @@ export class PieceInteraction {
   }
 
   #drawTarget() {
-    const drawable = (id) => id && ["deck", "bag"].includes(this.#object(id)?.def.kind);
+    const drawable = (id) => id && DRAWABLE.includes(this.#object(id)?.def.kind);
     if (drawable(this.hoveredId)) return this.hoveredId;
     const selected = this.selectedId();
     return drawable(selected) ? selected : null;

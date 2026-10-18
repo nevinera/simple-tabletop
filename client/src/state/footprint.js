@@ -1,7 +1,7 @@
 // Footprints of objects on the table, for keeping objects on one layer from
 // overlapping. Objects whose edges touch don't count as overlapping.
 
-import { accepts, findObject, looseObjects, pieceDef, restingSpot } from "./objects";
+import { accepts, canStack, findObject, looseObjects, pieceDef, restingSpot, stackKey } from "./objects";
 import { hasRoom } from "./trays";
 import { seatOf } from "./seats";
 
@@ -37,7 +37,8 @@ export function overlaps(a, b) {
 
 // Where object `id` would land at (x, y), facing `rotation`, when
 // `playerId` lets go of it:
-//   { into: containerId }  a piece over a deck, bag, hand, or tray that takes it
+//   { into: containerId }  a piece over a container that takes it
+//   { stack: pieceId }     a piece over a loose one just like it, to stack on
 //   { blocked: [ids] }     overlapping other objects on its layer, or off
 //                          the table (with no ids)
 //   {}                     open table
@@ -50,8 +51,11 @@ export function landing(manifest, state, id, x, y, rotation, playerId) {
     .map((other) => ({ ...other, outline: footprint(other.def, ...spot(other)) }));
 
   if (object.kind === "piece") {
-    const under = others.find((other) => CONTAINER_TARGETS.includes(other.def.kind) && contains(other.outline.polygon, x, y));
+    const under = others.find((other) => CONTAINER_TARGETS.includes(other.def.kind) && inside(other.outline, x, y));
     if (under) return takes(manifest, state, under, object, playerId) ? { into: under.id } : { blocked: [under.id] };
+    const twin = canStack(object.def) && others.find((other) => other.kind === "piece" && !other.state.heldBy &&
+      stackKey(other.def) === stackKey(object.def) && inside(other.outline, x, y));
+    if (twin) return { stack: twin.id };
   }
 
   const [width, depth] = manifest.table.size;
@@ -60,7 +64,7 @@ export function landing(manifest, state, id, x, y, rotation, playerId) {
   return blocked.length ? { blocked } : {};
 }
 
-const CONTAINER_TARGETS = ["deck", "bag", "hand", "tray"];
+const CONTAINER_TARGETS = ["deck", "bag", "hand", "tray", "stack"];
 
 // The area a dragged object can move over: the table, plus the hand trays
 // around it. Returns { minX, maxX, minY, maxY }.
@@ -125,6 +129,12 @@ function circleOverlapsPolygon(circle, polygon) {
     if (distance < circle.r - TOUCH_CM) return true;
   }
   return false;
+}
+
+// Whether (x, y) is inside a footprint.
+function inside(outline, x, y) {
+  if (outline.circle) return Math.hypot(x - outline.circle.x, y - outline.circle.y) < outline.circle.r;
+  return contains(outline.polygon, x, y);
 }
 
 function contains(polygon, x, y) {

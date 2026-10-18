@@ -23,7 +23,7 @@ Modules are data only. They place pieces and describe how they look. They can't 
   },
   "pieceTypes": {
     "card": {
-      "shape": "rect",
+      "kind": "card",
       "size": [6.3, 8.8],
       "back": "assets/card-back.png"
     }
@@ -134,10 +134,11 @@ of them.
 |------------|----------|---------------------------------------------------------------|
 | `id`       | yes      | unique within the manifest                                    |
 | `type`     | no       | a key in `pieceTypes`                                         |
-| `layer`    | no       | defaults to `pieces`                                          |
-| `shape`    | yes*     | `rect`, `circle`, or `die`                                    |
+| `kind`     | yes*     | `card`, `board`, `tile`, `chip`, `token`, or `die`; see below |
+| `layer`    | no       | defaults to `board` for boards and `pieces` for everything else |
+| `shape`    | boards, tokens | `rect` or `circle`; the other kinds have only one shape  |
 | `size`     | yes*     | `[width, depth]`; circles and dice use the first value only   |
-| `thickness`| no       | in cm; circles on the top layer default to half the board layer's thickness, and everything else to its layer's |
+| `thickness`| no       | in cm; tiles, chips, and tokens default to half the board layer's thickness, and cards and boards to their layer's |
 | `categories`| no      | list of strings; combined with the type's categories          |
 | `die`      | dice     | a built-in die name, or a key in `dieTypes`                   |
 | `face`     | yes*     | image for the up side; not used by dice                       |
@@ -150,7 +151,20 @@ of them.
 
 \* Can come from the piece type.
 
-A board is just a big piece on the `board` layer with `"fixed": true`.
+### Kinds
+
+A piece's kind decides what it does:
+
+| kind  | shape          | groups into  | goes in hands | flips |
+|-------|----------------|--------------|---------------|-------|
+| card  | rect           | decks        | yes           | yes   |
+| board | rect or circle |              | no            | no    |
+| tile  | rect           | stacks       | yes           | yes   |
+| chip  | circle         | stacks       | no            | yes   |
+| token | circle or rect | stacks       | no            | yes   |
+| die   | die            | trays        | no            | rolls |
+
+Bags take every kind but boards. A board usually also sets `"fixed": true`.
 
 ## Dice
 
@@ -211,7 +225,7 @@ To make a custom die, add an entry to `dieTypes`. Set the number of `sides` and 
 | field      | required | notes                                                         |
 |------------|----------|---------------------------------------------------------------|
 | `id`       | yes      | unique among containers                                       |
-| `kind`     | yes      | `deck`, `bag`, `bowl`, or `tray`                              |
+| `kind`     | yes      | `deck`, `bag`, `bowl`, `tray`, or `stack`                     |
 | `position` | yes      |                                                               |
 | `rotation` | no       | defaults to 0                                                 |
 | `size`     | decks, trays, bags | `[width, depth]`                                    |
@@ -246,6 +260,11 @@ Without `accepts`, decks take pieces of their members' type, trays take dice, an
   over a bag lists what's inside. Bags take any piece, dice included, but never another container.
 - **infinite bag:** a bag with `infinite` set to a piece type. Every draw makes a new piece of that type, and a
   piece of that type dropped back in is gone for good. It takes nothing else, and it can't list `members`.
+- **stack:** tiles, chips, or tokens that are all alike, piled up. It needs at least two `members`, top first,
+  and takes its size and look from them. Pieces are alike when they share a piece type, or, without one, the
+  same kind, shape, size, and images. A stack grows one piece taller per piece up to five, then shows a count
+  on top instead. Players draw from the top, and a stack down to one piece turns back into that piece.
+  Dropping a piece on a loose one just like it makes a new stack.
 - **bowl:** contents sit visible in a pile. Players pick any member.
 - **tray:** dice only. Dice sit at random spots inside it, never overlapping, and can fill at most an eighth
   of its area. Rolling the tray rolls them all and scatters them to new spots.

@@ -6,6 +6,6 @@ import "./styles/index.css";
 const el = document.getElementById("app");
 createRoot(el).render(
   <StrictMode>
-    <App gameId={el.dataset.gameId} />
+    <App manifestUrl={el.dataset.manifestUrl} />
   </StrictMode>
 );

@@ -1,16 +1,11 @@
-// Saved camera views, keyed 1-9 per game. Number keys jump to a slot and
-// shift+number saves the current view into it. A view is
-// { position: [x, height, y], target: [x, height, y] } in table units.
+// Saved camera views, keyed 0-9 per game, in the browser's localStorage. A
+// view is { position: [x, height, y], target: [x, height, y] } in table
+// units. A slot nobody has saved returns null, and callers fall back to the
+// starting view.
 export class CameraSlots {
   constructor(storage, gameId) {
     this.storage = storage;
     this.key = `simple-tabletop:camera-slots:${gameId}`;
-  }
-
-  // Uses event.code, since shift+1 reports event.key as "!".
-  static slotForKey(event) {
-    const match = /^(?:Digit|Numpad)([1-9])$/.exec(event.code || "");
-    return match ? match[1] : null;
   }
 
   load(slot) {

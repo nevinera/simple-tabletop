@@ -1,31 +1,25 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TableScene } from "./scene";
-import { CameraSlots } from "./cameraSlots";
 
-export default function TableCanvas({ gameId }) {
+// Mounts a TableScene, hands it to the parent through onScene, and shows the
+// manifest on it.
+export default function TableCanvas({ manifest, onScene, onError }) {
   const containerRef = useRef(null);
+  const [scene, setScene] = useState(null);
 
   useEffect(() => {
-    const scene = new TableScene(containerRef.current);
-    const slots = new CameraSlots(localStorage, gameId || "sandbox");
-
-    const onKeyDown = (event) => {
-      const slot = CameraSlots.slotForKey(event);
-      if (!slot) return;
-      if (event.shiftKey) {
-        slots.save(slot, scene.cameraView());
-      } else {
-        const view = slots.load(slot);
-        if (view) scene.setCameraView(view);
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-
+    const created = new TableScene(containerRef.current);
+    setScene(created);
+    onScene(created);
     return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      scene.dispose();
+      onScene(null);
+      created.dispose();
     };
-  }, [gameId]);
+  }, [onScene]);
+
+  useEffect(() => {
+    if (scene && manifest) scene.show(manifest).catch(onError);
+  }, [scene, manifest, onError]);
 
   return <div className="table-canvas" ref={containerRef} />;
 }

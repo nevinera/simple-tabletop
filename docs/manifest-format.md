@@ -13,8 +13,11 @@ Modules are data only. They place pieces and describe how they look. They can't 
   "id": "hearts",
   "name": "Hearts",
   "version": "1.0.0",
-  "table": { "size": [100, 100], "image": "assets/felt.jpg" },
-  "layers": ["board", "pieces"],
+  "table": { "size": [100, 100], "color": "#2e6b3f" },
+  "layers": [
+    { "id": "board", "thickness": 0.3 },
+    { "id": "pieces", "thickness": 0.03 }
+  ],
   "sheets": {
     "cards": { "image": "assets/cards.png", "columns": 13, "rows": 4 }
   },
@@ -22,7 +25,6 @@ Modules are data only. They place pieces and describe how they look. They can't 
     "card": {
       "shape": "rect",
       "size": [6.3, 8.8],
-      "thickness": 0.03,
       "back": "assets/card-back.png"
     }
   },
@@ -38,8 +40,8 @@ Modules are data only. They place pieces and describe how they look. They can't 
     }
   ],
   "pieces": [
-    { "id": "AS", "type": "card", "face": { "sheet": "cards", "index": 0 } },
-    { "id": "2S", "type": "card", "face": { "sheet": "cards", "index": 1 } }
+    { "id": "AS", "type": "card", "categories": ["spades"], "face": { "sheet": "cards", "index": 0 } },
+    { "id": "2S", "type": "card", "categories": ["spades"], "face": { "sheet": "cards", "index": 1 } }
   ],
   "containers": [
     {
@@ -49,18 +51,24 @@ Modules are data only. They place pieces and describe how they look. They can't 
       "rotation": 0,
       "fixed": true,
       "faceUp": false,
+      "accepts": [{ "type": "card" }],
       "members": ["AS", "2S"]
     }
+  ],
+  "labels": [
+    { "text": "Draw pile", "position": [50, 56], "fontSize": 1.5, "color": "#f5f0dc" }
   ]
 }
 ```
 
 ## Coordinates and units
 
-- The table is a flat plane. `position` is `[x, y]` on it, with `[0, 0]` at one corner.
+- The table is a flat plane. `position` is `[x, y]` on it. `[0, 0]` is the near left corner, x runs right, and
+  y runs away from you.
 - Units are centimeters, so real card and board sizes carry over.
-- `rotation` is in degrees, clockwise when seen from above. 0 points along +y.
-- Clients work out height from the layer and the stacking order. Manifests don't set it.
+- `rotation` is in degrees, clockwise when seen from above. At 0, the top of a piece points along +y.
+- Manifests don't set height. Each layer sits on top of the layers below it, and every piece on a layer is
+  that layer's thickness.
 
 ## Top-level fields
 
@@ -70,14 +78,34 @@ Modules are data only. They place pieces and describe how they look. They can't 
 | `id`            | yes      | short slug                                               |
 | `name`          | yes      | shown to players                                         |
 | `version`       | no       | free-form                                                |
-| `table`         | yes      | `size` as `[width, depth]`, optional `image`             |
-| `layers`        | yes      | draw order, bottom first; `board` and `pieces` for now   |
+| `table`         | yes      | see [Table](#table)                                      |
+| `layers`        | yes      | see [Layers](#layers)                                    |
 | `sheets`        | no       | image grids that many pieces share                       |
 | `pieceTypes`    | no       | shared defaults that pieces inherit                      |
 | `dieTypes`      | no       | custom dice; see [Dice](#dice)                           |
 | `seats`         | yes      | at least one                                             |
 | `pieces`        | yes      | every piece in the game                                  |
-| `containers`    | no       | decks, bags, and bowls                                   |
+| `containers`    | no       | decks, bags, bowls, and trays                            |
+| `labels`        | no       | text drawn on the table; see [Labels](#labels)           |
+
+## Table
+
+| field   | required | notes                                                       |
+|---------|----------|-------------------------------------------------------------|
+| `size`  | yes      | `[width, depth]`                                            |
+| `color` | no       | hex; defaults to `#2e6b3f`, a green felt                    |
+| `image` | no       | stretched across the whole table; replaces the felt texture |
+
+## Layers
+
+Layers stack bottom first. `board` and `pieces` are the only layer ids for now.
+
+| field       | required | notes                                         |
+|-------------|----------|-----------------------------------------------|
+| `id`        | yes      | `board` or `pieces`                           |
+| `thickness` | yes      | how thick every piece on this layer renders   |
+
+Board-layer pieces render as solid slabs, and pieces sit on top of them.
 
 ## Images
 
@@ -105,7 +133,7 @@ of them.
 | `layer`    | no       | defaults to `pieces`                                          |
 | `shape`    | yes*     | `rect`, `circle`, or `die`                                    |
 | `size`     | yes*     | `[width, depth]`; circles and dice use the first value only   |
-| `thickness`| no       | defaults to 0.1                                               |
+| `categories`| no      | list of strings; combined with the type's categories          |
 | `die`      | dice     | a built-in die name, or a key in `dieTypes`                   |
 | `face`     | yes*     | image for the up side; not used by dice                       |
 | `back`     | no       | image for the down side; defaults to `face`                   |
@@ -183,17 +211,44 @@ To make a custom die, add an entry to `dieTypes`. Set the number of `sides` and 
 | `rotation` | no       | defaults to 0                                                 |
 | `fixed`    | no       | the container stays put; players can still take from it       |
 | `faceUp`   | no       | decks only; defaults to false                                 |
+| `accepts`  | no       | which pieces can be dropped in; see below                     |
 | `members`  | no       | piece ids, top first                                          |
+
+`accepts` is a list of matchers, each with a `type`, a `category`, or both. A piece fits if it matches any one
+matcher, and a matcher with both fields needs both to match:
+
+```json
+"accepts": [
+  { "type": "card", "category": "quests" },
+  { "type": "token" }
+]
+```
+
+Without `accepts`, decks take pieces of their members' type, trays take dice, and bags and bowls take anything.
 
 ### Kinds
 
-- **deck:** an ordered stack. Players draw from the top and can shuffle it.
+- **deck:** an ordered stack. Players draw from the top and can shuffle it. An empty deck stays on the table
+  as an outlined placeholder.
 - **bag:** players can't see inside. Drawing takes a random member.
 - **bowl:** contents sit visible in a pile. Players pick any member.
 - **tray:** dice only. Dice sit side by side with their current faces showing. Rolling the tray rolls them all.
 
 A piece belongs to at most one container. Hands are containers too, but each seat creates its own, so the
 manifest doesn't list them.
+
+## Labels
+
+Labels are text drawn flat on the table, for naming boards, regions, and piles. Players can't edit them.
+
+| field      | required | notes                                         |
+|------------|----------|-----------------------------------------------|
+| `text`     | yes      | `\n` starts a new line                        |
+| `position` | yes      | center of the text                            |
+| `rotation` | no       | defaults to 0                                 |
+| `fontSize` | no       | letter height in centimeters; defaults to 1   |
+| `color`    | no       | hex; defaults to `#ffffff`                    |
+| `layer`    | no       | the label sits on top of it; defaults to the bottom layer |
 
 ## Seats
 
@@ -203,10 +258,10 @@ manifest doesn't list them.
 | `name`    | yes      |                                                                  |
 | `color`   | no       | hex                                                              |
 | `hand`    | no       | `position`, `rotation`, and `size` of the hand zone              |
-| `cameras` | no       | starting camera slots, keyed `"1"` to `"9"`                      |
+| `cameras` | no       | starting camera slots, keyed `"0"` to `"9"`                      |
 
 A camera is a `position` and a `target`, each `[x, height, y]` in table units. Players' own saved slots replace
-these.
+these. A slot with no camera starts at a default view of the whole table.
 
 ## Hosting
 

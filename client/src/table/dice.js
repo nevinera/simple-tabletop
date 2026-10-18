@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { tableRotationToThree, tableToThree } from "./coordinates";
 import { dieRegions, orientation, restHeight } from "./diceGeometry";
 import { HELD_LIFT } from "./pieces";
-import { labelSize } from "../state/dice";
+import { D4_SCALE, labelSize } from "../state/dice";
 
 const LABEL_PIXELS = 128;
 const INK = "#2a2a2a";
@@ -59,11 +59,14 @@ export function buildDie(def, textures) {
   shadow.rotation.x = -Math.PI / 2;
   shadow.visible = false;
 
+  // The swirl is as big as other dice of the d4's listed size.
+  const swirlWidth = sides === 4 ? def.size[0] / D4_SCALE : def.size[0];
   const swirl = new THREE.Mesh(
-    new THREE.SphereGeometry(def.size[0] / 2, 24, 16),
+    new THREE.SphereGeometry(swirlWidth / 2, 24, 16),
     new THREE.MeshBasicMaterial({ map: swirlTexture(), transparent: true, opacity: SWIRL_OPACITY, depthWrite: false })
   );
   swirl.visible = false;
+  swirl.userData.radius = swirlWidth / 2;
 
   group.userData = { regions, materials, ghost, shadow, swirl, value: null };
   return group;
@@ -84,7 +87,7 @@ export function applyDiePlacement(group, def, state, spot, { blocked = false, fl
   group.visible = !swirl.visible;
   group.position.fromArray(tableToThree([spot.x, spot.base + lift + center, spot.y]));
   group.quaternion.copy(turn);
-  swirl.position.copy(group.position);
+  swirl.position.fromArray(tableToThree([spot.x, spot.base + lift + swirl.userData.radius, spot.y]));
   setDieValue(group, state.value);
 
   shadow.visible = held;

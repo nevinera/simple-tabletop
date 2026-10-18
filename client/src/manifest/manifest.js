@@ -2,7 +2,7 @@
 // shape the table renders from: piece types merged in, defaults filled, and
 // every image resolved to an absolute URL.
 
-import { BUILT_IN_DICE, DIE_SIDES } from "../state/dice";
+import { BUILT_IN_DICE, D4_SCALE, DIE_SIDES } from "../state/dice";
 import { HALF_SIDES, SEAT_ORDER, SIDES } from "../state/seats";
 
 export const DEFAULT_TABLE_COLOR = "#2e6b3f";
@@ -269,10 +269,6 @@ function normalizeDieTypes(dieTypes, image) {
     return [key, { name: key, sides: dieType.sides, labels: null, images: faces }];
   }));
 }
-
-// A tetrahedron looks small next to other dice of the same width, so a d4
-// grows by this much.
-const D4_SCALE = 1.5;
 
 function normalizeDie(piece, where, dieTypes) {
   const builtIn = BUILT_IN_DICE[piece.die];

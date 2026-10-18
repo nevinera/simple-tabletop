@@ -8,6 +8,7 @@ import { useTableKeys } from "./useTableKeys";
 import { useSelectedObject } from "./useSelectedObject";
 import { sameIds, useStoreValue } from "./useStoreValue";
 import { useMagnifyKey } from "./useMagnifyKey";
+import { TableSounds, soundFor } from "./sound/sounds";
 import { handId, openSeats, seatName, seatOf, seatView } from "./state/seats";
 import { magnifiable, visibleSide } from "./state/visibility";
 import { SeatPicker } from "./ui/SeatPicker";
@@ -24,6 +25,7 @@ const ACTION_BAR_SETTING = "simple-tabletop:desktop-action-bar";
 const LOCAL_PLAYER_ID = "local";
 const HAND_STRIP_SETTING = "simple-tabletop:hand-strip";
 const TRAY_SCATTER_SETTING = "simple-tabletop:tray-roll-scatters";
+const SOUND_SETTING = "simple-tabletop:sound";
 
 export default function App({ manifestUrl, gameId = "sandbox" }) {
   const viewport = useViewportMode();
@@ -40,6 +42,7 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
   const [desktopActionBar, setDesktopActionBar] = useStoredFlag(ACTION_BAR_SETTING, false);
   const [handStripVisible, setHandStripVisible] = useStoredFlag(HAND_STRIP_SETTING, true);
   const [trayRollScatters, setTrayRollScatters] = useStoredFlag(TRAY_SCATTER_SETTING, true);
+  const [soundOn, setSoundOn] = useStoredFlag(SOUND_SETTING, true);
   const [hovered, setHovered] = useState(null);
   const [magnifyMode, setMagnifyMode] = useState(false);
   const [magnified, setMagnified] = useState(null);
@@ -101,6 +104,10 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
     if (scene && seatId) scene.setCameraView(seatCameraRef.current("1"));
   }, [scene, seatId]);
 
+  const sounds = useTableSounds(manifest, store);
+  useEffect(() => {
+    if (sounds) sounds.enabled = soundOn;
+  }, [sounds, soundOn]);
   useEffect(() => {
     if (interaction) interaction.magnifyMode = magnifyMode;
   }, [interaction, magnifyMode]);
@@ -163,6 +170,8 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
         handsEnabled={Boolean(manifest?.hands.enabled && seated)}
         handStripVisible={handStripVisible}
         setHandStripVisible={setHandStripVisible}
+        soundOn={soundOn}
+        setSoundOn={setSoundOn}
         trayRollScatters={trayRollScatters}
         setTrayRollScatters={setTrayRollScatters}
         helpOpen={helpOpen}
@@ -213,6 +222,21 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
       )}
     </div>
   );
+}
+
+// Plays a sound for each action on the table, yours or anyone's.
+function useTableSounds(manifest, store) {
+  const [sounds, setSounds] = useState(null);
+  useEffect(() => {
+    const created = new TableSounds();
+    setSounds(created);
+    return () => created.dispose();
+  }, []);
+  useEffect(() => {
+    if (!sounds || !store) return undefined;
+    return store.subscribe((state, action) => sounds.play(soundFor(manifest, state, action)));
+  }, [sounds, manifest, store]);
+  return sounds;
 }
 
 function useStoredFlag(key, fallback) {

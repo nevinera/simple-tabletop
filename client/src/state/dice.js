@@ -16,6 +16,10 @@ export const BUILT_IN_DICE = {
 
 export const DIE_SIDES = [4, 6, 8, 10, 12, 20];
 
+// A tetrahedron looks small next to other dice of the same width, so a d4
+// grows by this much.
+export const D4_SCALE = 1.5;
+
 // How tall a die's number is, as a share of the width its label art spans.
 // A d10's kite is long and narrow, so its numbers shrink to fit.
 export function labelSize(label, sides) {

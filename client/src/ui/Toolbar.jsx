@@ -2,7 +2,7 @@ import { Menu } from "./Menu";
 
 export function Toolbar({
   title, layout, menus, showActionBar, setShowActionBar, seatName, onLeaveSeat, handsEnabled, handStripVisible,
-  setHandStripVisible, trayRollScatters, setTrayRollScatters, helpOpen, setHelpOpen,
+  setHandStripVisible, soundOn, setSoundOn, trayRollScatters, setTrayRollScatters, helpOpen, setHelpOpen,
 }) {
   return (
     <nav className="toolbar" aria-label="Toolbar">
@@ -34,6 +34,10 @@ export function Toolbar({
             Show action bar
           </label>
         )}
+        <label className="menu-row">
+          <input type="checkbox" checked={soundOn} onChange={(event) => setSoundOn(event.target.checked)} />
+          Sound effects
+        </label>
         <label className="menu-row">
           <input
             type="checkbox"

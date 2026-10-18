@@ -100,6 +100,21 @@ describe("normalizeManifest", () => {
     expect(normalizeManifest(manifest({ pieces, containers }), BASE).pieces[0].position).toBeNull();
   });
 
+  it("fills container defaults", () => {
+    const pieces = [{ id: "AS", type: "card", face: "AS.svg" }];
+    const containers = [{ id: "deck", kind: "deck", position: [10, 10], members: ["AS"] }];
+    expect(normalizeManifest(manifest({ pieces, containers }), BASE).containers).toEqual([{
+      id: "deck",
+      kind: "deck",
+      position: [10, 10],
+      rotation: 0,
+      fixed: false,
+      faceUp: false,
+      members: ["AS"],
+      accepts: null,
+    }]);
+  });
+
   it.each([
     ["a wrong format version", { formatVersion: 2 }, /formatVersion/],
     ["a missing table", { table: undefined }, /"table"/],
@@ -123,6 +138,19 @@ describe("normalizeManifest", () => {
       seats: [{ id: "s", name: "S", cameras: { 10: { position: [0, 0, 0], target: [0, 0, 0] } } }],
     }, /0 to 9/],
     ["a label without text", { labels: [{ position: [0, 0] }] }, /needs text/],
+    ["an unknown container kind", { containers: [{ id: "c", kind: "box", position: [0, 0] }] }, /unknown kind/],
+    ["a container with an unknown member", {
+      containers: [{ id: "c", kind: "deck", position: [0, 0], members: ["KS"] }],
+    }, /unknown piece/],
+    ["a piece in two containers", {
+      containers: [
+        { id: "a", kind: "deck", position: [0, 0], members: ["AS"] },
+        { id: "b", kind: "deck", position: [0, 0], members: ["AS"] },
+      ],
+    }, /both/],
+    ["an empty accepts matcher", {
+      containers: [{ id: "c", kind: "bag", position: [0, 0], accepts: [{}] }],
+    }, /accepts/],
   ])("rejects %s", (_name, overrides, message) => {
     expect(() => normalizeManifest(manifest(overrides), BASE)).toThrow(ManifestError);
     expect(() => normalizeManifest(manifest(overrides), BASE)).toThrow(message);

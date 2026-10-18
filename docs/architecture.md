@@ -142,10 +142,14 @@ There's no free-form multi-select. To move or roll several things together, put 
 | `drag`    | relay an in-progress position; not saved                       |
 | `drop`    | save position, rotation, facing, or container; release         |
 | `flip`    | toggle `face_up`                                               |
+| `rotate`  | turn a piece by some degrees, clockwise when positive           |
 | `shuffle` | replace a container's `member_keys` with a new order            |
 | `roll`    | set new `value`s for one die or every die in a tray             |
 | `draw`    | move the top member of a container to the table or another one |
 | `release` | let go without changing anything                               |
+
+`flip` and `rotate` also work on a piece nobody holds, so players can flip a card they're pointing at. Nobody
+can flip or rotate a piece someone else holds.
 
 The client that shuffles picks the order, and the client that rolls picks the result. Clients are trusted, so
 the server doesn't need to.

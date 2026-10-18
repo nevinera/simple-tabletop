@@ -5,7 +5,7 @@ import App from "../App";
 // WebGL isn't available under jsdom, so stand in for the canvas.
 vi.mock("../table/TableCanvas", () => ({ default: () => <div data-testid="table-canvas" /> }));
 vi.mock("../manifest/manifest", () => ({
-  fetchManifest: () => Promise.resolve({ name: "Four Aces", pieces: [], labels: [] }),
+  fetchManifest: () => Promise.resolve({ name: "Four Aces", pieces: [], containers: [], labels: [] }),
 }));
 
 function renderAt(forceViewport) {

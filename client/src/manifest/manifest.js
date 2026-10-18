@@ -5,6 +5,7 @@
 export const DEFAULT_TABLE_COLOR = "#2e6b3f";
 const LAYER_IDS = ["board", "pieces"];
 const SHAPES = ["rect", "circle"];
+const CONTAINER_KINDS = ["deck", "bag", "bowl", "tray"];
 const CAMERA_SLOTS = /^[0-9]$/;
 
 export class ManifestError extends Error {}
@@ -48,8 +49,47 @@ export function normalizeManifest(raw, baseUrl) {
     layers,
     seats: raw.seats.map(normalizeSeat),
     pieces,
+    containers: normalizeContainers(raw.containers || [], seen),
     labels: (raw.labels || []).map((label, i) => normalizeLabel(label, i, layers)),
   };
+}
+
+function normalizeContainers(rawContainers, pieceIds) {
+  const ids = new Set();
+  const claimed = new Map(); // piece id -> container id
+  return rawContainers.map((container) => {
+    const where = `Container "${container?.id}"`;
+    if (!container?.id) throw new ManifestError("Every container needs an id.");
+    if (ids.has(container.id)) throw new ManifestError(`Duplicate container id "${container.id}".`);
+    ids.add(container.id);
+    if (!CONTAINER_KINDS.includes(container.kind)) throw new ManifestError(`${where} has unknown kind "${container.kind}".`);
+    if (!Array.isArray(container.position)) throw new ManifestError(`${where} needs a position.`);
+
+    const members = container.members || [];
+    for (const member of members) {
+      if (!pieceIds.has(member)) throw new ManifestError(`${where} lists unknown piece "${member}".`);
+      if (claimed.has(member)) {
+        throw new ManifestError(`Piece "${member}" is in both "${claimed.get(member)}" and "${container.id}".`);
+      }
+      claimed.set(member, container.id);
+    }
+
+    const accepts = container.accepts ?? null;
+    if (accepts && (!Array.isArray(accepts) || accepts.some((m) => !m?.type && !m?.category))) {
+      throw new ManifestError(`${where} accepts must be a list of { type, category } matchers.`);
+    }
+
+    return {
+      id: container.id,
+      kind: container.kind,
+      position: container.position,
+      rotation: container.rotation || 0,
+      fixed: container.fixed || false,
+      faceUp: container.faceUp || false,
+      members,
+      accepts,
+    };
+  });
 }
 
 // Each layer sits on the ones below it, so its base is their total thickness.

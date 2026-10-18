@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import TableCanvas from "./table/TableCanvas";
 import { CameraSlots } from "./table/cameraSlots";
 import { fetchManifest } from "./manifest/manifest";
+import { createTableStore } from "./state/store";
 import { useViewportMode } from "./useViewportMode";
 import { useTableKeys } from "./useTableKeys";
 import { Toolbar } from "./ui/Toolbar";
@@ -31,6 +32,12 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
     return () => { cancelled = true; };
   }, [manifestUrl]);
 
+  const store = useMemo(() => (manifest ? createTableStore(manifest) : null), [manifest]);
+  useEffect(() => {
+    // A console handle on table state. Clients are trusted, so it hides nothing.
+    window.tableStore = store;
+  }, [store]);
+
   const cameraPoints = useMemo(() => {
     const slots = new CameraSlots(localStorage, gameId);
     return {
@@ -58,7 +65,7 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
         setShowActionBar={setDesktopActionBar}
       />
       <main className="table-area">
-        <TableCanvas manifest={manifest} onScene={setScene} onError={setError} />
+        <TableCanvas manifest={manifest} store={store} onScene={setScene} onError={setError} />
         {joysticksVisible && <Joysticks scene={scene} onIdle={hideJoysticks} />}
         {error && <div className="table-error" role="alert">{error.message}</div>}
       </main>

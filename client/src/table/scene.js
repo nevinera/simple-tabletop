@@ -3,7 +3,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { tableToThree, threeToTable } from "./coordinates";
 import { FELT_TILE_CM, feltTexture } from "./felt";
 import { buildLabel } from "./labels";
-import { buildPiece } from "./pieces";
+import { applyPlacement, buildPiece } from "./pieces";
 import { applyMotion, clampTarget, orbit, sumMotions } from "./rig";
 import { TextureCache } from "./textures";
 
@@ -17,6 +17,7 @@ export class TableScene {
     this.container = container;
     this.motions = new Map();
     this.content = new THREE.Group();
+    this.pieceMeshes = new Map(); // piece id -> mesh
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -48,8 +49,11 @@ export class TableScene {
     this.renderer.setAnimationLoop(() => this.#frame());
   }
 
+  // Builds the table for a manifest. Pieces stay hidden until render() gives
+  // them state.
   async show(manifest) {
     this.#clearContent();
+    this.manifest = manifest;
     const [width, depth] = manifest.table.size;
     this.bounds = {
       minX: -width * TARGET_MARGIN,
@@ -66,10 +70,25 @@ export class TableScene {
 
     const [table, ...pieces] = await Promise.all([
       this.#buildTable(manifest.table),
-      ...manifest.pieces.filter((p) => p.position).map((p) => buildPiece(p, this.textures)),
+      ...manifest.pieces.map((p) => buildPiece(p, this.textures)),
     ]);
-    if (this.disposed) return;
+    if (this.disposed || this.manifest !== manifest) return;
     this.content.add(table, ...manifest.labels.map(buildLabel), ...pieces);
+    pieces.forEach((mesh) => {
+      mesh.visible = false;
+      this.pieceMeshes.set(mesh.name, mesh);
+    });
+    if (this.state) this.render(this.state);
+  }
+
+  // Moves piece meshes to match table state (see state/actions.js).
+  render(state) {
+    this.state = state;
+    if (!this.manifest) return;
+    for (const def of this.manifest.pieces) {
+      const mesh = this.pieceMeshes.get(def.id);
+      if (mesh) applyPlacement(mesh, def, state.pieces[def.id]);
+    }
   }
 
   cameraView() {
@@ -145,6 +164,7 @@ export class TableScene {
       });
     });
     this.content.clear();
+    this.pieceMeshes.clear();
   }
 
   #resize() {

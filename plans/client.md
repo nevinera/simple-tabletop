@@ -108,7 +108,7 @@ Update docs/manifest-format.md before building on them.
    bar. Full camera control by pointer, keys, and joysticks, plus camera points. Board slabs and labels render.
    Nothing moves yet.
 2. **Local state store.** One module holds piece and container state and takes the actions the server will
-   take later: `grab`, `move`, `drop`, `flip`, `rotate`. The scene renders from it.
+   take later: `grab`, `drag`, `drop`, `release`, `flip`, `rotate`. The scene renders from it.
 3. **Select and move pieces.** Select, then drag or place, with the lift and landing shadow. Fixed pieces
    can't be selected. A placed piece lands on top, and draw order breaks ties between overlapping pieces.
 4. **Flip and rotate.** Keys on selected and hovered pieces, the action bar, and the context menu.

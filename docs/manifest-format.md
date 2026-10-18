@@ -141,7 +141,7 @@ of them.
 | `rotation` | no       | defaults to 0                                                 |
 | `faceUp`   | no       | defaults to true                                              |
 | `value`    | no       | dice only: index of the starting face; defaults to 0          |
-| `fixed`    | no       | players can't move it; defaults to false                      |
+| `fixed`    | no       | starts locked; players can unlock it; defaults to false       |
 
 \* Can come from the piece type.
 
@@ -209,8 +209,11 @@ To make a custom die, add an entry to `dieTypes`. Set the number of `sides` and 
 | `kind`     | yes      | `deck`, `bag`, `bowl`, or `tray`                              |
 | `position` | yes      |                                                               |
 | `rotation` | no       | defaults to 0                                                 |
-| `fixed`    | no       | the container stays put; players can still take from it       |
-| `faceUp`   | no       | decks only; defaults to false                                 |
+| `size`     | decks    | `[width, depth]`                                              |
+| `layer`    | no       | defaults to `pieces`                                          |
+| `image`    | no       | decks: shown on top instead of the top card                   |
+| `fixed`    | no       | starts locked; players can still take from it                 |
+| `faceUp`   | no       | decks only: which way every card in it faces; defaults to false |
 | `accepts`  | no       | which pieces can be dropped in; see below                     |
 | `members`  | no       | piece ids, top first                                          |
 
@@ -228,7 +231,8 @@ Without `accepts`, decks take pieces of their members' type, trays take dice, an
 
 ### Kinds
 
-- **deck:** an ordered stack. Players draw from the top and can shuffle it. An empty deck stays on the table
+- **deck:** an ordered stack. Players draw from the top and can shuffle it. It grows from two cards thick
+  toward forty as cards go in, showing its `image` or else the top card. An empty deck stays on the table
   as an outlined placeholder.
 - **bag:** players can't see inside. Drawing takes a random member.
 - **bowl:** contents sit visible in a pile. Players pick any member.

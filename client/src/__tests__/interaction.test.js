@@ -15,12 +15,15 @@ const manifest = normalizeManifest({
     { id: "mat", shape: "circle", size: [40], layer: "board", face: "mat.svg", position: [45, 45], fixed: true },
     { id: "AS", type: "card", face: "AS.svg", position: [10, 10] },
     { id: "AH", type: "card", face: "AH.svg", position: [30, 30] },
+    { id: "KS", type: "card", face: "KS.svg" },
+    { id: "QS", type: "card", face: "QS.svg" },
   ],
+  containers: [{ id: "deck", kind: "deck", position: [60, 60], size: [6.3, 8.8], members: ["KS", "QS"] }],
 }, "https://example.com/manifest.json");
 
 // Screen pixels map straight to table units, and pieces are hit at their
 // table position, so tests can click on things by their coordinates.
-const HITS = { AS: [10, 10], AH: [30, 30], mat: [45, 45] };
+const HITS = { AS: [10, 10], AH: [30, 30], mat: [45, 45], deck: [60, 60] };
 
 let store;
 let interaction;
@@ -45,9 +48,10 @@ beforeEach(() => {
     setCameraEnabled: (enabled) => { camera.enabled = enabled; },
     setCursor: () => {},
     onContextMenu: (menu) => menus.push(menu),
-    onBlockedRotate: (pieceId, degrees) => wiggles.push([pieceId, degrees]),
+    onBlockedRotate: (objectId, degrees) => wiggles.push([objectId, degrees]),
     schedule: (fn, ms) => { timers.push({ fn, ms }); return timers.length; },
     unschedule: (id) => { if (id) timers[id - 1] = null; },
+    random: () => 0,
   });
 });
 
@@ -121,11 +125,11 @@ describe("PieceInteraction", () => {
     drag([10, 10], [32, 31]); // blocked by AH, so it floats there
     HITS.AS = [32, 31];
     try {
-      drag([32, 31], [60, 60]);
+      drag([32, 31], [75, 75]);
     } finally {
       HITS.AS = [10, 10];
     }
-    expect(piece("AS")).toMatchObject({ x: 60, y: 60, heldBy: null });
+    expect(piece("AS")).toMatchObject({ x: 75, y: 75, heldBy: null });
   });
 
   it("reports a rotation blocked by a neighbor", () => {
@@ -156,7 +160,7 @@ describe("PieceInteraction", () => {
   });
 
   it("won't take a piece someone else holds", () => {
-    store.dispatch({ type: "grab", pieceId: "AS", playerId: "them" });
+    store.dispatch({ type: "grab", id: "AS", playerId: "them" });
     drag([10, 10], [50, 50]);
     expect(piece("AS")).toMatchObject({ x: 10, y: 10, heldBy: "them" });
   });
@@ -170,14 +174,15 @@ describe("PieceInteraction", () => {
 
   it("opens a piece's context menu on right-click", () => {
     click(10, 10, { button: 2 });
-    expect(menus).toEqual([{ pieceId: "AS", clientX: 10, clientY: 10, pointerType: "mouse" }]);
+    expect(menus).toEqual([{ objectId: "AS", clientX: 10, clientY: 10, pointerType: "mouse" }]);
     expect(piece("AS").heldBy).toBeNull();
   });
 
-  it("has no context menu for fixed pieces or open table", () => {
+  it("opens a menu for locked pieces, so they can be unlocked, but not for open table", () => {
     click(45, 45, { button: 2 });
     click(70, 70, { button: 2 });
-    expect(menus).toEqual([]);
+    expect(menus.map((menu) => menu.objectId)).toEqual(["mat"]);
+    expect(interaction.describe("mat")).toMatchObject({ kind: "piece", locked: true });
   });
 
   describe("flip and rotate", () => {
@@ -235,7 +240,7 @@ describe("PieceInteraction", () => {
       timers.at(-1).fn();
       interaction.pointerMove(pointer(40, 40, touch));
       interaction.pointerUp(pointer(40, 40, touch));
-      expect(menus).toEqual([{ pieceId: "AS", clientX: 10, clientY: 10, pointerType: "touch" }]);
+      expect(menus).toEqual([{ objectId: "AS", clientX: 10, clientY: 10, pointerType: "touch" }]);
       expect(piece("AS")).toMatchObject({ x: 10, y: 10, heldBy: null, drag: null });
       expect(camera.enabled).toBe(true);
     });
@@ -308,5 +313,59 @@ describe("PieceInteraction", () => {
     expect(setCursor).toHaveBeenLastCalledWith("grab");
     interaction.pointerMove(pointer(45, 45));
     expect(setCursor).toHaveBeenLastCalledWith("");
+  });
+
+  describe("decks", () => {
+    const deck = () => store.getState().containers.deck;
+    const hover = (x, y) => interaction.pointerMove(pointer(x, y));
+
+    it("moves when you drag it", () => {
+      drag([60, 60], [75, 75]);
+      expect(deck()).toMatchObject({ x: 75, y: 75, members: ["KS", "QS"] });
+    });
+
+    it("deals its top card when you drag it while it's locked", () => {
+      interaction.lock("deck");
+      drag([60, 60], [75, 75]);
+      expect(deck()).toMatchObject({ x: 60, y: 60, members: ["QS"] });
+      expect(piece("KS")).toMatchObject({ x: 75, y: 75, heldBy: null });
+    });
+
+    it("draws the hovered deck's top card into your grip, for you to place", () => {
+      hover(60, 60);
+      interaction.draw();
+      expect(piece("KS")).toMatchObject({ x: 60, y: 60, heldBy: "me" });
+      click(75, 20);
+      expect(piece("KS")).toMatchObject({ x: 75, y: 20, heldBy: null });
+    });
+
+    it("takes the selected card when you click it", () => {
+      interaction.lock("deck");
+      click(10, 10);
+      click(60, 60);
+      expect(deck().members).toEqual(["AS", "KS", "QS"]);
+    });
+
+    it("shuffles", () => {
+      interaction.shuffle("deck");
+      expect(deck().members).toEqual(["QS", "KS"]);
+    });
+
+    it("can be made from a card", () => {
+      interaction.makeDeck("AH");
+      const [id] = Object.keys(store.getState().containers).filter((key) => key !== "deck");
+      expect(id).toMatch(/^deck-/);
+      expect(interaction.describe(id)).toEqual({ kind: "deck", locked: false, count: 1, canMakeDeck: false });
+    });
+  });
+
+  it("locks and unlocks the hovered piece", () => {
+    interaction.pointerMove(pointer(10, 10));
+    interaction.lock();
+    expect(piece("AS").locked).toBe(true);
+    drag([10, 10], [50, 50]);
+    expect(piece("AS")).toMatchObject({ x: 10, y: 10 });
+    interaction.lock();
+    expect(piece("AS").locked).toBe(false);
   });
 });

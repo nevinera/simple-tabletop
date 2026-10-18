@@ -96,23 +96,32 @@ describe("normalizeManifest", () => {
 
   it("allows pieces without a position when a container lists them", () => {
     const pieces = [{ id: "AS", type: "card", face: "AS.svg" }];
-    const containers = [{ id: "deck", kind: "deck", position: [0, 0], members: ["AS"] }];
+    const containers = [{ id: "deck", kind: "deck", position: [0, 0], size: [6, 9], members: ["AS"] }];
     expect(normalizeManifest(manifest({ pieces, containers }), BASE).pieces[0].position).toBeNull();
   });
 
   it("fills container defaults", () => {
     const pieces = [{ id: "AS", type: "card", face: "AS.svg" }];
-    const containers = [{ id: "deck", kind: "deck", position: [10, 10], members: ["AS"] }];
+    const containers = [{ id: "deck", kind: "deck", position: [10, 10], size: [6.3, 8.8], members: ["AS"] }];
     expect(normalizeManifest(manifest({ pieces, containers }), BASE).containers).toEqual([{
       id: "deck",
       kind: "deck",
       position: [10, 10],
       rotation: 0,
+      size: [6.3, 8.8],
+      layer: { id: "pieces", thickness: 0.03, base: 0.3 },
+      image: null,
       fixed: false,
       faceUp: false,
       members: ["AS"],
-      accepts: null,
+      // Decks take more of their members' type.
+      accepts: [{ type: "card" }],
     }]);
+  });
+
+  it("lets an empty deck take anything", () => {
+    const containers = [{ id: "pile", kind: "deck", position: [10, 10], size: [6.3, 8.8] }];
+    expect(normalizeManifest(manifest({ containers }), BASE).containers[0].accepts).toBeNull();
   });
 
   it.each([
@@ -140,14 +149,18 @@ describe("normalizeManifest", () => {
     ["a label without text", { labels: [{ position: [0, 0] }] }, /needs text/],
     ["an unknown container kind", { containers: [{ id: "c", kind: "box", position: [0, 0] }] }, /unknown kind/],
     ["a container with an unknown member", {
-      containers: [{ id: "c", kind: "deck", position: [0, 0], members: ["KS"] }],
+      containers: [{ id: "c", kind: "deck", position: [0, 0], size: [6, 9], members: ["KS"] }],
     }, /unknown piece/],
     ["a piece in two containers", {
       containers: [
-        { id: "a", kind: "deck", position: [0, 0], members: ["AS"] },
-        { id: "b", kind: "deck", position: [0, 0], members: ["AS"] },
+        { id: "a", kind: "deck", position: [0, 0], size: [6, 9], members: ["AS"] },
+        { id: "b", kind: "deck", position: [0, 0], size: [6, 9], members: ["AS"] },
       ],
     }, /both/],
+    ["a deck without a size", { containers: [{ id: "c", kind: "deck", position: [0, 0] }] }, /size/],
+    ["a container with a piece's id", {
+      containers: [{ id: "AS", kind: "bag", position: [0, 0] }],
+    }, /same id/],
     ["an empty accepts matcher", {
       containers: [{ id: "c", kind: "bag", position: [0, 0], accepts: [{}] }],
     }, /accepts/],

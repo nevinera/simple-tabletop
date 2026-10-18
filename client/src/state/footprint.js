@@ -1,5 +1,7 @@
-// Footprints of pieces on the table, for keeping pieces on one layer from
-// overlapping. Pieces whose edges touch don't count as overlapping.
+// Footprints of objects on the table, for keeping objects on one layer from
+// overlapping. Objects whose edges touch don't count as overlapping.
+
+import { accepts, findObject, looseObjects } from "./objects";
 
 const TOUCH_CM = 0.01; // overlaps shallower than this are just touching
 
@@ -31,19 +33,26 @@ export function overlaps(a, b) {
   return polygonsOverlap(a.polygon, b.polygon);
 }
 
-// The ids of loose pieces on def's layer that pieceId would overlap at
-// (x, y), facing `rotation`. Pieces rest at their saved spot while held.
-export function blockers(manifest, pieces, pieceId, x, y, rotation) {
-  const def = manifest.pieces.find((p) => p.id === pieceId);
-  const mine = footprint(def, x, y, rotation);
-  return manifest.pieces
-    .filter((other) => {
-      if (other.id === pieceId || other.layer.id !== def.layer.id) return false;
-      const state = pieces[other.id];
-      if (state.containerId || state.x == null) return false;
-      return overlaps(mine, footprint(other, state.x, state.y, state.rotation));
-    })
+// Where object `id` would land at (x, y), facing `rotation`:
+//   { into: containerId }  a piece over a deck that takes it
+//   { blocked: [ids] }     overlapping other objects on its layer
+//   {}                     open table
+// Held objects count at their saved spot.
+export function landing(manifest, state, id, x, y, rotation) {
+  const object = findObject(manifest, state, id);
+  const mine = footprint(object.def, x, y, rotation);
+  const others = looseObjects(manifest, state).filter((other) => other.id !== id && other.def.layer.id === object.def.layer.id);
+
+  if (object.kind === "piece") {
+    const under = others.find((other) =>
+      other.def.kind === "deck" && contains(footprint(other.def, other.state.x, other.state.y, other.state.rotation).polygon, x, y));
+    if (under) return !under.state.heldBy && accepts(under.def, object.def) ? { into: under.id } : { blocked: [under.id] };
+  }
+
+  const blocked = others
+    .filter((other) => overlaps(mine, footprint(other.def, other.state.x, other.state.y, other.state.rotation)))
     .map((other) => other.id);
+  return blocked.length ? { blocked } : {};
 }
 
 // Separating axis test: two convex polygons overlap unless some edge's

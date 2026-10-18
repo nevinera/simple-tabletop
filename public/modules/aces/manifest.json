@@ -25,8 +25,12 @@
     { "id": "AD", "type": "card", "face": "assets/AD.svg", "position": [45, 33], "rotation": 180 },
     { "id": "AC", "type": "card", "face": "assets/AC.svg", "position": [33, 45], "rotation": 270 }
   ],
+  "containers": [
+    { "id": "pile", "kind": "deck", "position": [75, 20], "size": [6.3, 8.8], "faceUp": true, "accepts": [{ "type": "card" }] }
+  ],
   "labels": [
     { "text": "Four\nAces", "position": [45, 45], "fontSize": 2, "color": "#f5e6b8" },
-    { "text": "South", "position": [45, 8], "fontSize": 1.5, "color": "#cfe3d4" }
+    { "text": "South", "position": [45, 8], "fontSize": 1.5, "color": "#cfe3d4" },
+    { "text": "Pile", "position": [75, 14], "fontSize": 1.2, "color": "#cfe3d4" }
   ]
 }

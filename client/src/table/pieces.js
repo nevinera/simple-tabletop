@@ -32,6 +32,7 @@ export async function buildPiece(piece, textures) {
     // Box material order: +x, -x, +y (top), -y (bottom), +z, -z.
     : new THREE.Mesh(new THREE.BoxGeometry(width, thickness, depth), [edge, edge, top, bottom, edge, edge]);
   mesh.name = piece.id;
+  mesh.userData.objectId = piece.id;
   for (const material of [edge, top, bottom]) material.polygonOffset = true;
   mesh.userData.shadow = buildShadow(piece);
   mesh.userData.ghost = buildGhost(mesh);
@@ -74,11 +75,12 @@ function buildShadow(piece) {
 }
 
 // Where a piece's mesh goes for its current state, in Three's coordinates,
-// or null when it's inside a container and shouldn't draw on its own.
-export function placement(def, state) {
+// or null when it's inside a container and shouldn't draw on its own. floor
+// lifts a held piece over whatever is under it, such as a deck.
+export function placement(def, state, floor = 0) {
   if (state.containerId) return null;
   const { x, y } = state.drag || state;
-  const lift = state.heldBy ? HELD_LIFT : 0;
+  const lift = state.heldBy ? floor + HELD_LIFT : 0;
   return {
     position: tableToThree([x, def.layer.base + def.layer.thickness / 2 + lift, y]),
     // Euler XYZ applies z first: turn the slab over along its length, then
@@ -88,9 +90,9 @@ export function placement(def, state) {
 }
 
 // rank is the piece's place in its layer's stacking order, 0 at the bottom.
-// blocked means a held piece would overlap another piece where it hovers.
-export function applyPlacement(mesh, def, state, rank, blocked = false) {
-  const place = placement(def, state);
+// blocked means a held piece would overlap something where it hovers.
+export function applyPlacement(mesh, def, state, rank, { blocked = false, floor = 0 } = {}) {
+  const place = placement(def, state, floor);
   const { shadow, ghost } = mesh.userData;
   // The ghost keeps the orientation the piece had when it was picked up.
   mesh.userData.restingTurn = state.heldBy
@@ -107,7 +109,7 @@ export function applyPlacement(mesh, def, state, rank, blocked = false) {
 
   if (shadow.visible) {
     const { x, y } = state.drag || state;
-    shadow.position.fromArray(tableToThree([x, def.layer.base + SHADOW_LIFT, y]));
+    shadow.position.fromArray(tableToThree([x, def.layer.base + floor + SHADOW_LIFT, y]));
     shadow.rotation.set(-Math.PI / 2, place.rotation[1], 0);
     shadow.material.color.setHex(blocked ? BLOCKED_SHADOW_COLOR : SHADOW_COLOR);
   }

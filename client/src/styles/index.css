@@ -143,6 +143,7 @@ body,
 }
 
 .menu-note { margin: 6px 0 0; color: var(--muted); }
+.menu-title { margin: 0 0 4px; color: var(--muted); font-size: 13px; }
 
 .help table { border-collapse: collapse; width: 100%; }
 .help table + table { margin-top: 10px; }

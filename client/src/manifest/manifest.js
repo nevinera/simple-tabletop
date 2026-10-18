@@ -49,21 +49,27 @@ export function normalizeManifest(raw, baseUrl) {
     layers,
     seats: raw.seats.map(normalizeSeat),
     pieces,
-    containers: normalizeContainers(raw.containers || [], seen),
+    containers: normalizeContainers(raw.containers || [], pieces, layers, image),
     labels: (raw.labels || []).map((label, i) => normalizeLabel(label, i, layers)),
   };
 }
 
-function normalizeContainers(rawContainers, pieceIds) {
+function normalizeContainers(rawContainers, pieces, layers, image) {
+  const pieceTypes = new Map(pieces.map((piece) => [piece.id, piece.type]));
+  const pieceIds = new Set(pieceTypes.keys());
   const ids = new Set();
   const claimed = new Map(); // piece id -> container id
   return rawContainers.map((container) => {
     const where = `Container "${container?.id}"`;
     if (!container?.id) throw new ManifestError("Every container needs an id.");
     if (ids.has(container.id)) throw new ManifestError(`Duplicate container id "${container.id}".`);
+    if (pieceIds.has(container.id)) throw new ManifestError(`${where} has the same id as a piece.`);
     ids.add(container.id);
     if (!CONTAINER_KINDS.includes(container.kind)) throw new ManifestError(`${where} has unknown kind "${container.kind}".`);
     if (!Array.isArray(container.position)) throw new ManifestError(`${where} needs a position.`);
+    if (container.kind === "deck" && !(container.size?.[0] > 0 && container.size?.[1] > 0)) {
+      throw new ManifestError(`${where} needs a size: [width, depth].`);
+    }
 
     const members = container.members || [];
     for (const member of members) {
@@ -74,9 +80,14 @@ function normalizeContainers(rawContainers, pieceIds) {
       claimed.set(member, container.id);
     }
 
-    const accepts = container.accepts ?? null;
+    let accepts = container.accepts ?? null;
     if (accepts && (!Array.isArray(accepts) || accepts.some((m) => !m?.type && !m?.category))) {
       throw new ManifestError(`${where} accepts must be a list of { type, category } matchers.`);
+    }
+    // A deck takes more of what it starts with. An empty one takes anything.
+    const memberTypes = members.map((member) => pieceTypes.get(member));
+    if (!accepts && container.kind === "deck" && memberTypes.length && memberTypes.every(Boolean)) {
+      accepts = [...new Set(memberTypes)].map((type) => ({ type }));
     }
 
     return {
@@ -84,6 +95,9 @@ function normalizeContainers(rawContainers, pieceIds) {
       kind: container.kind,
       position: container.position,
       rotation: container.rotation || 0,
+      size: container.size || null,
+      layer: findLayer(layers, container.layer || "pieces", where),
+      image: container.image ? image(container.image, `${where} image`) : null,
       fixed: container.fixed || false,
       faceUp: container.faceUp || false,
       members,

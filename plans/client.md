@@ -24,8 +24,9 @@ pointer, selecting a different piece puts the first one back.
 
 | gesture                                        | effect                                                     |
 |------------------------------------------------|------------------------------------------------------------|
+| drag a movable deck                            | move the deck                                              |
 | drag a locked deck                             | draw the top card and move it                              |
-| drag empty table or a fixed piece              | orbit the camera                                           |
+| drag empty table or a locked piece             | orbit the camera                                           |
 | right-drag, or two-finger drag                 | pan                                                        |
 | wheel, or pinch                                | zoom                                                       |
 | right-click, or tap and hold                   | context menu: at the cursor, or in a popover on touch      |
@@ -51,6 +52,9 @@ Keys check the physical key (`event.code`), and are ignored while focus is in on
 | F                      | flip the selected or hovered piece           |
 | R / T                  | rotate it 45° counterclockwise / clockwise   |
 | Shift+R / Shift+T      | rotate it 22.5°                              |
+| G                      | draw from the hovered deck, to place         |
+| Shift+G                | draw from the hovered deck into your hand    |
+| L                      | lock or unlock the selected or hovered thing |
 
 Camera keys work while holding a piece. Every camera point starts at the starting view.
 
@@ -112,7 +116,7 @@ Update docs/manifest-format.md before building on them.
 3. **Select and move pieces.** Select, then drag or place, with the lift and landing shadow. Fixed pieces
    can't be selected. A placed piece lands on top, and draw order breaks ties between overlapping pieces.
 4. **Flip and rotate.** Keys on selected and hovered pieces, the action bar, and the context menu.
-5. **Containers.** Decks as one stack, drawing by drag and double-tap, adding by drop with `accepts`,
-   shuffling, empty placeholders. Then bags and bowls.
+5. **Containers.** Decks as one stack, drawing by drag, G, and the menu, adding by drop with `accepts`,
+   shuffling, empty placeholders, locking, and making a deck from a card. Bags and bowls come later.
 6. **Hands.** A local seat picker stands in for players. Cards in your hand zone render face-up only for you.
 7. **Dice and trays.**

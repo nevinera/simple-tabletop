@@ -1,17 +1,21 @@
 const POINTER = [
-  ["Move a piece", "Drag it, or click it then click a spot"],
+  ["Move a piece or deck", "Drag it, or click it then click a spot"],
   ["Set it back down", "Click it again"],
-  ["Piece menu", "Right-click a piece"],
+  ["Draw from a locked deck", "Drag it"],
+  ["Add a card to a deck", "Drop it on the deck"],
+  ["Menu", "Right-click a piece or deck"],
   ["Orbit", "Drag the table"],
   ["Pan", "Right-drag"],
   ["Zoom", "Mouse wheel"],
 ];
 
 const TOUCH = [
-  ["Move a piece", "Drag it, or tap it then tap and hold a spot"],
+  ["Move a piece or deck", "Drag it, or tap it then tap and hold a spot"],
   ["Put it back", "Tap empty table"],
-  ["Piece menu", "Tap and hold a piece"],
-  ["Flip or rotate", "Select a piece, then the action bar's ⟳ button"],
+  ["Draw from a locked deck", "Drag it"],
+  ["Add a card to a deck", "Drop it on the deck"],
+  ["Menu", "Tap and hold a piece or deck"],
+  ["Flip, rotate, or lock", "Select it, then the action bar's ⟳ button"],
   ["Orbit", "Drag the table"],
   ["Pan", "Two-finger drag"],
   ["Zoom", "Pinch"],
@@ -28,7 +32,9 @@ const KEYS = [
   ["Flip", "F"],
   ["Rotate 45°", "R / T"],
   ["Rotate 22.5°", "Shift + R / T"],
-  ["Put a selected piece back", "Esc"],
+  ["Draw from the deck under the mouse", "G"],
+  ["Lock or unlock", "L"],
+  ["Put back what you selected", "Esc"],
 ];
 
 export function HelpPanel({ touch }) {

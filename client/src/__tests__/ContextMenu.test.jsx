@@ -2,10 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { ContextMenu } from "../ui/ContextMenu";
 
-const menu = { pieceId: "AS", clientX: 100, clientY: 120, pointerType: "mouse" };
+const menu = { objectId: "AS", clientX: 100, clientY: 120, pointerType: "mouse" };
 
-function renderMenu(props = {}) {
-  const interaction = { flip: vi.fn(), rotate: vi.fn() };
+const PIECE = { kind: "piece", locked: false, count: null, canMakeDeck: true };
+
+function renderMenu(props = {}, object = PIECE) {
+  const interaction = {
+    describe: () => object, flip: vi.fn(), rotate: vi.fn(), lock: vi.fn(), draw: vi.fn(), shuffle: vi.fn(), makeDeck: vi.fn(),
+  };
   const onClose = vi.fn();
   render(<ContextMenu menu={menu} interaction={interaction} popover={false} onClose={onClose} {...props} />);
   return { interaction, onClose };
@@ -20,6 +24,29 @@ describe("ContextMenu", () => {
     expect(interaction.flip).toHaveBeenCalledWith("AS");
     expect(interaction.rotate.mock.calls).toEqual([[-45, "AS"], [22.5, "AS"]]);
     expect(onClose).toHaveBeenCalledTimes(3);
+  });
+
+  it("offers a locked piece only unlocking", () => {
+    const { interaction } = renderMenu({}, { ...PIECE, locked: true, canMakeDeck: false });
+    expect(screen.getAllByRole("button").map((button) => button.textContent)).toEqual(["Unlock L"]);
+    fireEvent.click(screen.getByRole("button", { name: /Unlock/ }));
+    expect(interaction.lock).toHaveBeenCalledWith("AS");
+  });
+
+  it("offers a deck drawing and shuffling, but not flipping", () => {
+    const { interaction } = renderMenu({}, { kind: "deck", locked: false, count: 3, canMakeDeck: false });
+    expect(screen.getByText("Deck: 3 cards")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Flip/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Draw/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Shuffle/ }));
+    expect(interaction.draw).toHaveBeenCalledWith("AS");
+    expect(interaction.shuffle).toHaveBeenCalledWith("AS");
+  });
+
+  it("turns a card into a deck", () => {
+    const { interaction } = renderMenu();
+    fireEvent.click(screen.getByRole("button", { name: "Make a deck" }));
+    expect(interaction.makeDeck).toHaveBeenCalledWith("AS");
   });
 
   it("sits at the cursor", () => {

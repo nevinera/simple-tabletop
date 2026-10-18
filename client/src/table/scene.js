@@ -1,7 +1,9 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { blockers } from "../state/footprint";
+import { landing } from "../state/footprint";
+import { findObject, objectHeight, pieceDef } from "../state/objects";
 import { tableRotationToThree, tableToThree, threeToTable } from "./coordinates";
+import { applyDeckPlacement, buildDeck, deckTopImage, setDeckTop } from "./decks";
 import { FELT_TILE_CM, feltTexture } from "./felt";
 import { buildLabel } from "./labels";
 import { applyPlacement, buildPiece, stackRanks } from "./pieces";
@@ -21,7 +23,8 @@ export class TableScene {
     this.motions = new Map();
     this.content = new THREE.Group();
     this.pieceMeshes = new Map(); // piece id -> mesh
-    this.wiggles = new Map(); // piece id -> { start, direction }
+    this.deckGroups = new Map(); // container id -> group
+    this.wiggles = new Map(); // object id -> { start, direction }
     this.raycaster = new THREE.Raycaster();
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -59,6 +62,7 @@ export class TableScene {
   async show(manifest) {
     this.#clearContent();
     this.manifest = manifest;
+    this.shown = false;
     const [width, depth] = manifest.table.size;
     this.bounds = {
       minX: -width * TARGET_MARGIN,
@@ -84,17 +88,25 @@ export class TableScene {
       this.pieceMeshes.set(mesh.name, mesh);
       this.content.add(mesh.userData.shadow, mesh.userData.ghost);
     });
+    this.shown = true;
     if (this.state) this.render(this.state);
   }
 
-  // Moves piece meshes to match table state (see state/actions.js).
+  // Moves meshes to match table state (see state/actions.js).
   render(state) {
     this.state = state;
-    if (!this.manifest) return;
+    if (!this.manifest || !this.shown) return;
     const ranks = stackRanks(this.manifest.pieces, state.pieces);
     for (const def of this.manifest.pieces) {
       const mesh = this.pieceMeshes.get(def.id);
-      if (mesh) applyPlacement(mesh, def, state.pieces[def.id], ranks.get(def.id) || 0, this.#blocked(def, state));
+      if (mesh) applyPlacement(mesh, def, state.pieces[def.id], ranks.get(def.id) || 0, this.#hover(def.id, state));
+    }
+    for (const id of Object.keys(state.containers)) {
+      const deck = findObject(this.manifest, state, id);
+      if (deck.def.kind !== "deck") continue;
+      const group = this.#deckGroup(deck);
+      applyDeckPlacement(group, deck.def, deck.state, this.#hover(id, state));
+      this.#updateDeckTop(group, deck);
     }
   }
 
@@ -102,20 +114,22 @@ export class TableScene {
     return this.renderer.domElement;
   }
 
-  // The id of the top piece under a screen point, or null.
+  // The id of the top object under a screen point, or null.
   pick(clientX, clientY) {
     this.#aim(clientX, clientY);
-    const meshes = [...this.pieceMeshes.values()].filter((mesh) => mesh.visible);
-    const [hit] = this.raycaster.intersectObjects(meshes, false);
-    return hit ? hit.object.name : null;
+    const targets = [...this.pieceMeshes.values(), ...this.deckGroups.values()];
+    const hit = this.raycaster.intersectObjects(targets, true)
+      .find(({ object }) => object.userData.objectId && shown(object));
+    return hit ? hit.object.userData.objectId : null;
   }
 
-  // Where a screen point meets the plane a piece rests on, as table [x, y].
-  tablePoint(clientX, clientY, pieceId) {
-    const def = this.manifest?.pieces.find((p) => p.id === pieceId);
-    if (!def) return null;
+  // Where a screen point meets the plane an object rests on, as table [x, y].
+  tablePoint(clientX, clientY, id) {
+    const object = this.manifest && this.state && findObject(this.manifest, this.state, id);
+    if (!object) return null;
+    const layer = object.def.layer;
     this.#aim(clientX, clientY);
-    const height = def.layer.base + def.layer.thickness / 2;
+    const height = layer.base + layer.thickness / 2;
     const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -height);
     const point = this.raycaster.ray.intersectPlane(plane, new THREE.Vector3());
     if (!point) return null;
@@ -159,13 +173,13 @@ export class TableScene {
     this.controls.update();
   }
 
-  // Continuous camera motion from one input (keys, a joystick). null stops it.
-  // Starts turning a piece the given way, then springs it back: a rotation
-  // that couldn't happen.
-  wiggle(pieceId, degrees) {
-    this.wiggles.set(pieceId, { start: performance.now(), direction: Math.sign(degrees) });
+  // Starts turning an object the given way, then springs it back: a
+  // rotation that couldn't happen.
+  wiggle(id, degrees) {
+    this.wiggles.set(id, { start: performance.now(), direction: Math.sign(degrees) });
   }
 
+  // Continuous camera motion from one input (keys, a joystick). null stops it.
   setMotion(source, motion) {
     if (motion) this.motions.set(source, motion);
     else this.motions.delete(source);
@@ -214,24 +228,52 @@ export class TableScene {
   #animateWiggles() {
     if (!this.wiggles.size) return;
     const now = performance.now();
-    for (const [pieceId, { start, direction }] of this.wiggles) {
-      const mesh = this.pieceMeshes.get(pieceId);
+    for (const [id, { start, direction }] of this.wiggles) {
+      const mesh = this.pieceMeshes.get(id) || this.deckGroups.get(id);
       const t = (now - start) / WIGGLE_MS;
-      if (!mesh || t >= 1) {
-        this.wiggles.delete(pieceId);
+      if (!mesh || !this.state || t >= 1) {
+        this.wiggles.delete(id);
         if (this.state) this.render(this.state);
         continue;
       }
-      const piece = this.state.pieces[pieceId];
-      mesh.rotation.y = tableRotationToThree(piece.rotation + direction * WIGGLE_DEGREES * Math.sin(Math.PI * t));
+      const rotation = findObject(this.manifest, this.state, id).state.rotation;
+      mesh.rotation.y = tableRotationToThree(rotation + direction * WIGGLE_DEGREES * Math.sin(Math.PI * t));
     }
   }
 
-  #blocked(def, state) {
-    const piece = state.pieces[def.id];
-    if (!piece.heldBy || piece.containerId) return false;
-    const { x, y } = piece.drag || piece;
-    return blockers(this.manifest, state.pieces, def.id, x, y, piece.rotation).length > 0;
+  // For a held object: whether it can land where it hovers, and how high it
+  // has to float to clear what's under it.
+  #hover(id, state) {
+    const object = findObject(this.manifest, state, id);
+    if (!object.state.heldBy || object.state.containerId) return {};
+    const { x, y } = object.state.drag || object.state;
+    const target = landing(this.manifest, state, id, x, y, object.state.rotation);
+    const under = [...(target.blocked || []), ...(target.into ? [target.into] : [])];
+    const floor = Math.max(0, ...under.map((other) => objectHeight(findObject(this.manifest, state, other))));
+    return { blocked: Boolean(target.blocked), floor };
+  }
+
+  #deckGroup(deck) {
+    let group = this.deckGroups.get(deck.id);
+    if (!group) {
+      group = buildDeck(deck.id, deck.def);
+      this.deckGroups.set(deck.id, group);
+      this.content.add(group, group.userData.ghost, group.userData.shadow);
+    }
+    return group;
+  }
+
+  // Loads the image for the deck's top when it changes.
+  #updateDeckTop(group, deck) {
+    const top = deck.state.members[0];
+    const image = deckTopImage(deck.def, deck.state, top && pieceDef(this.manifest, top));
+    const key = image ? `${image.url}#${image.index ?? ""}` : null;
+    if (group.userData.topKey === key) return;
+    group.userData.topKey = key;
+    if (!image) return;
+    this.textures.get(image).then((texture) => {
+      if (group.userData.topKey === key) setDeckTop(group, texture);
+    });
   }
 
   #clearContent() {
@@ -245,6 +287,7 @@ export class TableScene {
     });
     this.content.clear();
     this.pieceMeshes.clear();
+    this.deckGroups.clear();
   }
 
   #resize() {
@@ -254,4 +297,12 @@ export class TableScene {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
   }
+}
+
+// Whether an object and everything it sits in are visible.
+function shown(object) {
+  for (let node = object; node; node = node.parent) {
+    if (!node.visible) return false;
+  }
+  return true;
 }

@@ -18,7 +18,7 @@ describe("createTableStore", () => {
     const listener = vi.fn();
     store.subscribe(listener);
 
-    const action = { type: "flip", pieceId: "AS", playerId: "p1" };
+    const action = { type: "flip", id: "AS", playerId: "p1" };
     expect(store.dispatch(action).ok).toBe(true);
     expect(store.getState().pieces.AS.faceUp).toBe(false);
     expect(listener).toHaveBeenCalledWith(store.getState(), action);
@@ -28,7 +28,7 @@ describe("createTableStore", () => {
     const store = createTableStore(manifest);
     const listener = vi.fn();
     store.subscribe(listener);
-    expect(store.dispatch({ type: "drop", pieceId: "AS", playerId: "p1", x: 0, y: 0 }).ok).toBe(false);
+    expect(store.dispatch({ type: "drop", id: "AS", playerId: "p1", x: 0, y: 0 }).ok).toBe(false);
     expect(listener).not.toHaveBeenCalled();
   });
 
@@ -36,7 +36,7 @@ describe("createTableStore", () => {
     const store = createTableStore(manifest);
     const listener = vi.fn();
     store.subscribe(listener)();
-    store.dispatch({ type: "flip", pieceId: "AS", playerId: "p1" });
+    store.dispatch({ type: "flip", id: "AS", playerId: "p1" });
     expect(listener).not.toHaveBeenCalled();
   });
 });

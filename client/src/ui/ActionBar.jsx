@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Menu } from "./Menu";
-import { PieceActions } from "./PieceActions";
+import { ObjectActions } from "./ObjectActions";
 
 const SLOTS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
 const ZOOM_STEP = 0.8;
 
 export function ActionBar({
-  scene, interaction, selectedPiece, cameraPoints, menus, joysticksVisible, setJoysticksVisible,
+  scene, interaction, selectedObject, cameraPoints, menus, joysticksVisible, setJoysticksVisible,
 }) {
   return (
     <nav className="action-bar" aria-label="Action bar">
@@ -14,14 +14,14 @@ export function ActionBar({
         <CameraPointsPanel cameraPoints={cameraPoints} />
       </Menu>
       <Menu
-        id="piece"
-        label="Piece"
+        id="selected"
+        label="Selected"
         icon="⟳"
-        disabled={!selectedPiece || !interaction}
-        title={selectedPiece ? "Flip or rotate the selected piece" : "Select a piece to flip or rotate it"}
+        disabled={!selectedObject || !interaction}
+        title={selectedObject ? "Act on what you've selected" : "Select something to act on it"}
         {...menus}
       >
-        <PieceActions interaction={interaction} pieceId={selectedPiece} />
+        <ObjectActions interaction={interaction} objectId={selectedObject} />
       </Menu>
       <button type="button" className="bar-button" aria-label="Zoom in" onClick={() => scene?.zoomBy(ZOOM_STEP)}>
         <span aria-hidden="true">＋</span>

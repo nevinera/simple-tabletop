@@ -10,7 +10,7 @@ let onEscape;
 beforeEach(() => {
   scene = { setMotion: vi.fn() };
   cameraPoints = { jump: vi.fn(), save: vi.fn() };
-  interaction = { flip: vi.fn(), rotate: vi.fn() };
+  interaction = { flip: vi.fn(), rotate: vi.fn(), draw: vi.fn(), lock: vi.fn() };
   onEscape = vi.fn();
   renderHook(() => useTableKeys({ scene, cameraPoints, interaction, onEscape }));
 });
@@ -30,6 +30,15 @@ describe("useTableKeys", () => {
     key("KeyR", { shiftKey: true });
     key("KeyT", { shiftKey: true });
     expect(interaction.rotate.mock.calls).toEqual([[-45], [45], [-22.5], [22.5]]);
+  });
+
+  it("draws with G, saving Shift+G for hands, and locks with L", () => {
+    key("KeyG");
+    key("KeyG", { shiftKey: true });
+    key("KeyL");
+    key("KeyL", { repeat: true });
+    expect(interaction.draw).toHaveBeenCalledOnce();
+    expect(interaction.lock).toHaveBeenCalledOnce();
   });
 
   it("jumps to and saves camera points", () => {

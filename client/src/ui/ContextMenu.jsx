@@ -1,9 +1,9 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { PieceActions } from "./PieceActions";
+import { ObjectActions } from "./ObjectActions";
 
 const EDGE_GAP = 8; // px kept between the menu and the window edge
 
-// A piece's menu: at the cursor for a right-click, or as a centered popover
+// An object's menu: at the cursor for a right-click, or as a centered popover
 // for a touch hold (and on phone layouts).
 export function ContextMenu({ menu, interaction, popover, onClose }) {
   const ref = useRef(null);
@@ -24,11 +24,11 @@ export function ContextMenu({ menu, interaction, popover, onClose }) {
       ref={ref}
       className={`context-menu menu${popover ? " context-menu-popover" : ""}`}
       role="menu"
-      aria-label="Piece"
+      aria-label="Actions"
       style={popover ? undefined : position}
       onContextMenu={(event) => event.preventDefault()}
     >
-      <PieceActions interaction={interaction} pieceId={menu.pieceId} onDone={onClose} />
+      <ObjectActions interaction={interaction} objectId={menu.objectId} onDone={onClose} />
     </div>
   );
 }

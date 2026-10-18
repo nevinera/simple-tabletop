@@ -5,7 +5,7 @@ import { fetchManifest } from "./manifest/manifest";
 import { createTableStore } from "./state/store";
 import { useViewportMode } from "./useViewportMode";
 import { useTableKeys } from "./useTableKeys";
-import { useSelectedPiece } from "./useSelectedPiece";
+import { useSelectedObject } from "./useSelectedObject";
 import { ContextMenu } from "./ui/ContextMenu";
 import { Toolbar } from "./ui/Toolbar";
 import { ActionBar } from "./ui/ActionBar";
@@ -55,7 +55,7 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
       save: (slot) => scene && slots.save(slot, scene.cameraView()),
     };
   }, [scene, gameId]);
-  const selectedPiece = useSelectedPiece(store, LOCAL_PLAYER_ID);
+  const selectedObject = useSelectedObject(store, LOCAL_PLAYER_ID);
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
   const openContextMenu = useCallback((menu) => {
     setOpenMenu(null);
@@ -107,7 +107,7 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
         <ActionBar
           scene={scene}
           interaction={interaction}
-          selectedPiece={selectedPiece}
+          selectedObject={selectedObject}
           cameraPoints={cameraPoints}
           menus={menus}
           joysticksVisible={joysticksVisible}

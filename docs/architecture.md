@@ -88,6 +88,7 @@ One row per piece the manifest defines, including fixed board pieces.
 | `stack_order`    | draw order among loose pieces on the same layer               |
 | `container_id`   | null when the piece sits loose on the table                   |
 | `held_by_id`     | player holding it, or null                                    |
+| `locked`         | boolean; starts as the manifest's `fixed`                     |
 
 ### `containers`
 
@@ -99,15 +100,21 @@ Decks, bags, bowls, and hands.
 | `key`          | manifest container id                                         |
 | `x`, `y`       | table position; hands ignore these and follow their seat       |
 | `rotation`     |                                                               |
+| `face_up`      | decks: which way every card in the deck faces                 |
 | `member_keys`  | ordered JSON array of piece keys; index 0 is the top          |
 | `held_by_id`   |                                                               |
+| `locked`       | boolean; starts as the manifest's `fixed`                     |
+| `spec`         | JSON for decks made during play: `kind`, `size`, `layer`, `accepts` |
 
 A piece inside a container has no position of its own. The container's `member_keys` holds the order, so
 shuffling a 500-card deck rewrites one row. Moving a piece in or out of a container updates the piece row and
 the container row in one transaction.
 
-`fixed` lives only in the manifest. Clients refuse to pick up fixed pieces. The server doesn't check, because
-clients are trusted.
+Players can lock and unlock pieces and containers on any layer. Clients refuse to pick up locked things. The
+server doesn't check, because clients are trusted.
+
+A player can turn a loose card into a deck. The client picks the new container's key and sends its `spec`,
+since the manifest doesn't list it.
 
 ## Held pieces
 
@@ -140,14 +147,20 @@ There's no free-form multi-select. To move or roll several things together, put 
 | `drag`    | relay an in-progress position; not saved                       |
 | `drop`    | save position, rotation, facing, or container; release         |
 | `flip`    | toggle `face_up`                                               |
-| `rotate`  | turn a piece by some degrees, clockwise when positive           |
-| `shuffle` | replace a container's `member_keys` with a new order            |
-| `roll`    | set new `value`s for one die or every die in a tray             |
-| `draw`    | move the top member of a container to the table or another one |
-| `release` | let go without changing anything                               |
+| `rotate`   | turn a piece or container by some degrees, clockwise when positive |
+| `lock`     | toggle `locked`                                                |
+| `shuffle`  | replace a container's `member_keys` with a new order            |
+| `roll`     | set new `value`s for one die or every die in a tray             |
+| `draw`     | take a deck's top card; the drawing player holds it             |
+| `makeDeck` | turn a loose card into a new deck holding just that card        |
+| `release`  | let go without changing anything                               |
 
-`flip` and `rotate` also work on a piece nobody holds, so players can flip a card they're pointing at. Nobody
-can flip or rotate a piece someone else holds.
+`flip`, `rotate`, and `lock` also work on things nobody holds, so players can act on what they're pointing at.
+Nobody can act on something someone else holds. Locked things can't move, flip, or rotate, but a locked deck can
+still be drawn from and shuffled. Decks can't be flipped.
+
+Objects on the same layer can't overlap. A drop or rotation that would overlap something is refused, except
+that a card dropped with its center over a deck that accepts it goes on top of that deck.
 
 The client that shuffles picks the order, and the client that rolls picks the result. Clients are trusted, so
 the server doesn't need to.

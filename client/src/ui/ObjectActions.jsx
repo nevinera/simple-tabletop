@@ -1,0 +1,73 @@
+// Buttons for one object, shared by the action bar's Selected menu and the
+// context menu. What shows depends on the object: decks draw and shuffle,
+// pieces flip and can become decks, and locked things only unlock. onDone
+// runs after any action, so a menu can close.
+export function ObjectActions({ interaction, objectId, onDone = () => {} }) {
+  const object = interaction.describe(objectId);
+  if (!object) return <p className="menu-note">Someone else has that.</p>;
+
+  const act = (fn) => () => {
+    fn();
+    onDone();
+  };
+  const deck = object.kind === "deck";
+  const movable = !object.locked;
+
+  return (
+    <div className="piece-actions">
+      {deck && <p className="menu-title">{deckTitle(object.count)}</p>}
+      {deck && object.count > 0 && (
+        <button type="button" className="menu-item" onClick={act(() => interaction.draw(objectId))}>
+          Draw <kbd>G</kbd>
+        </button>
+      )}
+      {deck && object.count > 1 && (
+        <button type="button" className="menu-item" onClick={act(() => interaction.shuffle(objectId))}>
+          Shuffle
+        </button>
+      )}
+      {!deck && movable && (
+        <button type="button" className="menu-item" onClick={act(() => interaction.flip(objectId))}>
+          Flip <kbd>F</kbd>
+        </button>
+      )}
+      {movable && (
+        <>
+          <div className="piece-actions-row">
+            <button type="button" className="menu-item" aria-label="Rotate left 45°"
+              onClick={act(() => interaction.rotate(-45, objectId))}>
+              ↺ 45° <kbd>R</kbd>
+            </button>
+            <button type="button" className="menu-item" aria-label="Rotate right 45°"
+              onClick={act(() => interaction.rotate(45, objectId))}>
+              ↻ 45° <kbd>T</kbd>
+            </button>
+          </div>
+          <div className="piece-actions-row">
+            <button type="button" className="menu-item" aria-label="Rotate left 22.5°"
+              onClick={act(() => interaction.rotate(-22.5, objectId))}>
+              ↺ 22.5°
+            </button>
+            <button type="button" className="menu-item" aria-label="Rotate right 22.5°"
+              onClick={act(() => interaction.rotate(22.5, objectId))}>
+              ↻ 22.5°
+            </button>
+          </div>
+        </>
+      )}
+      {object.canMakeDeck && (
+        <button type="button" className="menu-item" onClick={act(() => interaction.makeDeck(objectId))}>
+          Make a deck
+        </button>
+      )}
+      <button type="button" className="menu-item" onClick={act(() => interaction.lock(objectId))}>
+        {object.locked ? "Unlock" : "Lock"} <kbd>L</kbd>
+      </button>
+    </div>
+  );
+}
+
+function deckTitle(count) {
+  if (count === 0) return "Empty deck";
+  return count === 1 ? "Deck: 1 card" : `Deck: ${count} cards`;
+}

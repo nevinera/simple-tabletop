@@ -38,12 +38,12 @@ export default function TableCanvas({ manifest, store, playerId, onScene, onInte
       manifest,
       playerId,
       pick: (x, y) => scene.pick(x, y),
-      tablePoint: (x, y, pieceId) => scene.tablePoint(x, y, pieceId),
+      tablePoint: (x, y, id) => scene.tablePoint(x, y, id),
       clampToTable: (point) => scene.clampToTable(point),
       setCameraEnabled: (enabled) => scene.setCameraEnabled(enabled),
       setCursor: (cursor) => { canvas.style.cursor = cursor; },
       onContextMenu: (menu) => onContextMenu(menu),
-      onBlockedRotate: (pieceId, degrees) => scene.wiggle(pieceId, degrees),
+      onBlockedRotate: (id, degrees) => scene.wiggle(id, degrees),
     });
     onInteraction(interaction);
 

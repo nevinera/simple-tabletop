@@ -153,16 +153,10 @@ A board is just a big piece on the `board` layer with `"fixed": true`.
 
 ## Dice
 
-A die is a flat tile that shows its current face, cut to the shape of that die's face:
-
-| sides | tile shape |
-|-------|------------|
-| 4     | triangle   |
-| 6     | square     |
-| 8     | triangle   |
-| 10    | kite       |
-| 12    | pentagon   |
-| 20    | triangle   |
+A die is a 3D solid with the right number of faces: a tetrahedron, cube, octahedron, pentagonal
+trapezohedron, dodecahedron, or icosahedron. It sits still showing its current face. That face is bright and
+the others are dimmed. A d4 has a point on top, so it shows the rolled number at the top corner of each of its
+three upper faces, and those corners are bright.
 
 These dice are built in, with numbered faces, so they need no images:
 
@@ -182,6 +176,10 @@ A piece using one:
 ```json
 { "id": "red-die", "shape": "die", "die": "d6", "size": [1.6], "position": [20, 30] }
 ```
+
+`size` is the die's width across its widest point. A d4 grows to 1.5 times its `size`, since a
+tetrahedron looks small next to other dice of the same width. A die's optional `color` tints built-in
+dice.
 
 To roll several dice together, put them in a `tray` container.
 
@@ -204,6 +202,8 @@ To make a custom die, add an entry to `dieTypes`. Set the number of `sides` and 
 - `faces` must have exactly `sides` entries. Each entry is a path or a sheet reference.
 - Custom die keys can't reuse the built-in names.
 - A piece's optional `value` sets which face starts up, as an index into `faces`. It defaults to 0.
+- On a custom d4, each face image fills one corner of a face, so a d4's `faces` lists four images, one per
+  corner number.
 
 ## Containers
 
@@ -213,7 +213,7 @@ To make a custom die, add an entry to `dieTypes`. Set the number of `sides` and 
 | `kind`     | yes      | `deck`, `bag`, `bowl`, or `tray`                              |
 | `position` | yes      |                                                               |
 | `rotation` | no       | defaults to 0                                                 |
-| `size`     | decks    | `[width, depth]`                                              |
+| `size`     | decks, trays | `[width, depth]`                                          |
 | `layer`    | no       | defaults to `pieces`                                          |
 | `image`    | no       | decks: shown on top instead of the top card                   |
 | `fixed`    | no       | starts locked; players can still take from it                 |
@@ -240,7 +240,8 @@ Without `accepts`, decks take pieces of their members' type, trays take dice, an
   as an outlined placeholder.
 - **bag:** players can't see inside. Drawing takes a random member.
 - **bowl:** contents sit visible in a pile. Players pick any member.
-- **tray:** dice only. Dice sit side by side with their current faces showing. Rolling the tray rolls them all.
+- **tray:** dice only. Dice sit at random spots inside it, never overlapping, and can fill at most an eighth
+  of its area. Rolling the tray rolls them all and scatters them to new spots.
 
 A piece belongs to at most one container. Hands are containers too, but each seat creates its own, so the
 manifest doesn't list them.

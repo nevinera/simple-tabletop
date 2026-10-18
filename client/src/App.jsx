@@ -15,6 +15,7 @@ import { HandStrip } from "./ui/HandStrip";
 import { Magnifier } from "./ui/Magnifier";
 import { ContextMenu } from "./ui/ContextMenu";
 import { Toolbar } from "./ui/Toolbar";
+import { HelpPanel } from "./ui/HelpPanel";
 import { ActionBar } from "./ui/ActionBar";
 import { Joysticks } from "./ui/Joysticks";
 
@@ -22,6 +23,7 @@ const ACTION_BAR_SETTING = "simple-tabletop:desktop-action-bar";
 // One browser is one player until the server hands out player ids.
 const LOCAL_PLAYER_ID = "local";
 const HAND_STRIP_SETTING = "simple-tabletop:hand-strip";
+const TRAY_SCATTER_SETTING = "simple-tabletop:tray-roll-scatters";
 
 export default function App({ manifestUrl, gameId = "sandbox" }) {
   const viewport = useViewportMode();
@@ -33,9 +35,11 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
   const [interaction, setInteraction] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
   const [openMenu, setOpenMenu] = useState(null);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [joysticksVisible, setJoysticksVisible] = useState(false);
   const [desktopActionBar, setDesktopActionBar] = useStoredFlag(ACTION_BAR_SETTING, false);
   const [handStripVisible, setHandStripVisible] = useStoredFlag(HAND_STRIP_SETTING, true);
+  const [trayRollScatters, setTrayRollScatters] = useStoredFlag(TRAY_SCATTER_SETTING, true);
   const [hovered, setHovered] = useState(null);
   const [magnifyMode, setMagnifyMode] = useState(false);
   const [magnified, setMagnified] = useState(null);
@@ -53,9 +57,11 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
 
   const store = useMemo(() => (manifest ? createTableStore(manifest) : null), [manifest]);
   useEffect(() => {
-    // A console handle on table state. Clients are trusted, so it hides nothing.
+    // Console handles on table state and the scene. Clients are trusted, so
+    // they hide nothing.
     window.tableStore = store;
-  }, [store]);
+    window.tableScene = scene;
+  }, [store, scene]);
 
   const seatId = useStoreValue(store, (state) => seatOf(state, LOCAL_PLAYER_ID));
   const seats = useStoreValue(
@@ -98,20 +104,29 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
   useEffect(() => {
     if (interaction) interaction.magnifyMode = magnifyMode;
   }, [interaction, magnifyMode]);
+  useEffect(() => {
+    if (interaction) interaction.relocateOnTrayRoll = trayRollScatters;
+  }, [interaction, trayRollScatters]);
   const selectedObject = useSelectedObject(store, LOCAL_PLAYER_ID);
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
   const openContextMenu = useCallback((menu) => {
     setOpenMenu(null);
     setContextMenu(menu);
   }, []);
+  const toggleHelp = useCallback(() => {
+    setOpenMenu(null);
+    setHelpOpen((open) => !open);
+  }, []);
+  const closeHelp = useCallback(() => setHelpOpen(false), []);
   const onEscape = useCallback(() => {
-    if (openMenu) setOpenMenu(null);
+    if (helpOpen) setHelpOpen(false);
+    else if (openMenu) setOpenMenu(null);
     else if (contextMenu) setContextMenu(null);
     else if (magnified) setMagnified(null);
     else interaction?.cancelSelection();
-  }, [openMenu, contextMenu, magnified, interaction]);
+  }, [helpOpen, openMenu, contextMenu, magnified, interaction]);
   const tableInteraction = seated ? interaction : null;
-  useTableKeys({ scene, cameraPoints, interaction: tableInteraction, onEscape });
+  useTableKeys({ scene, cameraPoints, interaction: tableInteraction, onEscape, onHelp: toggleHelp });
 
   const join = useCallback((id) => store.dispatch({ type: "join", playerId: LOCAL_PLAYER_ID, seatId: id }), [store]);
   const leave = useCallback(() => {
@@ -148,6 +163,10 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
         handsEnabled={Boolean(manifest?.hands.enabled && seated)}
         handStripVisible={handStripVisible}
         setHandStripVisible={setHandStripVisible}
+        trayRollScatters={trayRollScatters}
+        setTrayRollScatters={setTrayRollScatters}
+        helpOpen={helpOpen}
+        setHelpOpen={toggleHelp}
       />
       <main className="table-area">
         <TableCanvas
@@ -178,6 +197,7 @@ export default function App({ manifestUrl, gameId = "sandbox" }) {
           onClose={closeContextMenu}
         />
       )}
+      {helpOpen && <HelpPanel touch={layout !== "desktop"} onClose={closeHelp} />}
       {showActionBar && (
         <ActionBar
           scene={scene}

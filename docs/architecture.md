@@ -102,6 +102,7 @@ Decks, bags, bowls, and hands.
 | `x`, `y`       | table position; hands ignore these and follow their seat       |
 | `rotation`     |                                                               |
 | `face_up`      | decks: which way every card in the deck faces                 |
+| `spots`        | trays: JSON map of die key to `[x, y]` within the tray        |
 | `member_keys`  | ordered JSON array of piece keys; index 0 is the top          |
 | `held_by_id`   |                                                               |
 | `locked`       | boolean; starts as the manifest's `fixed`                     |
@@ -151,7 +152,7 @@ There's no free-form multi-select. To move or roll several things together, put 
 | `rotate`   | turn a piece or container by some degrees, clockwise when positive |
 | `lock`     | toggle `locked`                                                |
 | `shuffle`  | replace a container's `member_keys` with a new order            |
-| `roll`     | set new `value`s for one die or every die in a tray             |
+| `roll`     | set new `value`s for one die or every die in a tray, and new `spots` in a tray |
 | `draw`     | take a deck's top card; the drawing player holds it             |
 | `makeDeck` | turn a loose card into a new deck holding just that card        |
 | `release`  | let go without changing anything                               |
@@ -169,12 +170,17 @@ the server doesn't need to.
 ## Dice
 
 Dice are built in: d4, d6, d8, d10, d10z, d10t, d12, and d20, each with numbered faces. A module can add its own
-die types by mapping an image to each face. Dice are flat tiles that show their current face, cut to the shape
-of that die's face: a triangle for a d4, d8, or d20, a square for a d6, a kite for a d10, and a pentagon for a
-d12. There are no 3D dice and no physics.
+die types by mapping an image to each face. Dice are 3D solids that sit still with their current face up,
+bright, and the other faces dimmed. There's no rolling or tumbling. While a roll lands, a fuzzy swirling sphere
+stands in for the die for a second.
 
-A tray is a container that lays its dice out side by side. Rolling a tray rolls every die in it at once, which
-is how players roll a handful of dice together. A single loose die can also be rolled.
+A tray is a container that holds dice at random spots inside it, never overlapping. Dice can fill at most an
+eighth of its area. Rolling a tray rolls every die in it at once and scatters them to new spots, which is how
+players roll a handful of dice together. A single die can also be rolled, loose or in a tray. Anyone can take a
+die out of a tray nobody holds.
+
+X rolls the die you point at or hold. Shift+X rolls the whole tray you point at, so a slightly off aim can't
+roll a tray's worth of dice by accident.
 
 ## Hands
 

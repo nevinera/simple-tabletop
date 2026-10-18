@@ -1,13 +1,18 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { landing, reachBounds } from "../state/footprint";
-import { HAND_TRAY_HEIGHT, findObject, handSlots, looseObjects, objectHeight, pieceDef } from "../state/objects";
+import {
+  DICE_TRAY_FLOOR, HAND_TRAY_HEIGHT, findObject, handSlots, looseObjects, objectHeight, pieceDef,
+} from "../state/objects";
+import { fromTray } from "../state/trays";
 import { tableRotationToThree, tableToThree, threeToTable } from "./coordinates";
 import { applyDeckPlacement, buildDeck, deckTopImage, setDeckTop } from "./decks";
+import { applyDiePlacement, buildDie, hideDie, setSwirling } from "./dice";
+import { buildDiceTray, placeDiceTray } from "./diceTrays";
 import { FELT_TILE_CM, feltTexture } from "./felt";
-import { buildLabel } from "./labels";
 import { buildTray, placeTray } from "./hands";
-import { applyHandSlot, applyPlacement, buildPiece, stackRanks } from "./pieces";
+import { buildLabel } from "./labels";
+import { HELD_LIFT, applyHandSlot, applyPlacement, buildPiece, stackRanks } from "./pieces";
 import { applyMotion, clampTarget, orbit, sumMotions } from "./rig";
 import { TextureCache } from "./textures";
 
@@ -15,6 +20,7 @@ const BACKGROUND = 0x1b1b1f;
 const TARGET_MARGIN = 0.1; // how far past the table edge the orbit target may go, as a fraction of its size
 const WIGGLE_MS = 250;
 const WIGGLE_DEGREES = 8; // how far a blocked rotation turns before springing back
+const SWIRL_MS = 1000; // how long a rolled die shows as a swirl
 
 // Owns the Three scene for one table. Camera views come in and go out in
 // table coordinates; see coordinates.js.
@@ -26,6 +32,9 @@ export class TableScene {
     this.pieceMeshes = new Map(); // piece id -> mesh
     this.deckGroups = new Map(); // container id -> group
     this.trays = new Map(); // hand id -> group
+    this.diceTrays = new Map(); // tray id -> group
+    this.rollsSeen = new Map(); // die id -> roll count already shown
+    this.swirls = new Map(); // die id -> start time
     this.viewerSeat = null; // whose hand shows face-up
     this.wiggles = new Map(); // object id -> { start, direction }
     this.raycaster = new THREE.Raycaster();
@@ -82,7 +91,7 @@ export class TableScene {
 
     const [table, ...pieces] = await Promise.all([
       this.#buildTable(manifest.table),
-      ...manifest.pieces.map((p) => buildPiece(p, this.textures)),
+      ...manifest.pieces.map((p) => (p.shape === "die" ? buildDie(p, this.textures) : buildPiece(p, this.textures))),
     ]);
     if (this.disposed || this.manifest !== manifest) return;
     this.content.add(table, ...manifest.labels.map(buildLabel), ...pieces);
@@ -90,7 +99,9 @@ export class TableScene {
       mesh.visible = false;
       this.pieceMeshes.set(mesh.name, mesh);
       this.content.add(mesh.userData.shadow, mesh.userData.ghost);
+      if (mesh.userData.swirl) this.content.add(mesh.userData.swirl);
     });
+    this.rollsSeen.clear();
     this.shown = true;
     if (this.state) this.render(this.state);
   }
@@ -102,10 +113,13 @@ export class TableScene {
     const ranks = stackRanks(this.manifest.pieces, state.pieces);
     for (const def of this.manifest.pieces) {
       const mesh = this.pieceMeshes.get(def.id);
-      if (mesh) applyPlacement(mesh, def, state.pieces[def.id], ranks.get(def.id) || 0, this.#hover(def.id, state));
+      if (!mesh) continue;
+      if (def.shape === "die") this.#placeLooseDie(mesh, def, state);
+      else applyPlacement(mesh, def, state.pieces[def.id], ranks.get(def.id) || 0, this.#hover(def.id, state));
     }
     for (const id of Object.keys(state.containers)) {
       const deck = findObject(this.manifest, state, id);
+      if (deck.def.kind === "tray") this.#renderDiceTray(deck, state);
       if (deck.def.kind !== "deck") continue;
       const group = this.#deckGroup(deck);
       applyDeckPlacement(group, deck.def, deck.state, this.#hover(id, state));
@@ -127,7 +141,7 @@ export class TableScene {
   // The id of the top object under a screen point, or null.
   pick(clientX, clientY) {
     this.#aim(clientX, clientY);
-    const targets = [...this.pieceMeshes.values(), ...this.deckGroups.values(), ...this.trays.values()];
+    const targets = [...this.pieceMeshes.values(), ...this.deckGroups.values(), ...this.trays.values(), ...this.diceTrays.values()];
     const hit = this.raycaster.intersectObjects(targets, true)
       .find(({ object }) => object.userData.objectId && shown(object));
     return hit ? hit.object.userData.objectId : null;
@@ -214,6 +228,7 @@ export class TableScene {
     }
     this.controls.update();
     this.#animateWiggles();
+    this.#animateSwirls();
     if (this.bounds) clampTarget(this.camera.position, this.controls.target, this.bounds);
     this.renderer.render(this.scene, this.camera);
   }
@@ -263,6 +278,69 @@ export class TableScene {
     const under = [...(target.blocked || []), ...(target.into ? [target.into] : [])];
     const floor = Math.max(0, ...under.map((other) => objectHeight(findObject(this.manifest, state, other))));
     return { blocked: Boolean(target.blocked), floor };
+  }
+
+  #placeLooseDie(mesh, def, state) {
+    const die = state.pieces[def.id];
+    this.#noticeRoll(def.id, die);
+    if (die.containerId) {
+      // Trays place their own dice; anywhere else, a die doesn't show.
+      if (!state.containers[die.containerId]?.spots) hideDie(mesh);
+      return;
+    }
+    const { x, y } = die.drag || die;
+    const rest = die.drag ? { x: die.x, y: die.y, base: def.layer.base } : null;
+    applyDiePlacement(mesh, def, die, { x, y, base: def.layer.base }, { ...this.#hover(def.id, state), rest });
+  }
+
+  #renderDiceTray(tray, state) {
+    let group = this.diceTrays.get(tray.id);
+    if (!group) {
+      group = buildDiceTray(tray.id, tray.def);
+      this.diceTrays.set(tray.id, group);
+      this.content.add(group);
+    }
+    const hover = this.#hover(tray.id, state);
+    placeDiceTray(group, tray.def, tray.state, { floor: hover.floor, lift: HELD_LIFT });
+    // The dice ride along with the tray, wherever it floats.
+    const pose = { ...tray.state, ...(tray.state.drag || {}) };
+    const trayLift = tray.state.heldBy ? (hover.floor || 0) + HELD_LIFT : 0;
+    const base = tray.def.layer.base + DICE_TRAY_FLOOR;
+    for (const id of tray.state.members) {
+      const mesh = this.pieceMeshes.get(id);
+      if (!mesh) continue;
+      const die = state.pieces[id];
+      const def = pieceDef(this.manifest, id);
+      const [restX, restY] = fromTray(pose, tray.state.spots[id]);
+      const rest = { x: restX, y: restY, base: base + trayLift };
+      if (die.heldBy && die.drag) {
+        applyDiePlacement(mesh, def, die, { ...die.drag, base: def.layer.base }, { ...this.#hover(id, state), rest });
+      } else {
+        applyDiePlacement(mesh, def, die, rest);
+      }
+    }
+  }
+
+  // Starts the swirl for a die whose roll count went up since last time.
+  #noticeRoll(id, die) {
+    const seen = this.rollsSeen.get(id);
+    this.rollsSeen.set(id, die.rolls);
+    if (seen != null && die.rolls > seen) this.swirls.set(id, performance.now());
+  }
+
+  #animateSwirls() {
+    if (!this.swirls.size) return;
+    const now = performance.now();
+    for (const [id, start] of this.swirls) {
+      const mesh = this.pieceMeshes.get(id);
+      const elapsed = (now - start) / 1000;
+      const done = !mesh || now - start >= SWIRL_MS;
+      if (mesh) setSwirling(mesh, !done, elapsed);
+      if (done) {
+        this.swirls.delete(id);
+        if (this.state) this.render(this.state);
+      }
+    }
   }
 
   #renderHands(state) {
@@ -342,6 +420,8 @@ export class TableScene {
     this.pieceMeshes.clear();
     this.deckGroups.clear();
     this.trays.clear();
+    this.diceTrays.clear();
+    this.swirls.clear();
   }
 
   #resize() {

@@ -11,6 +11,8 @@ export function ObjectActions({ interaction, objectId, onMagnify, onDone = () =>
     onDone();
   };
   const deck = object.kind === "deck";
+  const die = object.kind === "die";
+  const tray = object.kind === "tray";
   const movable = !object.locked && !object.inHand;
   const magnify = onMagnify && (
     <button type="button" className="menu-item" onClick={act(() => onMagnify(objectId))}>
@@ -21,8 +23,19 @@ export function ObjectActions({ interaction, objectId, onMagnify, onDone = () =>
 
   return (
     <div className="piece-actions">
-      {magnify}
+      {!die && !tray && magnify}
       {deck && <p className="menu-title">{deckTitle(object.count)}</p>}
+      {die && (
+        <button type="button" className="menu-item" onClick={act(() => interaction.roll(objectId))}>
+          Roll <kbd>X</kbd>
+        </button>
+      )}
+      {(tray || object.inTray) && (
+        <button type="button" className="menu-item" onClick={act(() => interaction.rollTray(tray ? objectId : object.trayId))}
+          disabled={tray && object.count === 0}>
+          Roll the tray <kbd>Shift X</kbd>
+        </button>
+      )}
       {deck && object.count > 0 && (
         <button type="button" className="menu-item" onClick={act(() => interaction.draw(objectId))}>
           Draw <kbd>G</kbd>
@@ -33,7 +46,7 @@ export function ObjectActions({ interaction, objectId, onMagnify, onDone = () =>
           Shuffle
         </button>
       )}
-      {!deck && movable && (
+      {!deck && !die && !tray && movable && (
         <button type="button" className="menu-item" onClick={act(() => interaction.flip(objectId))}>
           Flip <kbd>F</kbd>
         </button>

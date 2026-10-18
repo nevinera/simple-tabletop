@@ -6,13 +6,15 @@ let scene;
 let cameraPoints;
 let interaction;
 let onEscape;
+let onHelp;
 
 beforeEach(() => {
   scene = { setMotion: vi.fn() };
   cameraPoints = { jump: vi.fn(), save: vi.fn() };
   interaction = { flip: vi.fn(), rotate: vi.fn(), draw: vi.fn(), lock: vi.fn() };
   onEscape = vi.fn();
-  renderHook(() => useTableKeys({ scene, cameraPoints, interaction, onEscape }));
+  onHelp = vi.fn();
+  renderHook(() => useTableKeys({ scene, cameraPoints, interaction, onEscape, onHelp }));
 });
 
 const key = (code, extra = {}) => fireEvent.keyDown(window, { code, ...extra });
@@ -46,6 +48,12 @@ describe("useTableKeys", () => {
     key("Digit3", { shiftKey: true });
     expect(cameraPoints.jump).toHaveBeenCalledWith("3");
     expect(cameraPoints.save).toHaveBeenCalledWith("3");
+  });
+
+  it("toggles help with ?, once per press", () => {
+    key("Slash", { key: "?", shiftKey: true });
+    key("Slash", { key: "?", shiftKey: true, repeat: true });
+    expect(onHelp).toHaveBeenCalledOnce();
   });
 
   it("hands Esc to the app", () => {

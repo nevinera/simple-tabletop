@@ -7,8 +7,9 @@ const FINE_ROTATE_STEP = 22.5;
 // Wires keys to the table: held camera keys drive continuous motion, digits
 // jump to or (with Shift) save camera points, F/R/T flip and rotate the
 // selected or hovered object, G draws from the hovered deck (Shift+G into
-// your hand), L locks and unlocks, and Esc calls onEscape.
-export function useTableKeys({ scene, cameraPoints, interaction, onEscape }) {
+// your hand), X rolls a die (Shift+X its whole tray), L locks and unlocks,
+// Esc calls onEscape, and ? calls onHelp.
+export function useTableKeys({ scene, cameraPoints, interaction, onEscape, onHelp }) {
   useEffect(() => {
     if (!scene) return undefined;
     const pressed = new Set();
@@ -16,6 +17,10 @@ export function useTableKeys({ scene, cameraPoints, interaction, onEscape }) {
 
     const onKeyDown = (event) => {
       if (isTypingTarget(event.target) || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.key === "?") {
+        if (!event.repeat) onHelp?.();
+        return;
+      }
       const slot = cameraSlotForKey(event);
       if (slot) {
         if (!event.repeat) {
@@ -39,6 +44,12 @@ export function useTableKeys({ scene, cameraPoints, interaction, onEscape }) {
           return;
         case "KeyG":
           if (!event.repeat) interaction?.draw(undefined, { toHand: event.shiftKey });
+          return;
+        case "KeyX":
+          if (event.repeat) return;
+          // A whole tray takes Shift, so a near miss can't roll a handful.
+          if (event.shiftKey) interaction?.rollTray();
+          else interaction?.roll();
           return;
         case "KeyL":
           if (!event.repeat) interaction?.lock();
@@ -66,5 +77,5 @@ export function useTableKeys({ scene, cameraPoints, interaction, onEscape }) {
       window.removeEventListener("blur", onBlur);
       scene.setMotion("keys", null);
     };
-  }, [scene, cameraPoints, interaction, onEscape]);
+  }, [scene, cameraPoints, interaction, onEscape, onHelp]);
 }

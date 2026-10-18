@@ -1,7 +1,7 @@
 // What a player at `viewerSeat` gets to see of an object: the image on its
 // visible side and its size, or null when there's nothing to show. Cards in
 // your own hand show their face, cards in anyone else's show their back, and
-// a deck shows its top.
+// a deck shows its top. A die shows { die, value } instead of an image.
 
 import { findObject, pieceDef } from "./objects";
 
@@ -26,6 +26,7 @@ export function visibleSide(manifest, state, id, viewerSeat) {
   }
 
   const { def, state: piece } = object;
+  if (def.shape === "die") return { die: def.die, value: piece.value };
   if (piece.containerId) {
     const container = findObject(manifest, state, piece.containerId);
     if (container.def.kind !== "hand") return null;

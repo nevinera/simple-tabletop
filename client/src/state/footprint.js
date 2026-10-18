@@ -1,7 +1,8 @@
 // Footprints of objects on the table, for keeping objects on one layer from
 // overlapping. Objects whose edges touch don't count as overlapping.
 
-import { accepts, findObject, looseObjects, restingSpot } from "./objects";
+import { accepts, findObject, looseObjects, pieceDef, restingSpot } from "./objects";
+import { hasRoom } from "./trays";
 import { seatOf } from "./seats";
 
 const TOUCH_CM = 0.01; // overlaps shallower than this are just touching
@@ -10,7 +11,7 @@ const TOUCH_CM = 0.01; // overlaps shallower than this are just touching
 // { circle: { x, y, r } } or { polygon: [[x, y], ...] }.
 export function footprint(def, x, y, rotation) {
   const [width, depth] = def.size;
-  if (def.shape === "circle") return { circle: { x, y, r: width / 2 } };
+  if (def.shape === "circle" || def.shape === "die") return { circle: { x, y, r: width / 2 } };
 
   // Clockwise from above, with y running away from you.
   const radians = (rotation * Math.PI) / 180;
@@ -59,7 +60,7 @@ export function landing(manifest, state, id, x, y, rotation, playerId) {
   return blocked.length ? { blocked } : {};
 }
 
-const CONTAINER_TARGETS = ["deck", "hand"];
+const CONTAINER_TARGETS = ["deck", "hand", "tray"];
 
 // The area a dragged object can move over: the table, plus the hand trays
 // around it. Returns { minX, maxX, minY, maxY }.
@@ -83,9 +84,14 @@ function spot(object) {
 }
 
 // Whether a container takes a piece from this player. Anyone can add to a
-// hand when the module allows passing; otherwise only its own player can.
+// hand when the module allows passing; otherwise only its own player can. A
+// tray takes dice while it has room.
 function takes(manifest, state, container, piece, playerId) {
   if (container.state.heldBy || !accepts(container.def, piece.def)) return false;
+  if (container.def.kind === "tray") {
+    const dice = container.state.members.filter((id) => id !== piece.id).map((id) => pieceDef(manifest, id));
+    return hasRoom(container.def, dice, piece.def);
+  }
   if (container.def.kind !== "hand") return true;
   return manifest.hands.passing || seatOf(state, playerId) === container.def.seatId;
 }

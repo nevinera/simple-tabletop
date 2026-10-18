@@ -16,7 +16,9 @@
 // The scene supplies hit testing through `pick` and `tablePoint`, so this
 // runs without WebGL in tests.
 
-import { findObject } from "../state/objects";
+import { rollValues } from "../state/dice";
+import { findObject, pieceDef } from "../state/objects";
+import { scatter } from "../state/trays";
 import { handId, seatOf } from "../state/seats";
 
 export const DRAG_THRESHOLD_PX = 6;
@@ -43,6 +45,7 @@ export class PieceInteraction {
       onBlockedRotate, onHover, onMagnify, random,
     });
     this.magnifyMode = false;
+    this.relocateOnTrayRoll = true; // whether rolling a tray scatters its dice
     // Wrapped, since the browser's timer functions throw when called as methods.
     this.schedule = (fn, ms) => schedule(fn, ms);
     this.unschedule = (id) => unschedule(id);
@@ -66,14 +69,17 @@ export class PieceInteraction {
   describe(id) {
     const object = this.#object(id);
     if (!object || object.def.kind === "hand" || !this.#reachable(object)) return null;
-    const deck = object.kind === "container";
-    const inHand = Boolean(object.state.containerId);
+    const container = object.kind === "container";
+    const die = object.def.shape === "die";
+    const inHand = Boolean(object.state.containerId) && object.state.containerId === this.#ownHand();
     return {
-      kind: deck ? "deck" : "piece",
+      kind: container ? object.def.kind : die ? "die" : "piece",
       locked: object.state.locked,
-      count: deck ? object.state.members.length : null,
-      canMakeDeck: !deck && !inHand && object.def.shape === "rect",
+      count: container ? object.state.members.length : null,
+      canMakeDeck: !container && !object.state.containerId && object.def.shape === "rect",
       inHand,
+      inTray: die && Boolean(object.state.containerId),
+      trayId: die ? object.state.containerId : null,
     };
   }
 
@@ -85,6 +91,24 @@ export class PieceInteraction {
   rotate(degrees, id = this.actionTarget()) {
     if (!id) return;
     if (this.#dispatch("rotate", id, { degrees }).blocked) this.onBlockedRotate(id, degrees);
+  }
+
+  // Rolls one die where it sits.
+  roll(id = this.actionTarget()) {
+    const object = id && this.#object(id);
+    if (object?.def.shape !== "die") return;
+    this.#dispatch("roll", id, { values: rollValues([object.def], this.random) });
+  }
+
+  // Rolls every die in a tray, scattering them if relocateOnTrayRoll is on.
+  // With no tray given, uses
+  // the tray under the mouse, or the one holding the die under it.
+  rollTray(trayId = this.#trayTarget()) {
+    const tray = trayId && this.#object(trayId);
+    if (tray?.def.kind !== "tray" || !tray.state.members.length) return;
+    const dice = tray.state.members.map((id) => pieceDef(this.manifest, id));
+    const spots = (this.relocateOnTrayRoll && scatter(tray.def, dice, this.random)) || tray.state.spots;
+    this.#dispatch("roll", trayId, { values: rollValues(dice, this.random), spots });
   }
 
   lock(id = this.actionTarget()) {
@@ -294,10 +318,14 @@ export class PieceInteraction {
     return findObject(this.manifest, this.store.getState(), id);
   }
 
-  // Loose or in your own hand, and not held by someone else.
+  // Loose, in your own hand, or a die in a tray nobody else holds; and not
+  // held by someone else.
   #reachable(object) {
     const { containerId, heldBy } = object.state;
-    return (!containerId || containerId === this.#ownHand()) && (!heldBy || heldBy === this.playerId);
+    const free = (holder) => !holder || holder === this.playerId;
+    const tray = containerId && this.store.getState().containers[containerId];
+    const inReach = !containerId || containerId === this.#ownHand() || (tray?.spots && free(tray.heldBy));
+    return Boolean(inReach && free(heldBy));
   }
 
   #ownHand() {
@@ -314,6 +342,15 @@ export class PieceInteraction {
     const object = this.#object(id);
     return Boolean(object && object.kind === "container" && object.def.kind === "deck" &&
       this.#reachable(object) && object.state.members.length);
+  }
+
+  #trayTarget() {
+    const id = this.hoveredId || this.selectedId();
+    const object = id && this.#object(id);
+    if (!object) return null;
+    if (object.def.kind === "tray") return id;
+    const holder = object.state.containerId && this.#object(object.state.containerId);
+    return holder?.def.kind === "tray" ? holder.id : null;
   }
 
   #drawTarget() {

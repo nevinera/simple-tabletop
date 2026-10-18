@@ -2,11 +2,13 @@
 // shape the table renders from: piece types merged in, defaults filled, and
 // every image resolved to an absolute URL.
 
+import { BUILT_IN_DICE, DIE_SIDES } from "../state/dice";
 import { HALF_SIDES, SEAT_ORDER, SIDES } from "../state/seats";
 
 export const DEFAULT_TABLE_COLOR = "#2e6b3f";
 const LAYER_IDS = ["board", "pieces"];
-const SHAPES = ["rect", "circle"];
+const SHAPES = ["rect", "circle", "die"];
+const DEFAULT_DIE_COLOR = "#f4efe2";
 const CONTAINER_KINDS = ["deck", "bag", "bowl", "tray"];
 const CAMERA_SLOTS = /^[0-9]$/;
 const MAX_SEATS = 8;
@@ -37,11 +39,12 @@ export function normalizeManifest(raw, baseUrl) {
   const layers = normalizeLayers(raw.layers);
   const sheets = normalizeSheets(raw.sheets || {}, resolve);
   const image = (value, where) => normalizeImage(value, where, sheets, resolve);
+  const dieTypes = normalizeDieTypes(raw.dieTypes || {}, image);
   const contained = new Set((raw.containers || []).flatMap((c) => c.members || []));
 
   const seen = new Set();
   const pieces = raw.pieces.map((rawPiece) => {
-    const piece = normalizePiece(rawPiece, raw, layers, image, contained);
+    const piece = normalizePiece(rawPiece, raw, layers, image, contained, dieTypes);
     if (seen.has(piece.id)) throw new ManifestError(`Duplicate piece id "${piece.id}".`);
     seen.add(piece.id);
     return piece;
@@ -76,7 +79,7 @@ function normalizeContainers(rawContainers, pieces, layers, image) {
     ids.add(container.id);
     if (!CONTAINER_KINDS.includes(container.kind)) throw new ManifestError(`${where} has unknown kind "${container.kind}".`);
     if (!Array.isArray(container.position)) throw new ManifestError(`${where} needs a position.`);
-    if (container.kind === "deck" && !(container.size?.[0] > 0 && container.size?.[1] > 0)) {
+    if (["deck", "tray"].includes(container.kind) && !(container.size?.[0] > 0 && container.size?.[1] > 0)) {
       throw new ManifestError(`${where} needs a size: [width, depth].`);
     }
 
@@ -94,6 +97,8 @@ function normalizeContainers(rawContainers, pieces, layers, image) {
       throw new ManifestError(`${where} accepts must be a list of { type, category } matchers.`);
     }
     // A deck takes more of what it starts with. An empty one takes anything.
+    // A tray takes dice.
+    if (!accepts && container.kind === "tray") accepts = [{ shape: "die" }];
     const memberTypes = members.map((member) => pieceTypes.get(member));
     if (!accepts && container.kind === "deck" && memberTypes.length && memberTypes.every(Boolean)) {
       accepts = [...new Set(memberTypes)].map((type) => ({ type }));
@@ -251,7 +256,36 @@ function normalizeImage(value, where, sheets, resolve) {
   return { url: sheet.url, columns: sheet.columns, rows: sheet.rows, index: value.index };
 }
 
-function normalizePiece(rawPiece, raw, layers, image, contained) {
+// Custom dice: one image per face, or for a d4, one per corner number.
+function normalizeDieTypes(dieTypes, image) {
+  return Object.fromEntries(Object.entries(dieTypes).map(([key, dieType]) => {
+    const where = `Die type "${key}"`;
+    if (BUILT_IN_DICE[key]) throw new ManifestError(`${where} reuses a built-in die name.`);
+    if (!DIE_SIDES.includes(dieType?.sides)) throw new ManifestError(`${where} sides must be ${DIE_SIDES.join(", ")}.`);
+    if (!Array.isArray(dieType.faces) || dieType.faces.length !== dieType.sides) {
+      throw new ManifestError(`${where} needs exactly ${dieType.sides} faces.`);
+    }
+    const faces = dieType.faces.map((face, i) => image(face, `${where} face ${i}`));
+    return [key, { name: key, sides: dieType.sides, labels: null, images: faces }];
+  }));
+}
+
+// A tetrahedron looks small next to other dice of the same width, so a d4
+// grows by this much.
+const D4_SCALE = 1.5;
+
+function normalizeDie(piece, where, dieTypes) {
+  const builtIn = BUILT_IN_DICE[piece.die];
+  const die = builtIn ? { name: piece.die, ...builtIn, images: null } : dieTypes[piece.die];
+  if (!die) throw new ManifestError(`${where} has unknown die "${piece.die}".`);
+  const value = piece.value ?? 0;
+  if (!Number.isInteger(value) || value < 0 || value >= die.sides) {
+    throw new ManifestError(`${where} value must be 0 to ${die.sides - 1}.`);
+  }
+  return { die: { ...die, color: piece.color || DEFAULT_DIE_COLOR }, value };
+}
+
+function normalizePiece(rawPiece, raw, layers, image, contained, dieTypes) {
   const type = rawPiece.type ? raw.pieceTypes?.[rawPiece.type] : {};
   if (!type) throw new ManifestError(`Piece "${rawPiece.id}" has unknown type "${rawPiece.type}".`);
   const piece = { ...type, ...rawPiece };
@@ -261,13 +295,34 @@ function normalizePiece(rawPiece, raw, layers, image, contained) {
   if (piece.id.startsWith(HAND_PREFIX)) throw new ManifestError(`${where} can't start with "${HAND_PREFIX}".`);
   if (!SHAPES.includes(piece.shape)) throw new ManifestError(`${where} has unsupported shape "${piece.shape}".`);
   if (!Array.isArray(piece.size) || !(piece.size[0] > 0)) throw new ManifestError(`${where} needs a size.`);
-  if (!piece.face) throw new ManifestError(`${where} needs a face image.`);
+  if (!piece.face && piece.shape !== "die") throw new ManifestError(`${where} needs a face image.`);
 
   const layer = findLayer(layers, piece.layer || "pieces", where);
 
   const inContainer = contained.has(piece.id);
   if (!inContainer && !Array.isArray(piece.position)) {
     throw new ManifestError(`${where} needs a position, or a container that lists it.`);
+  }
+
+  if (piece.shape === "die") {
+    const { die, value } = normalizeDie(piece, where, dieTypes);
+    const width = piece.size[0] * (die.sides === 4 ? D4_SCALE : 1);
+    return {
+      id: piece.id,
+      shape: "die",
+      size: [width, width],
+      type: rawPiece.type || null,
+      categories: [...new Set([...(type.categories || []), ...(rawPiece.categories || [])])],
+      layer,
+      die,
+      value,
+      face: null,
+      back: null,
+      position: inContainer ? null : piece.position,
+      rotation: piece.rotation || 0,
+      faceUp: true,
+      fixed: piece.fixed || false,
+    };
   }
 
   const face = image(piece.face, `${where} face`);

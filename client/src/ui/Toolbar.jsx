@@ -1,9 +1,8 @@
 import { Menu } from "./Menu";
-import { HelpPanel } from "./HelpPanel";
 
 export function Toolbar({
   title, layout, menus, showActionBar, setShowActionBar, seatName, onLeaveSeat, handsEnabled, handStripVisible,
-  setHandStripVisible,
+  setHandStripVisible, trayRollScatters, setTrayRollScatters, helpOpen, setHelpOpen,
 }) {
   return (
     <nav className="toolbar" aria-label="Toolbar">
@@ -25,7 +24,7 @@ export function Toolbar({
         <span className="bar-button-label">Hand</span>
       </button>
       <Menu id="options" label="Options" icon="⚙" {...menus}>
-        {layout === "desktop" ? (
+        {layout === "desktop" && (
           <label className="menu-row">
             <input
               type="checkbox"
@@ -34,13 +33,27 @@ export function Toolbar({
             />
             Show action bar
           </label>
-        ) : (
-          <p className="menu-note">No options yet.</p>
         )}
+        <label className="menu-row">
+          <input
+            type="checkbox"
+            checked={trayRollScatters}
+            onChange={(event) => setTrayRollScatters(event.target.checked)}
+          />
+          Rolling a tray moves its dice
+        </label>
       </Menu>
-      <Menu id="help" label="Help" icon="?" {...menus}>
-        <HelpPanel touch={layout !== "desktop"} />
-      </Menu>
+      <button
+        type="button"
+        className={`bar-button${helpOpen ? " active" : ""}`}
+        aria-label="Help"
+        aria-pressed={helpOpen}
+        title="Help (?)"
+        onClick={() => setHelpOpen(!helpOpen)}
+      >
+        <span aria-hidden="true">?</span>
+        <span className="bar-button-label">Help</span>
+      </button>
     </nav>
   );
 }

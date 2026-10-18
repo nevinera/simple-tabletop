@@ -355,7 +355,7 @@ describe("PieceInteraction", () => {
       interaction.makeDeck("AH");
       const [id] = Object.keys(store.getState().containers).filter((key) => key !== "deck");
       expect(id).toMatch(/^deck-/);
-      expect(interaction.describe(id)).toEqual({ kind: "deck", locked: false, count: 1, canMakeDeck: false, inHand: false });
+      expect(interaction.describe(id)).toMatchObject({ kind: "deck", locked: false, count: 1, canMakeDeck: false, inHand: false });
     });
   });
 

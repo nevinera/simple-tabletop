@@ -52,11 +52,19 @@ describe("App layouts", () => {
 
   it("keeps only one menu open at a time", () => {
     renderAt("portrait");
+    fireEvent.click(screen.getByRole("button", { name: "Options" }));
+    expect(screen.getByRole("dialog", { name: "Options" })).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Views" }));
+    expect(screen.queryByRole("dialog", { name: "Options" })).toBeNull();
+    expect(screen.getByRole("dialog", { name: "Views" })).not.toBeNull();
+  });
+
+  it("opens help as a popover and closes it", () => {
+    renderAt(null);
     fireEvent.click(screen.getByRole("button", { name: "Help" }));
     expect(screen.getByRole("dialog", { name: "Help" })).not.toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Views" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close help" }));
     expect(screen.queryByRole("dialog", { name: "Help" })).toBeNull();
-    expect(screen.getByRole("dialog", { name: "Views" })).not.toBeNull();
   });
 
   it("asks for a seat before you can play, then offers changing it", async () => {

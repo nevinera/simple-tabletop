@@ -9,6 +9,9 @@ const MAX_DECK_HEIGHT = 6; // times the shortest a deck gets
 const DECK_GROWTH = 30; // cards; how fast a deck approaches its full height
 
 export const HAND_TRAY_HEIGHT = 0.15; // cm
+export const DICE_TRAY_FLOOR = 0.2; // cm
+export const DICE_TRAY_WALL = 1.2; // cm above the table
+const DIE_HEIGHT = 0.85; // times its size, roughly, whatever its shape
 const HAND_MARGIN = 0.5; // cm kept clear at each end of a hand tray
 const HAND_SPACING = 1.08; // times the card width, when there's room
 
@@ -123,9 +126,12 @@ function handAxis(handDef) {
   return [Math.cos(radians), -Math.sin(radians)];
 }
 
+// Dice only go in trays, and trays only take dice.
 export function accepts(containerDef, pieceDef) {
+  if ((pieceDef.shape === "die") !== (containerDef.kind === "tray")) return false;
   if (!containerDef.accepts) return true;
   return containerDef.accepts.some((matcher) =>
+    (!matcher.shape || matcher.shape === pieceDef.shape) &&
     (!matcher.type || matcher.type === pieceDef.type) &&
     (!matcher.category || pieceDef.categories.includes(matcher.category)));
 }
@@ -140,7 +146,8 @@ export function deckHeight(deckDef, count) {
 
 // The height of an object's top above its layer's base.
 export function objectHeight(object) {
-  if (object.kind === "piece") return object.def.layer.thickness;
+  if (object.kind === "piece") return object.def.shape === "die" ? object.def.size[0] * DIE_HEIGHT : object.def.layer.thickness;
   if (object.def.kind === "hand") return HAND_TRAY_HEIGHT;
+  if (object.def.kind === "tray") return DICE_TRAY_WALL;
   return deckHeight(object.def, object.state.members.length);
 }

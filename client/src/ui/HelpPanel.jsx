@@ -5,6 +5,7 @@ const POINTER = [
   ["Add a card to a deck", "Drop it on the deck"],
   ["Put a card in a hand", "Drop it on the hand's tray, or on your hand strip"],
   ["Menu", "Right-click a piece or deck"],
+  ["Take a die out of a tray", "Drag it"],
   ["Orbit", "Drag the table"],
   ["Pan", "Right-drag"],
   ["Zoom", "Mouse wheel"],
@@ -17,7 +18,8 @@ const TOUCH = [
   ["Add a card to a deck", "Drop it on the deck"],
   ["Put a card in a hand", "Drop it on the hand's tray, or on your hand strip"],
   ["Menu", "Tap and hold a piece or deck"],
-  ["See a card up close", "Action bar, 🔍 button, then tap the card"],
+  ["See a card or die up close", "Action bar, 🔍 button, then tap it"],
+  ["Roll a die or tray", "Tap and hold it, then Roll"],
   ["Flip, rotate, or lock", "Select it, then the action bar's ⟳ button"],
   ["Orbit", "Drag the table"],
   ["Pan", "Two-finger drag"],
@@ -37,16 +39,29 @@ const KEYS = [
   ["Rotate 22.5°", "Shift + R / T"],
   ["Draw from the deck under the mouse", "G"],
   ["Draw it into your hand", "Shift + G"],
-  ["See a card up close", "Hold Alt"],
+  ["See a card or die up close", "Hold Alt"],
   ["Lock or unlock", "L"],
+  ["Roll the die under the mouse", "X"],
+  ["Roll every die in a tray", "Shift + X"],
   ["Put back what you selected", "Esc"],
+  ["Open or close help", "?"],
 ];
 
-export function HelpPanel({ touch }) {
+// Help in a popover over the whole app. Its body scrolls when it's taller
+// than the window. Clicking outside it closes it.
+export function HelpPanel({ touch, onClose }) {
   return (
-    <div className="help">
-      <HelpTable rows={touch ? TOUCH : POINTER} />
-      {!touch && <HelpTable rows={KEYS} />}
+    <div className="help-backdrop" onPointerDown={(event) => event.target === event.currentTarget && onClose()}>
+      <div className="help" role="dialog" aria-label="Help">
+        <div className="help-header">
+          <h2>Help</h2>
+          <button type="button" className="help-close" aria-label="Close help" onClick={onClose}>×</button>
+        </div>
+        <div className="help-body">
+          <HelpTable rows={touch ? TOUCH : POINTER} />
+          {!touch && <HelpTable rows={KEYS} />}
+        </div>
+      </div>
     </div>
   );
 }

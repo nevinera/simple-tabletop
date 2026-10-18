@@ -15,6 +15,7 @@ import { buildTray, placeTray } from "./hands";
 import { buildLabel } from "./labels";
 import { HELD_LIFT, applyHandSlot, applyPlacement, buildPiece, stackRanks } from "./pieces";
 import { applyStackPlacement, buildStack, faceCamera, setStackTop } from "./stacks";
+import { applyStandeePlacement, buildStandee } from "./standees";
 import { applyMotion, clampTarget, orbit, sumMotions } from "./rig";
 import { TextureCache } from "./textures";
 
@@ -93,7 +94,7 @@ export class TableScene {
 
     const [table, ...pieces] = await Promise.all([
       this.#buildTable(manifest.table),
-      ...manifest.pieces.map((p) => (p.shape === "die" ? buildDie(p, this.textures) : buildPiece(p, this.textures))),
+      ...manifest.pieces.map((p) => this.#buildMesh(p)),
     ]);
     if (this.disposed || this.manifest !== manifest) return;
     this.content.add(table, ...manifest.labels.map(buildLabel));
@@ -115,7 +116,8 @@ export class TableScene {
         this.#buildSpawned(def);
         continue;
       }
-      if (def.shape === "die") this.#placeLooseDie(mesh, def, state);
+      if (def.kind === "die") this.#placeLooseDie(mesh, def, state);
+      else if (def.kind === "standee") applyStandeePlacement(mesh, def, state.pieces[def.id], this.#hover(def.id, state));
       else applyPlacement(mesh, def, state.pieces[def.id], ranks.get(def.id) || 0, this.#hover(def.id, state));
     }
     // Pieces that went into an infinite bag are gone.
@@ -404,6 +406,12 @@ export class TableScene {
     }
   }
 
+  #buildMesh(def) {
+    if (def.kind === "die") return buildDie(def, this.textures);
+    if (def.kind === "standee") return buildStandee(def, this.textures);
+    return buildPiece(def, this.textures);
+  }
+
   #addPieceMesh(mesh) {
     mesh.visible = false;
     this.pieceMeshes.set(mesh.name, mesh);
@@ -418,7 +426,7 @@ export class TableScene {
     if (this.building.has(def.id)) return;
     this.building.add(def.id);
     const manifest = this.manifest;
-    Promise.resolve(def.shape === "die" ? buildDie(def, this.textures) : buildPiece(def, this.textures)).then((mesh) => {
+    Promise.resolve(this.#buildMesh(def)).then((mesh) => {
       this.building.delete(def.id);
       if (this.disposed || this.manifest !== manifest) return;
       this.#addPieceMesh(mesh);

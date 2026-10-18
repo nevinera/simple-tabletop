@@ -1,5 +1,6 @@
 // Buttons for one object, shared by the action bar's Selected menu and the
-// context menu. What shows depends on the object: decks draw and shuffle,
+// context menu. What shows depends on the object: decks draw, shuffle, and
+// flip,
 // bags and stacks draw,
 // pieces flip and can become decks, locked things only unlock, and cards in
 // your hand only magnify. onDone runs after any action, so a menu can close.

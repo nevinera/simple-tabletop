@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { STACK_SHOWN, stackHeight } from "../state/objects";
 import { tableRotationToThree, tableToThree } from "./coordinates";
-import { HELD_LIFT } from "./pieces";
+import { HELD_LIFT, restingTurn } from "./pieces";
 
 const EDGE_COLOR = "#e8e4da"; // matches a single piece's edge
 const LINE_COLOR = "#8d887d";
@@ -72,6 +72,7 @@ export function buildStack(id, def) {
 // under it; blocked tints its shadow.
 export function applyStackPlacement(group, def, state, { blocked = false, floor = 0 } = {}) {
   const { body, counter, ghost, shadow } = group.userData;
+  const rest = restingTurn(group, state);
   const count = state.members.length;
   const height = stackHeight(def, count);
   const held = Boolean(state.heldBy);
@@ -98,7 +99,7 @@ export function applyStackPlacement(group, def, state, { blocked = false, floor 
   if (ghost.visible) {
     ghost.scale.copy(body.scale);
     ghost.position.fromArray(tableToThree([state.x, def.layer.base + height / 2, state.y]));
-    ghost.rotation.set(0, rotation, 0);
+    ghost.rotation.set(0, tableRotationToThree(rest.rotation), 0);
   }
 }
 

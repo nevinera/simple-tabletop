@@ -167,7 +167,8 @@ There's no free-form multi-select. To move or roll several things together, put 
 
 `flip`, `rotate`, and `lock` also work on things nobody holds, so players can act on what they're pointing at.
 Nobody can act on something someone else holds. Locked things can't move, flip, or rotate, but a locked deck can
-still be drawn from and shuffled. Decks can't be flipped.
+still be drawn from and shuffled. Flipping a deck turns it over: `face_up` toggles and `member_keys` reverses,
+so the bottom card comes out on top.
 
 Objects on the same layer can't overlap. A drop or rotation that would overlap something is refused, except
 that a piece dropped with its center over a container that accepts it goes in.

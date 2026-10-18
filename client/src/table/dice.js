@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { tableRotationToThree, tableToThree } from "./coordinates";
 import { dieRegions, orientation, restHeight } from "./diceGeometry";
-import { HELD_LIFT } from "./pieces";
+import { HELD_LIFT, restingTurn } from "./pieces";
 import { D4_SCALE, labelSize } from "../state/dice";
 
 const LABEL_PIXELS = 128;
@@ -77,6 +77,7 @@ export function buildDie(def, textures) {
 // rest is { x, y, base } of where it came from, for the ghost.
 export function applyDiePlacement(group, def, state, spot, { blocked = false, floor = 0, rest = null } = {}) {
   const { ghost, shadow, swirl } = group.userData;
+  const resting = restingTurn(group, state);
   const sides = def.die.sides;
   const size = def.size[0];
   const held = Boolean(state.heldBy);
@@ -98,7 +99,7 @@ export function applyDiePlacement(group, def, state, spot, { blocked = false, fl
   ghost.visible = held && Boolean(rest);
   if (ghost.visible) {
     ghost.position.fromArray(tableToThree([rest.x, rest.base + center, rest.y]));
-    ghost.quaternion.copy(turn);
+    ghost.quaternion.copy(orientation(sides, resting.value, tableRotationToThree(resting.rotation)));
   }
 }
 

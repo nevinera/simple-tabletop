@@ -149,14 +149,10 @@ describe("hands", () => {
     expect(magnifiable(boards, state, "mat")).toBe(false);
   });
 
-  it("makes decks at least twice as tall as the board layer, and at most six times that", () => {
-    const boards = normalizeManifest(raw({
-      layers: [{ id: "board", thickness: 0.4 }, { id: "pieces", thickness: 0.03 }],
-    }), "https://example.com/m.json");
-    const deck = findObject(boards, initialState(boards), "deck").def;
-    expect(deckHeight(deck, 0)).toBeCloseTo(0.8);
-    expect(deckHeight(deck, 1)).toBeCloseTo(0.8);
-    expect(deckHeight(deck, 52)).toBeGreaterThan(3);
-    expect(deckHeight(deck, 1000)).toBeCloseTo(4.8);
+  it("makes decks 0.8cm tall with a card or none, growing toward 4.8cm", () => {
+    expect(deckHeight(0)).toBeCloseTo(0.8);
+    expect(deckHeight(1)).toBeCloseTo(0.8);
+    expect(deckHeight(52)).toBeGreaterThan(3);
+    expect(deckHeight(1000)).toBeCloseTo(4.8);
   });
 });

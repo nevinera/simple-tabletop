@@ -4,8 +4,8 @@
 
 import { activeSeats, handPlacement } from "./seats";
 
-const MIN_DECK_BOARDS = 2; // an empty or one-card deck is this many board layers tall
-const MAX_DECK_HEIGHT = 6; // times the shortest a deck gets
+const MIN_DECK_HEIGHT = 0.8; // cm; an empty or one-card deck, so it doesn't pass for a card
+const MAX_DECK_HEIGHT = 4.8; // cm; how tall a deck grows toward
 const DECK_GROWTH = 30; // cards; how fast a deck approaches its full height
 
 export const HAND_TRAY_HEIGHT = 0.15; // cm
@@ -55,7 +55,7 @@ export function containerDef(manifest, state, id) {
   if (fromManifest?.kind === "stack" || state.containers[id]?.spec?.kind === "stack") {
     return stackDef(manifest, state, id, fromManifest);
   }
-  if (fromManifest) return { ...fromManifest, shape: "rect", minHeight: deckMinHeight(manifest) };
+  if (fromManifest) return { ...fromManifest, shape: "rect" };
   const { spec } = state.containers[id];
   if (spec.kind === "hand") {
     const seat = manifest.seats.find((s) => s.id === spec.seatId);
@@ -81,7 +81,6 @@ export function containerDef(manifest, state, id) {
     layer: manifest.layers.find((layer) => layer.id === spec.layer),
     image: null,
     accepts: spec.accepts,
-    minHeight: deckMinHeight(manifest),
   };
 }
 
@@ -113,12 +112,6 @@ export function stackKey(def) {
   if (def.type) return `type:${def.type}`;
   const image = (img) => (img ? `${img.url}#${img.index ?? ""}` : "");
   return `look:${def.kind}|${def.shape}|${def.size.join("x")}|${image(def.face)}|${image(def.back)}`;
-}
-
-// Twice the board layer, so even a one-card deck doesn't pass for a card.
-function deckMinHeight(manifest) {
-  const board = manifest.layers.find((layer) => layer.id === "board") || manifest.layers[0];
-  return board.thickness * MIN_DECK_BOARDS;
 }
 
 // Every object sitting loose on the table: pieces outside containers, and
@@ -182,7 +175,7 @@ const CONTAINER_TAKES = {
   tray: ["die"],
   deck: ["card"],
   hand: ["card", "tile"],
-  bag: ["card", "tile", "chip", "token", "die"],
+  bag: ["card", "tile", "chip", "token", "die", "standee"],
 };
 
 export function accepts(containerDef, pieceDef) {
@@ -195,12 +188,11 @@ export function accepts(containerDef, pieceDef) {
     (!matcher.category || pieceDef.categories.includes(matcher.category)));
 }
 
-// How tall a deck of `count` cards looks: its minimum with 0 or 1 cards,
-// rising toward six times that as the deck grows.
-export function deckHeight(deckDef, count) {
+// How tall a deck of `count` cards looks: MIN_DECK_HEIGHT with 0 or 1
+// cards, rising toward MAX_DECK_HEIGHT as the deck grows.
+export function deckHeight(count) {
   const extra = Math.max(count - 1, 0);
-  const min = deckDef.minHeight;
-  return min + (min * MAX_DECK_HEIGHT - min) * (1 - Math.exp(-extra / DECK_GROWTH));
+  return MIN_DECK_HEIGHT + (MAX_DECK_HEIGHT - MIN_DECK_HEIGHT) * (1 - Math.exp(-extra / DECK_GROWTH));
 }
 
 // A stack grows a piece taller per piece, up to STACK_SHOWN.
@@ -214,10 +206,14 @@ export function bagHeight(bagDef) {
 
 // The height of an object's top above its layer's base.
 export function objectHeight(object) {
-  if (object.kind === "piece") return object.def.shape === "die" ? object.def.size[0] * DIE_HEIGHT : object.def.thickness;
+  if (object.kind === "piece") {
+    if (object.def.kind === "die") return object.def.size[0] * DIE_HEIGHT;
+    if (object.def.kind === "standee") return object.def.size[1];
+    return object.def.thickness;
+  }
   if (object.def.kind === "hand") return HAND_TRAY_HEIGHT;
   if (object.def.kind === "tray") return DICE_TRAY_WALL;
   if (object.def.kind === "bag") return bagHeight(object.def);
   if (object.def.kind === "stack") return stackHeight(object.def, object.state.members.length);
-  return deckHeight(object.def, object.state.members.length);
+  return deckHeight(object.state.members.length);
 }

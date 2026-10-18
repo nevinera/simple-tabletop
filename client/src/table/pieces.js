@@ -100,10 +100,7 @@ export function placement(def, state, floor = 0) {
 export function applyPlacement(mesh, def, state, rank, { blocked = false, floor = 0 } = {}) {
   const place = placement(def, state, floor);
   const { shadow, ghost } = mesh.userData;
-  // The ghost keeps the orientation the piece had when it was picked up.
-  mesh.userData.restingTurn = state.heldBy
-    ? mesh.userData.restingTurn || { rotation: state.rotation, faceUp: state.faceUp }
-    : null;
+  restingTurn(mesh, state);
   mesh.visible = Boolean(place);
   shadow.visible = Boolean(place && state.heldBy);
   ghost.visible = Boolean(place && state.heldBy && state.drag);
@@ -124,6 +121,15 @@ export function applyPlacement(mesh, def, state, rank, { blocked = false, floor 
     ghost.position.fromArray(rest.position);
     ghost.rotation.set(...rest.rotation);
   }
+}
+
+// How an object sat when it was picked up, so its ghost keeps that turn and
+// facing however the held object changes. Cleared once it's let go.
+export function restingTurn(object3d, state) {
+  object3d.userData.restingTurn = state.heldBy
+    ? object3d.userData.restingTurn || { rotation: state.rotation, faceUp: state.faceUp, value: state.value }
+    : null;
+  return object3d.userData.restingTurn;
 }
 
 // Puts a card on a hand tray: spot is { x, y, height, rotation, faceUp,

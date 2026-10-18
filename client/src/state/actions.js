@@ -200,11 +200,17 @@ const HANDLERS = {
   },
 
   // Flip, rotate, and lock also work on an object nobody holds, for hover keys.
+  // Flipping a deck turns it over: it faces the other way, and its bottom
+  // card comes out on top.
   flip({ state, kind, def, object }) {
-    if (kind !== "piece") return reject(state, "Containers can't be flipped.");
+    if (object.state.locked) return reject(state, "That's locked.");
+    if (kind !== "piece") {
+      if (def.kind !== "deck") return reject(state, "Only decks flip among containers.");
+      return save(state, object, { faceUp: !object.state.faceUp, members: [...object.state.members].reverse() });
+    }
     if (def.kind === "die") return reject(state, "Dice roll instead.");
     if (def.kind === "board") return reject(state, "Boards don't flip.");
-    if (object.state.locked) return reject(state, "That's locked.");
+    if (def.kind === "standee") return reject(state, "Turn a standee instead.");
     return save(state, object, { faceUp: !object.state.faceUp });
   },
 

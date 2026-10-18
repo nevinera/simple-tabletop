@@ -16,7 +16,11 @@ const KIND_SHAPES = {
   chip: ["circle"],
   token: ["circle", "rect"],
   die: ["die"],
+  standee: ["rect"],
 };
+const HOLDER_MARGIN = 0.2; // cm the clear holder sticks out past a standee on each side
+const HOLDER_DEPTH = 0.35; // of a standee's width, front to back
+const MIN_HOLDER_DEPTH = 1.5; // cm
 const DEFAULT_DIE_COLOR = "#f4efe2";
 const CONTAINER_KINDS = ["deck", "bag", "bowl", "tray", "stack"];
 const CAMERA_SLOTS = /^[0-9]$/;
@@ -25,7 +29,7 @@ const HAND_PREFIX = "hand-"; // hand containers' ids; see state/seats.js
 const RESERVED_ID_CHARACTER = "#"; // for pieces drawn from infinite bags; see state/objects.js
 const DEFAULT_BAG_COLOR = "#7a5230";
 const MAX_BAG_TEXT = 16;
-const SOLID_THICKNESS = 0.5; // tiles, chips, and tokens: their default thickness, as a share of the board layer's
+const SOLID_THICKNESS = 0.2; // cm; tiles, chips, tokens, and standees, unless they say otherwise
 const SEAT_COLORS = ["#c0392b", "#2980b9", "#27ae60", "#8e44ad", "#d35400", "#16a085", "#c2185b", "#7f8c8d"];
 
 export class ManifestError extends Error {}
@@ -168,11 +172,15 @@ function normalizeBag(container, where, image, template) {
   return { ...bag, template: template(container.id, container.infinite) };
 }
 
-// Tiles, chips, and tokens stand thicker than cards: half the board layer.
-// Cards and boards are as thick as their layer.
-function defaultThickness(kind, layer, layers) {
-  const board = layers.find((l) => l.id === "board");
-  return ["tile", "chip", "token"].includes(kind) && board ? board.thickness * SOLID_THICKNESS : layer.thickness;
+// The clear base a standee stands in, as [width, depth] on the table.
+function holderSize(width) {
+  return [width + 2 * HOLDER_MARGIN, Math.max(MIN_HOLDER_DEPTH, width * HOLDER_DEPTH)];
+}
+
+// Tiles, chips, tokens, and standees stand thicker than cards. Cards and
+// boards are as thick as their layer.
+function defaultThickness(kind, layer) {
+  return ["tile", "chip", "token", "standee"].includes(kind) ? SOLID_THICKNESS : layer.thickness;
 }
 
 // Each layer sits on the ones below it, so its base is their total thickness.
@@ -387,7 +395,9 @@ function normalizePiece(rawPiece, raw, layers, image, contained, dieTypes) {
     kind: piece.kind,
     shape: piece.shape,
     size: piece.shape === "circle" ? [piece.size[0], piece.size[0]] : piece.size,
-    thickness: piece.thickness ?? defaultThickness(piece.kind, layer, layers),
+    thickness: piece.thickness ?? defaultThickness(piece.kind, layer),
+    // A standee's size is its width and height; it rests on a holder.
+    ...(piece.kind === "standee" ? { holder: holderSize(piece.size[0]) } : {}),
     type: rawPiece.type || null,
     categories: [...new Set([...(type.categories || []), ...(rawPiece.categories || [])])],
     layer,

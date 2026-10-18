@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_TABLE_COLOR, ManifestError, normalizeManifest } from "../manifest/manifest";
+import { footprint } from "../state/footprint";
 
 const BASE = "https://example.com/games/aces/manifest.json";
 
@@ -41,6 +42,26 @@ describe("normalizeManifest", () => {
       faceUp: true,
       fixed: false,
     });
+  });
+
+  it("fills in shape, layer, and thickness from a piece's kind", () => {
+    const pieces = [
+      { id: "b", kind: "board", shape: "rect", size: [40, 40], face: "b.png", position: [0, 0] },
+      { id: "c", kind: "chip", size: [2], face: "c.png", position: [0, 0] },
+      { id: "t", kind: "tile", size: [4, 4], face: "t.png", position: [0, 0] },
+    ];
+    const [board, chip, tile] = normalizeManifest(manifest({ pieces }), BASE).pieces;
+    expect(board).toMatchObject({ layer: { id: "board" }, thickness: 0.3 });
+    expect(chip).toMatchObject({ shape: "circle", layer: { id: "pieces" }, thickness: 0.2 });
+    expect(tile).toMatchObject({ shape: "rect", thickness: 0.2 });
+  });
+
+  it("stands a standee in a clear holder as its footprint", () => {
+    const pieces = [{ id: "s", kind: "standee", size: [3, 5], face: "s.png", position: [10, 10] }];
+    const [standee] = normalizeManifest(manifest({ pieces }), BASE).pieces;
+    expect(standee).toMatchObject({ shape: "rect", size: [3, 5], holder: [3.4, 1.5], thickness: 0.2 });
+    const corners = footprint(standee, 10, 10, 0).polygon.map((corner) => corner.map((v) => +v.toFixed(2)));
+    expect(corners).toEqual([[8.3, 9.25], [11.7, 9.25], [11.7, 10.75], [8.3, 10.75]]);
   });
 
   it("lets a piece override its type", () => {

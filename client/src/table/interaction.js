@@ -80,7 +80,7 @@ export class PieceInteraction {
       count: container && !infinite ? object.state.members.length : null,
       infinite,
       canMakeDeck: !container && !object.state.containerId && object.def.kind === "card",
-      canFlip: !container && !["die", "board"].includes(object.def.kind),
+      canFlip: container ? object.def.kind === "deck" : !["die", "board", "standee"].includes(object.def.kind),
       inHand,
       inTray: die && Boolean(object.state.containerId),
       trayId: die ? object.state.containerId : null,

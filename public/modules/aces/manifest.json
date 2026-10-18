@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "table": { "size": [90, 90], "color": "#2e6b3f" },
   "layers": [
-    { "id": "board", "thickness": 0.4 },
+    { "id": "board", "thickness": 0.05 },
     { "id": "pieces", "thickness": 0.03 }
   ],
   "pieceTypes": {
@@ -16,6 +16,7 @@
     },
     "red-chip": { "kind": "chip", "size": [2.4], "face": "assets/chip-red.svg" },
     "blue-chip": { "kind": "chip", "size": [2.4], "face": "assets/chip-blue.svg" },
+    "knight": { "kind": "standee", "size": [3, 5], "face": "assets/knight.svg" },
     "heart": { "kind": "token", "shape": "circle", "size": [2.2], "face": "assets/heart.svg" }
   },
   "hands": true,
@@ -32,6 +33,8 @@
     { "id": "d10", "kind": "die", "die": "d10", "size": [2.2] },
     { "id": "d10t", "kind": "die", "die": "d10t", "size": [2.2], "color": "#3b6fd9" },
     { "id": "d20", "kind": "die", "die": "d20", "size": [2.6] },
+    { "id": "knight-1", "type": "knight", "position": [34, 76] },
+    { "id": "knight-2", "type": "knight", "position": [39, 76], "rotation": 30 },
     { "id": "red-1", "type": "red-chip" },
     { "id": "red-2", "type": "red-chip" },
     { "id": "red-3", "type": "red-chip" },

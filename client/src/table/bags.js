@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { bagHeight } from "../state/objects";
 import { tableRotationToThree, tableToThree } from "./coordinates";
-import { HELD_LIFT } from "./pieces";
+import { HELD_LIFT, restingTurn } from "./pieces";
 
 const TEXT_PIXELS = 64; // canvas pixels per cm of side height
 const TEXT_HEIGHT = 0.45; // of the side's height
@@ -79,6 +79,7 @@ export function buildBag(id, def, textures) {
 // under it; blocked tints its shadow.
 export function applyBagPlacement(group, def, state, { blocked = false, floor = 0 } = {}) {
   const { ghost, shadow, height } = group.userData;
+  const rest = restingTurn(group, state);
   const held = Boolean(state.heldBy);
   const { x, y } = state.drag || state;
   const rotation = tableRotationToThree(state.rotation);
@@ -95,7 +96,7 @@ export function applyBagPlacement(group, def, state, { blocked = false, floor = 
   ghost.visible = held && Boolean(state.drag);
   if (ghost.visible) {
     ghost.position.fromArray(tableToThree([state.x, def.layer.base + height / 2, state.y]));
-    ghost.rotation.set(0, rotation, 0);
+    ghost.rotation.set(0, tableRotationToThree(rest.rotation), 0);
   }
 }
 

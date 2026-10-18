@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { deckHeight } from "../state/objects";
 import { tableRotationToThree, tableToThree } from "./coordinates";
-import { HELD_LIFT } from "./pieces";
+import { HELD_LIFT, restingTurn } from "./pieces";
 
 const SIDE_COLOR = "#9a9a9e";
 const LINE_COLOR = "#6f6f74";
@@ -80,11 +80,18 @@ export function deckTopImage(def, deckState, cardDef) {
 // Places the deck for its state. floor lifts a held deck over whatever is
 // under it; blocked tints its shadow.
 export function applyDeckPlacement(group, def, state, { blocked = false, floor = 0 } = {}) {
-  const { box, placeholder, ghost, shadow } = group.userData;
+  const { box, placeholder, ghost, shadow, top, ghostTop } = group.userData;
+  const rest = restingTurn(group, state);
+  // While held, the ghost keeps the top it had when picked up, even if the
+  // deck is flipped.
+  if (!rest && ghostTop.map !== top.map) {
+    ghostTop.map = top.map;
+    ghostTop.needsUpdate = true;
+  }
   const [width, depth] = def.size;
   const layer = def.layer;
   const empty = state.members.length === 0;
-  const height = deckHeight(def, state.members.length);
+  const height = deckHeight(state.members.length);
   const held = Boolean(state.heldBy);
   const { x, y } = state.drag || state;
   const rotation = tableRotationToThree(state.rotation);
@@ -111,14 +118,16 @@ export function applyDeckPlacement(group, def, state, { blocked = false, floor =
   if (ghost.visible) {
     ghost.scale.copy(box.scale);
     ghost.position.fromArray(tableToThree([state.x, layer.base + height / 2, state.y]));
-    ghost.rotation.set(0, rotation, 0);
+    ghost.rotation.set(0, tableRotationToThree(rest.rotation), 0);
   }
 }
 
-// Shows a texture on the deck's top, or plain white while there's none.
+// Shows a texture on the deck's top, or plain white while there's none. The
+// ghost catches up once the deck is let go (see applyDeckPlacement).
 export function setDeckTop(group, texture) {
   const { top, ghostTop } = group.userData;
-  for (const material of [top, ghostTop]) {
+  const materials = group.userData.restingTurn ? [top] : [top, ghostTop];
+  for (const material of materials) {
     material.map = texture;
     material.needsUpdate = true;
   }

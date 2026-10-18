@@ -10,7 +10,8 @@ const TOUCH_CM = 0.01; // overlaps shallower than this are just touching
 // The piece's outline on the table at (x, y) with the given rotation:
 // { circle: { x, y, r } } or { polygon: [[x, y], ...] }.
 export function footprint(def, x, y, rotation) {
-  const [width, depth] = def.size;
+  // A standee covers only its holder.
+  const [width, depth] = def.holder || def.size;
   if (def.shape === "circle" || def.shape === "die") return { circle: { x, y, r: width / 2 } };
 
   // Clockwise from above, with y running away from you.

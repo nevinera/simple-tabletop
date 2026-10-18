@@ -135,3 +135,5 @@ Update docs/manifest-format.md before building on them.
 9. **Piece kinds and stacks.** Every piece has a kind (card, board, tile, chip, token, die) that decides its
    shape, thickness, and where it can go. Tiles, chips, and tokens that are alike stack, up to five tall, then
    show a count.
+10. **Standees.** Upright cut-out figures in clear holders, as thick as tiles. The holder is the footprint, and
+    turning replaces flipping.

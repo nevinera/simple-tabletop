@@ -15,7 +15,7 @@ Modules are data only. They place pieces and describe how they look. They can't 
   "version": "1.0.0",
   "table": { "size": [100, 100], "color": "#2e6b3f" },
   "layers": [
-    { "id": "board", "thickness": 0.3 },
+    { "id": "board", "thickness": 0.05 },
     { "id": "pieces", "thickness": 0.03 }
   ],
   "sheets": {
@@ -134,11 +134,11 @@ of them.
 |------------|----------|---------------------------------------------------------------|
 | `id`       | yes      | unique within the manifest                                    |
 | `type`     | no       | a key in `pieceTypes`                                         |
-| `kind`     | yes*     | `card`, `board`, `tile`, `chip`, `token`, or `die`; see below |
+| `kind`     | yes*     | `card`, `board`, `tile`, `chip`, `token`, `die`, or `standee`; see below |
 | `layer`    | no       | defaults to `board` for boards and `pieces` for everything else |
 | `shape`    | boards, tokens | `rect` or `circle`; the other kinds have only one shape  |
-| `size`     | yes*     | `[width, depth]`; circles and dice use the first value only   |
-| `thickness`| no       | in cm; tiles, chips, and tokens default to half the board layer's thickness, and cards and boards to their layer's |
+| `size`     | yes*     | `[width, depth]`, or for standees `[width, height]`; circles and dice use the first value only |
+| `thickness`| no       | in cm; tiles, chips, tokens, and standees default to 0.2, and cards and boards to their layer's thickness |
 | `categories`| no      | list of strings; combined with the type's categories          |
 | `die`      | dice     | a built-in die name, or a key in `dieTypes`                   |
 | `face`     | yes*     | image for the up side; not used by dice                       |
@@ -163,6 +163,10 @@ A piece's kind decides what it does:
 | chip  | circle         | stacks       | no            | yes   |
 | token | circle or rect | stacks       | no            | yes   |
 | die   | die            | trays        | no            | rolls |
+| standee | rect         |              | no            | no    |
+
+A standee stands upright in a clear holder, its `face` toward the front and its `back` behind. Transparent
+parts of its images are cut out. Its holder is what takes up room on the table. Turn it to face another way.
 
 Bags take every kind but boards. A board usually also sets `"fixed": true`.
 
@@ -253,8 +257,8 @@ Without `accepts`, decks take pieces of their members' type, trays take dice, an
 
 ### Kinds
 
-- **deck:** an ordered stack. Players draw from the top and can shuffle it. It starts twice as tall as the board
-  layer and grows toward six times that as cards go in, showing its `image` or else the top card. An empty deck stays on the table
+- **deck:** an ordered stack. Players draw from the top and can shuffle it. It starts 0.8cm tall and grows toward
+  4.8cm as cards go in, showing its `image` or else the top card. An empty deck stays on the table
   as an outlined placeholder.
 - **bag:** a box with a fixed height. Drawing takes a random member, which keeps the way it faced. Holding Alt
   over a bag lists what's inside. Bags take any piece, dice included, but never another container.

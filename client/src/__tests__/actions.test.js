@@ -178,12 +178,21 @@ describe("decks", () => {
     expect(coin).toMatchObject({ ok: false, blocked: true });
   });
 
-  it("moves and rotates like a piece, but won't flip", () => {
+  it("moves and rotates like a piece", () => {
     const grabbed = act(initialState(manifest), { type: "grab", id: "deck" }).state;
     const moved = act(grabbed, { type: "drop", id: "deck", x: 70, y: 70 }).state;
     expect(moved.containers.deck).toMatchObject({ x: 70, y: 70, heldBy: null });
     expect(act(moved, { type: "rotate", id: "deck", degrees: 90 }).state.containers.deck.rotation).toBe(90);
-    expect(act(moved, { type: "flip", id: "deck" }).reason).toMatch(/can't be flipped/);
+  });
+
+  it("flips over, bringing its bottom card to the top", () => {
+    let state = initialState(manifest);
+    state = act(act(state, { type: "grab", id: "AS" }).state, { type: "drop", id: "AS", x: 60, y: 60 }).state;
+    expect(state.containers.deck).toMatchObject({ members: ["AS", "KS"], faceUp: false });
+    state = act(state, { type: "flip", id: "deck" }).state;
+    expect(state.containers.deck).toMatchObject({ members: ["KS", "AS"], faceUp: true });
+    state = act(state, { type: "lock", id: "deck" }).state;
+    expect(act(state, { type: "flip", id: "deck" }).reason).toMatch(/locked/);
   });
 
   it("won't move onto another object", () => {

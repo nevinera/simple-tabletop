@@ -32,6 +32,7 @@ describe("normalizeManifest", () => {
       type: "card",
       categories: ["cards"],
       layer: { id: "pieces", thickness: 0.03, base: 0.3 },
+      thickness: 0.03,
       face: { url: "https://example.com/games/aces/assets/AS.svg" },
       back: { url: "https://example.com/games/aces/assets/back.svg" },
       position: [45, 57],
@@ -176,7 +177,7 @@ describe("normalizeManifest", () => {
     ["too many seats", { seats: undefined, maxSeats: 9 }, /maxSeats/],
     ["a piece id that hands use", { pieces: [{ id: "hand-x", type: "card", face: "a.svg", position: [0, 0] }] }, /hand-/],
     ["an empty accepts matcher", {
-      containers: [{ id: "c", kind: "bag", position: [0, 0], accepts: [{}] }],
+      containers: [{ id: "c", kind: "bag", position: [0, 0], size: [5, 5], accepts: [{}] }],
     }, /accepts/],
   ])("rejects %s", (_name, overrides, message) => {
     expect(() => normalizeManifest(manifest(overrides), BASE)).toThrow(ManifestError);

@@ -14,12 +14,12 @@ const GHOST_OPACITY = 0.35;
 // at any camera distance.
 const POLYGON_OFFSET_PER_RANK = -4;
 
-// A piece is a slab its layer's thickness: the face image on top, the back
+// A piece is a slab its own thickness: the face image on top, the back
 // image underneath, and plain edges. Flipping turns the whole slab over, so
 // placement() decides which side shows.
 export async function buildPiece(piece, textures) {
   const [width, depth] = piece.size;
-  const thickness = piece.layer.thickness;
+  const thickness = piece.thickness;
   const [faceTexture, backTexture] = await Promise.all([textures.get(piece.face), textures.get(piece.back)]);
 
   const edge = new THREE.MeshStandardMaterial({ color: EDGE_COLOR, roughness: 0.9 });
@@ -28,7 +28,7 @@ export async function buildPiece(piece, textures) {
 
   const mesh = piece.shape === "circle"
     // Cylinder material groups: edge, top cap, bottom cap.
-    ? new THREE.Mesh(new THREE.CylinderGeometry(width / 2, width / 2, thickness, 48), [edge, top, bottom])
+    ? new THREE.Mesh(circleGeometry(width, thickness), [edge, top, bottom])
     // Box material order: +x, -x, +y (top), -y (bottom), +z, -z.
     : new THREE.Mesh(new THREE.BoxGeometry(width, thickness, depth), [edge, edge, top, bottom, edge, edge]);
   mesh.name = piece.id;
@@ -37,6 +37,12 @@ export async function buildPiece(piece, textures) {
   mesh.userData.shadow = buildShadow(piece);
   mesh.userData.ghost = buildGhost(mesh);
   return mesh;
+}
+
+// Three maps a cylinder's cap images turned a quarter clockwise, so turn the
+// cylinder back to stand them upright.
+function circleGeometry(width, thickness) {
+  return new THREE.CylinderGeometry(width / 2, width / 2, thickness, 48).rotateY(Math.PI / 2);
 }
 
 // A see-through copy of the piece left at its resting spot while it's
@@ -82,7 +88,7 @@ export function placement(def, state, floor = 0) {
   const { x, y } = state.drag || state;
   const lift = state.heldBy ? floor + HELD_LIFT : 0;
   return {
-    position: tableToThree([x, def.layer.base + def.layer.thickness / 2 + lift, y]),
+    position: tableToThree([x, def.layer.base + def.thickness / 2 + lift, y]),
     // Euler XYZ applies z first: turn the slab over along its length, then
     // spin it to its table rotation.
     rotation: [0, tableRotationToThree(state.rotation), state.faceUp ? 0 : Math.PI],
@@ -130,7 +136,7 @@ export function applyHandSlot(mesh, def, spot, rank) {
   ghost.visible = false;
   mesh.userData.restingTurn = null;
   const lift = spot.lifted ? HELD_LIFT : 0;
-  mesh.position.fromArray(tableToThree([spot.x, spot.height + def.layer.thickness / 2 + lift, spot.y]));
+  mesh.position.fromArray(tableToThree([spot.x, spot.height + def.thickness / 2 + lift, spot.y]));
   mesh.rotation.set(0, tableRotationToThree(spot.rotation), spot.faceUp ? 0 : Math.PI);
   for (const material of mesh.material) material.polygonOffsetUnits = rank * POLYGON_OFFSET_PER_RANK;
 }

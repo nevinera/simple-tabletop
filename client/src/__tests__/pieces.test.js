@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { HELD_LIFT, applyPlacement, buildPiece, placement } from "../table/pieces";
 
-const def = { layer: { base: 0.3, thickness: 0.04 } };
+const def = { layer: { base: 0.3, thickness: 0.04 }, thickness: 0.04 };
 const state = { x: 10, y: 20, rotation: 90, faceUp: true, containerId: null, heldBy: null, drag: null };
 
 describe("placement", () => {
@@ -31,7 +31,7 @@ describe("placement", () => {
 });
 
 describe("applyPlacement", () => {
-  const piece = { id: "card", shape: "rect", size: [6, 9], layer: def.layer, face: "f.png", back: "b.png" };
+  const piece = { id: "card", shape: "rect", size: [6, 9], layer: def.layer, thickness: 0.04, face: "f.png", back: "b.png" };
   const textures = { get: async () => null };
 
   it("leaves a ghost at the resting spot while the piece is dragged", async () => {

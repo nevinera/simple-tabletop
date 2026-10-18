@@ -26,6 +26,7 @@ pointer, selecting a different piece puts the first one back.
 |------------------------------------------------|------------------------------------------------------------|
 | drag a movable deck                            | move the deck                                              |
 | drag a locked deck                             | draw the top card and move it                              |
+| drag a locked bag                              | draw a random piece and move it                            |
 | drag empty table or a locked piece             | orbit the camera                                           |
 | right-drag, or two-finger drag                 | pan                                                        |
 | wheel, or pinch                                | zoom                                                       |
@@ -52,8 +53,8 @@ Keys check the physical key (`event.code`), and are ignored while focus is in on
 | F                      | flip the selected or hovered piece           |
 | R / T                  | rotate it 45° counterclockwise / clockwise   |
 | Shift+R / Shift+T      | rotate it 22.5°                              |
-| G                      | draw from the hovered deck, to place         |
-| Shift+G                | draw from the hovered deck into your hand    |
+| G                      | draw from the hovered deck or bag, to place  |
+| Shift+G                | draw from the hovered deck or bag into your hand |
 | L                      | lock or unlock the selected or hovered thing |
 | hold Alt               | magnify the hovered or selected card         |
 | X                      | roll the hovered or selected die             |
@@ -120,9 +121,12 @@ Update docs/manifest-format.md before building on them.
    can't be selected. A placed piece lands on top, and draw order breaks ties between overlapping pieces.
 4. **Flip and rotate.** Keys on selected and hovered pieces, the action bar, and the context menu.
 5. **Containers.** Decks as one stack, drawing by drag, G, and the menu, adding by drop with `accepts`,
-   shuffling, empty placeholders, locking, and making a deck from a card. Bags and bowls come later.
+   shuffling, empty placeholders, locking, and making a deck from a card.
 6. **Hands.** Picking a seat when you join, generated seats that split from four to eight, hand trays on the
    table, the hand strip on screen, dropping into hands with ordering, Shift+G, and magnify (Alt, or the
    touch toggle and menu item). Without a server, one browser is one player.
 7. **Dice and trays.** 3D dice with the top face bright and the rest dimmed, a swirling sphere while a roll
    lands, trays with random non-overlapping spots capped at an eighth of their area, X and Shift+X.
+8. **Bags.** Boxes with a color, side text, and a circled lid image. Drawing a random piece by drag, G, and
+   the menu, adding by drop, Alt to list what's inside, and infinite bags that make and delete pieces.
+   Bowls come later.

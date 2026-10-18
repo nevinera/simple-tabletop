@@ -6,6 +6,7 @@ import {
 } from "../state/objects";
 import { fromTray } from "../state/trays";
 import { tableRotationToThree, tableToThree, threeToTable } from "./coordinates";
+import { applyBagPlacement, buildBag } from "./bags";
 import { applyDeckPlacement, buildDeck, deckTopImage, setDeckTop } from "./decks";
 import { applyDiePlacement, buildDie, hideDie, setSwirling } from "./dice";
 import { buildDiceTray, placeDiceTray } from "./diceTrays";
@@ -30,7 +31,7 @@ export class TableScene {
     this.motions = new Map();
     this.content = new THREE.Group();
     this.pieceMeshes = new Map(); // piece id -> mesh
-    this.deckGroups = new Map(); // container id -> group
+    this.deckGroups = new Map(); // deck or bag id -> group
     this.trays = new Map(); // hand id -> group
     this.diceTrays = new Map(); // tray id -> group
     this.rollsSeen = new Map(); // die id -> roll count already shown
@@ -94,13 +95,8 @@ export class TableScene {
       ...manifest.pieces.map((p) => (p.shape === "die" ? buildDie(p, this.textures) : buildPiece(p, this.textures))),
     ]);
     if (this.disposed || this.manifest !== manifest) return;
-    this.content.add(table, ...manifest.labels.map(buildLabel), ...pieces);
-    pieces.forEach((mesh) => {
-      mesh.visible = false;
-      this.pieceMeshes.set(mesh.name, mesh);
-      this.content.add(mesh.userData.shadow, mesh.userData.ghost);
-      if (mesh.userData.swirl) this.content.add(mesh.userData.swirl);
-    });
+    this.content.add(table, ...manifest.labels.map(buildLabel));
+    pieces.forEach((mesh) => this.#addPieceMesh(mesh));
     this.rollsSeen.clear();
     this.shown = true;
     if (this.state) this.render(this.state);
@@ -110,20 +106,31 @@ export class TableScene {
   render(state) {
     this.state = state;
     if (!this.manifest || !this.shown) return;
-    const ranks = stackRanks(this.manifest.pieces, state.pieces);
-    for (const def of this.manifest.pieces) {
+    const defs = Object.keys(state.pieces).map((id) => pieceDef(this.manifest, id));
+    const ranks = stackRanks(defs, state.pieces);
+    for (const def of defs) {
       const mesh = this.pieceMeshes.get(def.id);
-      if (!mesh) continue;
+      if (!mesh) {
+        this.#buildSpawned(def);
+        continue;
+      }
       if (def.shape === "die") this.#placeLooseDie(mesh, def, state);
       else applyPlacement(mesh, def, state.pieces[def.id], ranks.get(def.id) || 0, this.#hover(def.id, state));
     }
+    // Pieces that went into an infinite bag are gone.
+    for (const [id, mesh] of this.pieceMeshes) {
+      if (!state.pieces[id]) hideMesh(mesh);
+    }
     for (const id of Object.keys(state.containers)) {
-      const deck = findObject(this.manifest, state, id);
-      if (deck.def.kind === "tray") this.#renderDiceTray(deck, state);
-      if (deck.def.kind !== "deck") continue;
-      const group = this.#deckGroup(deck);
-      applyDeckPlacement(group, deck.def, deck.state, this.#hover(id, state));
-      this.#updateDeckTop(group, deck);
+      const container = findObject(this.manifest, state, id);
+      if (container.def.kind === "tray") this.#renderDiceTray(container, state);
+      if (container.def.kind === "bag") {
+        applyBagPlacement(this.#bagGroup(container), container.def, container.state, this.#hover(id, state));
+      }
+      if (container.def.kind !== "deck") continue;
+      const group = this.#deckGroup(container);
+      applyDeckPlacement(group, container.def, container.state, this.#hover(id, state));
+      this.#updateDeckTop(group, container);
     }
     this.#renderHands(state);
   }
@@ -384,6 +391,38 @@ export class TableScene {
     }
   }
 
+  #addPieceMesh(mesh) {
+    mesh.visible = false;
+    this.pieceMeshes.set(mesh.name, mesh);
+    this.content.add(mesh, mesh.userData.shadow, mesh.userData.ghost);
+    if (mesh.userData.swirl) this.content.add(mesh.userData.swirl);
+  }
+
+  // Builds the mesh for a piece drawn from an infinite bag, then renders
+  // again to place it.
+  #buildSpawned(def) {
+    this.building ||= new Set();
+    if (this.building.has(def.id)) return;
+    this.building.add(def.id);
+    const manifest = this.manifest;
+    Promise.resolve(def.shape === "die" ? buildDie(def, this.textures) : buildPiece(def, this.textures)).then((mesh) => {
+      this.building.delete(def.id);
+      if (this.disposed || this.manifest !== manifest) return;
+      this.#addPieceMesh(mesh);
+      if (this.state) this.render(this.state);
+    });
+  }
+
+  #bagGroup(bag) {
+    let group = this.deckGroups.get(bag.id);
+    if (!group) {
+      group = buildBag(bag.id, bag.def, this.textures);
+      this.deckGroups.set(bag.id, group);
+      this.content.add(group, group.userData.ghost, group.userData.shadow);
+    }
+    return group;
+  }
+
   #deckGroup(deck) {
     let group = this.deckGroups.get(deck.id);
     if (!group) {
@@ -422,6 +461,7 @@ export class TableScene {
     this.trays.clear();
     this.diceTrays.clear();
     this.swirls.clear();
+    this.building?.clear();
   }
 
   #resize() {
@@ -430,6 +470,12 @@ export class TableScene {
     this.renderer.setSize(width, height);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
+  }
+}
+
+function hideMesh(mesh) {
+  for (const part of [mesh, mesh.userData.shadow, mesh.userData.ghost, mesh.userData.swirl]) {
+    if (part) part.visible = false;
   }
 }
 

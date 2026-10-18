@@ -9,7 +9,7 @@ const PADDING = 0.04;
 // A die's top face, drawn flat and large. Lit regions (the whole face, or a
 // d4's corner sections at its top point) show in the die's color, and the
 // rest are dimmed by a dark wash. die and value come from visibleSide().
-export function DieFace({ die, value }) {
+export function DieFace({ die, value, className = "magnifier-die" }) {
   const clipPrefix = useId();
   const { outline, regions } = topFace(die.sides, value);
   const xs = outline.map(([x]) => x);
@@ -18,7 +18,7 @@ export function DieFace({ die, value }) {
   const [width, height] = [Math.max(...xs) - left + PADDING, Math.max(...ys) - top + PADDING];
 
   return (
-    <svg className="magnifier-die" viewBox={`${left} ${top} ${width} ${height}`} role="img" aria-label={faceName(die, value)}>
+    <svg className={className} viewBox={`${left} ${top} ${width} ${height}`} role="img" aria-label={faceName(die, value)}>
       {regions.map((region, i) => {
         const clipId = `${clipPrefix}-${i}`;
         const points = region.polygon.map((p) => p.join(",")).join(" ");

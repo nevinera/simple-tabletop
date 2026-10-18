@@ -13,6 +13,10 @@ const CONTAINER_KINDS = ["deck", "bag", "bowl", "tray"];
 const CAMERA_SLOTS = /^[0-9]$/;
 const MAX_SEATS = 8;
 const HAND_PREFIX = "hand-"; // hand containers' ids; see state/seats.js
+const RESERVED_ID_CHARACTER = "#"; // for pieces drawn from infinite bags; see state/objects.js
+const DEFAULT_BAG_COLOR = "#7a5230";
+const MAX_BAG_TEXT = 16;
+const TOKEN_THICKNESS = 0.5; // a top-layer circle's default thickness, as a share of the board layer's
 const SEAT_COLORS = ["#c0392b", "#2980b9", "#27ae60", "#8e44ad", "#d35400", "#16a085", "#c2185b", "#7f8c8d"];
 
 export class ManifestError extends Error {}
@@ -45,6 +49,7 @@ export function normalizeManifest(raw, baseUrl) {
   const seen = new Set();
   const pieces = raw.pieces.map((rawPiece) => {
     const piece = normalizePiece(rawPiece, raw, layers, image, contained, dieTypes);
+    if (piece.id.includes(RESERVED_ID_CHARACTER)) throw new ManifestError(`Piece "${piece.id}" can't contain "#".`);
     if (seen.has(piece.id)) throw new ManifestError(`Duplicate piece id "${piece.id}".`);
     seen.add(piece.id);
     return piece;
@@ -60,12 +65,17 @@ export function normalizeManifest(raw, baseUrl) {
     maxSeats: raw.seats ? raw.seats.length : normalizeMaxSeats(raw.maxSeats),
     seats: raw.seats ? normalizeSeats(raw.seats) : madeUpSeats(),
     pieces,
-    containers: normalizeContainers(raw.containers || [], pieces, layers, image),
+    containers: normalizeContainers(raw.containers || [], pieces, layers, image, (bagId, type) => {
+      if (!raw.pieceTypes?.[type]) throw new ManifestError(`Container "${bagId}" infinite names unknown piece type "${type}".`);
+      const id = `${bagId}#template`;
+      return normalizePiece({ id, type }, raw, layers, image, new Set([id]), dieTypes);
+    }),
     labels: (raw.labels || []).map((label, i) => normalizeLabel(label, i, layers)),
   };
 }
 
-function normalizeContainers(rawContainers, pieces, layers, image) {
+// template(bagId, type) makes the piece an infinite bag hands out.
+function normalizeContainers(rawContainers, pieces, layers, image, template) {
   const pieceTypes = new Map(pieces.map((piece) => [piece.id, piece.type]));
   const pieceIds = new Set(pieceTypes.keys());
   const ids = new Set();
@@ -76,10 +86,11 @@ function normalizeContainers(rawContainers, pieces, layers, image) {
     if (ids.has(container.id)) throw new ManifestError(`Duplicate container id "${container.id}".`);
     if (pieceIds.has(container.id)) throw new ManifestError(`${where} has the same id as a piece.`);
     if (container.id.startsWith(HAND_PREFIX)) throw new ManifestError(`${where} can't start with "${HAND_PREFIX}".`);
+    if (container.id.includes(RESERVED_ID_CHARACTER)) throw new ManifestError(`${where} can't contain "#".`);
     ids.add(container.id);
     if (!CONTAINER_KINDS.includes(container.kind)) throw new ManifestError(`${where} has unknown kind "${container.kind}".`);
     if (!Array.isArray(container.position)) throw new ManifestError(`${where} needs a position.`);
-    if (["deck", "tray"].includes(container.kind) && !(container.size?.[0] > 0 && container.size?.[1] > 0)) {
+    if (["deck", "tray", "bag"].includes(container.kind) && !(container.size?.[0] > 0 && container.size?.[1] > 0)) {
       throw new ManifestError(`${where} needs a size: [width, depth].`);
     }
 
@@ -103,6 +114,9 @@ function normalizeContainers(rawContainers, pieces, layers, image) {
     if (!accepts && container.kind === "deck" && memberTypes.length && memberTypes.every(Boolean)) {
       accepts = [...new Set(memberTypes)].map((type) => ({ type }));
     }
+    const bag = container.kind === "bag" ? normalizeBag(container, where, image, template) : {};
+    // An infinite bag only takes back what it hands out.
+    if (bag.template) accepts = [{ type: bag.template.type }];
 
     return {
       id: container.id,
@@ -116,8 +130,30 @@ function normalizeContainers(rawContainers, pieces, layers, image) {
       faceUp: container.faceUp || false,
       members,
       accepts,
+      ...bag,
     };
   });
+}
+
+// A bag's look, and for an infinite bag, the piece it hands out.
+function normalizeBag(container, where, image, template) {
+  const text = container.text ?? null;
+  if (text != null && (typeof text !== "string" || text.length > MAX_BAG_TEXT)) {
+    throw new ManifestError(`${where} text must be at most ${MAX_BAG_TEXT} characters.`);
+  }
+  const bag = { color: container.color || DEFAULT_BAG_COLOR, text, template: null };
+  if (container.infinite == null) return bag;
+  if (container.members?.length) throw new ManifestError(`${where} is infinite, so it can't list members.`);
+  if (typeof container.infinite !== "string") throw new ManifestError(`${where} infinite must name a piece type.`);
+  return { ...bag, template: template(container.id, container.infinite) };
+}
+
+// Tokens (circles on the top layer) stand thicker than cards: half the board
+// layer. Everything else is as thick as its layer.
+function defaultThickness(shape, layer, layers) {
+  const board = layers.find((l) => l.id === "board");
+  const top = layer === layers.at(-1);
+  return shape === "circle" && top && board ? board.thickness * TOKEN_THICKNESS : layer.thickness;
 }
 
 // Each layer sits on the ones below it, so its base is their total thickness.
@@ -322,10 +358,12 @@ function normalizePiece(rawPiece, raw, layers, image, contained, dieTypes) {
   }
 
   const face = image(piece.face, `${where} face`);
+  if (piece.thickness != null && !(piece.thickness > 0)) throw new ManifestError(`${where} thickness must be positive.`);
   return {
     id: piece.id,
     shape: piece.shape,
     size: piece.shape === "circle" ? [piece.size[0], piece.size[0]] : piece.size,
+    thickness: piece.thickness ?? defaultThickness(piece.shape, layer, layers),
     type: rawPiece.type || null,
     categories: [...new Set([...(type.categories || []), ...(rawPiece.categories || [])])],
     layer,

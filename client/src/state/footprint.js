@@ -37,7 +37,7 @@ export function overlaps(a, b) {
 
 // Where object `id` would land at (x, y), facing `rotation`, when
 // `playerId` lets go of it:
-//   { into: containerId }  a piece over a deck or hand that takes it
+//   { into: containerId }  a piece over a deck, bag, hand, or tray that takes it
 //   { blocked: [ids] }     overlapping other objects on its layer, or off
 //                          the table (with no ids)
 //   {}                     open table
@@ -60,7 +60,7 @@ export function landing(manifest, state, id, x, y, rotation, playerId) {
   return blocked.length ? { blocked } : {};
 }
 
-const CONTAINER_TARGETS = ["deck", "hand", "tray"];
+const CONTAINER_TARGETS = ["deck", "bag", "hand", "tray"];
 
 // The area a dragged object can move over: the table, plus the hand trays
 // around it. Returns { minX, maxX, minY, maxY }.

@@ -1,7 +1,8 @@
 // What a player at `viewerSeat` gets to see of an object: the image on its
 // visible side and its size, or null when there's nothing to show. Cards in
 // your own hand show their face, cards in anyone else's show their back, and
-// a deck shows its top. A die shows { die, value } instead of an image.
+// a deck shows its top. A die shows { die, value } instead of an image, and
+// a bag shows what's in it (see bagContents).
 
 import { findObject, pieceDef } from "./objects";
 
@@ -17,6 +18,7 @@ export function visibleSide(manifest, state, id, viewerSeat) {
   if (!object) return null;
 
   if (object.kind === "container") {
+    if (object.def.kind === "bag") return bagContents(manifest, object);
     if (object.def.kind !== "deck") return null;
     const top = object.state.members[0];
     if (object.def.image) return { image: object.def.image, size: object.def.size };
@@ -33,4 +35,32 @@ export function visibleSide(manifest, state, id, viewerSeat) {
     return { image: container.def.seatId === viewerSeat ? def.face : def.back, size: def.size };
   }
   return { image: piece.faceUp ? def.face : def.back, size: def.size };
+}
+
+// The distinct things in a bag: { title, contents: [{ key, name, count,
+// side }] }, most plentiful first. Pieces of one type count together, as do
+// untyped pieces that look the same. An infinite bag's one entry has a null
+// count.
+function bagContents(manifest, bag) {
+  const title = bag.def.text;
+  if (bag.def.template) return { title, contents: [{ ...describeKind(bag.def.template), count: null }] };
+  const kinds = new Map();
+  for (const id of bag.state.members) {
+    const kind = describeKind(pieceDef(manifest, id));
+    const seen = kinds.get(kind.key);
+    if (seen) seen.count += 1;
+    else kinds.set(kind.key, { ...kind, count: 1 });
+  }
+  return { title, contents: [...kinds.values()].sort((a, b) => b.count - a.count) };
+}
+
+function describeKind(def) {
+  if (def.shape === "die") {
+    return { key: def.type || `die:${def.die.name}:${def.die.color}`, name: def.type || def.die.name, side: { die: def.die, value: def.value } };
+  }
+  return {
+    key: def.type || `face:${def.face.url}#${def.face.index ?? ""}`,
+    name: def.type,
+    side: { image: def.face, size: def.size },
+  };
 }

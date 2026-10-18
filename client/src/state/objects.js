@@ -14,12 +14,27 @@ export const DICE_TRAY_WALL = 1.2; // cm above the table
 const DIE_HEIGHT = 0.85; // times its size, roughly, whatever its shape
 const HAND_MARGIN = 0.5; // cm kept clear at each end of a hand tray
 const HAND_SPACING = 1.08; // times the card width, when there's room
+const BAG_HEIGHT = 0.4; // times a bag's shorter side
 
 const pieceIndexes = new WeakMap();
 
+// A piece's definition: from the manifest, or for a piece drawn from an
+// infinite bag, a copy of the bag's template under the piece's own id.
 export function pieceDef(manifest, id) {
   if (!pieceIndexes.has(manifest)) pieceIndexes.set(manifest, new Map(manifest.pieces.map((p) => [p.id, p])));
-  return pieceIndexes.get(manifest).get(id);
+  const index = pieceIndexes.get(manifest);
+  if (!index.has(id)) {
+    const bag = manifest.containers.find((c) => c.template && id.startsWith(`${c.id}#`));
+    if (!bag) return undefined;
+    index.set(id, { ...bag.template, id });
+  }
+  return index.get(id);
+}
+
+// The id for the nth piece drawn from an infinite bag. Module ids can't hold
+// "#", so these never clash with them.
+export function spawnedId(bagId, n) {
+  return `${bagId}#${n}`;
 }
 
 // { kind: "piece" | "container", id, def, state }, or null.
@@ -75,9 +90,8 @@ function deckMinHeight(manifest) {
 // containers, including the hands of occupied seats.
 export function looseObjects(manifest, state) {
   const objects = [];
-  for (const def of manifest.pieces) {
-    const piece = state.pieces[def.id];
-    if (!piece.containerId && piece.x != null) objects.push({ kind: "piece", id: def.id, def, state: piece });
+  for (const [id, piece] of Object.entries(state.pieces)) {
+    if (!piece.containerId && piece.x != null) objects.push({ kind: "piece", id, def: pieceDef(manifest, id), state: piece });
   }
   const taken = new Set(Object.values(state.players).map((player) => player.seatId));
   const seats = new Set(activeSeats(manifest, state).map((seat) => seat.id).filter((id) => taken.has(id)));
@@ -126,9 +140,10 @@ function handAxis(handDef) {
   return [Math.cos(radians), -Math.sin(radians)];
 }
 
-// Dice only go in trays, and trays only take dice.
+// Trays only take dice, and dice only go in trays and bags.
 export function accepts(containerDef, pieceDef) {
-  if ((pieceDef.shape === "die") !== (containerDef.kind === "tray")) return false;
+  const die = pieceDef.shape === "die";
+  if (containerDef.kind === "tray" ? !die : die && containerDef.kind !== "bag") return false;
   if (!containerDef.accepts) return true;
   return containerDef.accepts.some((matcher) =>
     (!matcher.shape || matcher.shape === pieceDef.shape) &&
@@ -144,10 +159,15 @@ export function deckHeight(deckDef, count) {
   return min + (min * MAX_DECK_HEIGHT - min) * (1 - Math.exp(-extra / DECK_GROWTH));
 }
 
+export function bagHeight(bagDef) {
+  return Math.min(...bagDef.size) * BAG_HEIGHT;
+}
+
 // The height of an object's top above its layer's base.
 export function objectHeight(object) {
-  if (object.kind === "piece") return object.def.shape === "die" ? object.def.size[0] * DIE_HEIGHT : object.def.layer.thickness;
+  if (object.kind === "piece") return object.def.shape === "die" ? object.def.size[0] * DIE_HEIGHT : object.def.thickness;
   if (object.def.kind === "hand") return HAND_TRAY_HEIGHT;
   if (object.def.kind === "tray") return DICE_TRAY_WALL;
+  if (object.def.kind === "bag") return bagHeight(object.def);
   return deckHeight(object.def, object.state.members.length);
 }

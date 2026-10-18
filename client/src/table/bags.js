@@ -1,0 +1,130 @@
+import * as THREE from "three";
+import { bagHeight } from "../state/objects";
+import { tableRotationToThree, tableToThree } from "./coordinates";
+import { HELD_LIFT } from "./pieces";
+
+const TEXT_PIXELS = 64; // canvas pixels per cm of side height
+const TEXT_HEIGHT = 0.45; // of the side's height
+const TEXT_MARGIN = 0.08; // of the side's width, kept clear at each end
+const LID_IMAGE = 0.35; // the lid image's radius, as a share of the shorter side
+const RING_WIDTH = 0.08; // of the lid image's radius
+const RING_COLOR = 0xf1ece0;
+const SURFACE_LIFT = 0.005; // keeps the lid image off the lid, so it never z-fights
+const SHADOW_OPACITY = 0.35;
+const SHADOW_SCALE = 1.08;
+const SHADOW_LIFT = 0.003;
+const BLOCKED_SHADOW_COLOR = 0xd0302a;
+const GHOST_OPACITY = 0.35;
+
+// A bag is a box in its color, its text printed along each side, and its
+// image in a ringed circle on the lid. Every pickable mesh carries the bag's
+// id in userData.objectId.
+export function buildBag(id, def, textures) {
+  const [width, depth] = def.size;
+  const height = bagHeight(def);
+  const color = new THREE.Color(def.color);
+  const plain = new THREE.MeshStandardMaterial({ color, roughness: 0.8 });
+  const long = sideMaterial(def, width, height);
+  const short = sideMaterial(def, depth, height);
+  // Box material order: +x, -x, +y (top), -y (bottom), +z, -z.
+  const box = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), [short, short, plain, plain, long, long]);
+  box.position.y = height / 2;
+  box.userData.objectId = id;
+
+  const group = new THREE.Group();
+  group.name = id;
+  group.add(box);
+
+  if (def.image) {
+    const radius = Math.min(width, depth) * LID_IMAGE;
+    const ring = new THREE.Mesh(
+      new THREE.CircleGeometry(radius * (1 + RING_WIDTH), 48),
+      new THREE.MeshBasicMaterial({ color: RING_COLOR })
+    );
+    const picture = new THREE.Mesh(new THREE.CircleGeometry(radius, 48), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    textures.get(def.image).then((texture) => {
+      picture.material.map = texture;
+      picture.material.needsUpdate = true;
+    });
+    for (const [mesh, lift] of [[ring, SURFACE_LIFT], [picture, SURFACE_LIFT * 2]]) {
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.y = height + lift;
+      mesh.userData.objectId = id;
+      group.add(mesh);
+    }
+  }
+
+  const ghost = new THREE.Mesh(box.geometry, box.material.map((material) => {
+    const copy = material.clone();
+    copy.transparent = true;
+    copy.opacity = GHOST_OPACITY;
+    copy.depthWrite = false;
+    return copy;
+  }));
+  ghost.visible = false;
+
+  const shadow = new THREE.Mesh(
+    new THREE.PlaneGeometry(width, depth),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: SHADOW_OPACITY, depthWrite: false })
+  );
+  shadow.rotation.order = "YXZ";
+  shadow.scale.setScalar(SHADOW_SCALE);
+  shadow.visible = false;
+
+  group.userData = { ghost, shadow, height };
+  return group;
+}
+
+// Places the bag for its state. floor lifts a held bag over whatever is
+// under it; blocked tints its shadow.
+export function applyBagPlacement(group, def, state, { blocked = false, floor = 0 } = {}) {
+  const { ghost, shadow, height } = group.userData;
+  const held = Boolean(state.heldBy);
+  const { x, y } = state.drag || state;
+  const rotation = tableRotationToThree(state.rotation);
+  const lift = held ? floor + HELD_LIFT : 0;
+  group.position.fromArray(tableToThree([x, def.layer.base + lift, y]));
+  group.rotation.set(0, rotation, 0);
+
+  shadow.visible = held;
+  if (held) {
+    shadow.position.fromArray(tableToThree([x, def.layer.base + floor + SHADOW_LIFT, y]));
+    shadow.rotation.set(-Math.PI / 2, rotation, 0);
+    shadow.material.color.setHex(blocked ? BLOCKED_SHADOW_COLOR : 0x000000);
+  }
+  ghost.visible = held && Boolean(state.drag);
+  if (ghost.visible) {
+    ghost.position.fromArray(tableToThree([state.x, def.layer.base + height / 2, state.y]));
+    ghost.rotation.set(0, rotation, 0);
+  }
+}
+
+// One side of the box: the bag's color, with its text centered and sized to
+// fit, in black or white, whichever stands out.
+function sideMaterial(def, sideWidth, sideHeight) {
+  if (!def.text) return new THREE.MeshStandardMaterial({ color: new THREE.Color(def.color), roughness: 0.8 });
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.ceil(sideWidth * TEXT_PIXELS);
+  canvas.height = Math.ceil(sideHeight * TEXT_PIXELS);
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = def.color;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  let fontPx = canvas.height * TEXT_HEIGHT;
+  ctx.font = `700 ${fontPx}px system-ui, sans-serif`;
+  const room = canvas.width * (1 - 2 * TEXT_MARGIN);
+  const measured = ctx.measureText(def.text).width;
+  if (measured > room) fontPx *= room / measured;
+  ctx.font = `700 ${fontPx}px system-ui, sans-serif`;
+  ctx.fillStyle = darkText(def.color) ? "#1d1d1f" : "#f6f3ec";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(def.text, canvas.width / 2, canvas.height / 2);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return new THREE.MeshStandardMaterial({ map: texture, roughness: 0.8 });
+}
+
+function darkText(color) {
+  const { r, g, b } = new THREE.Color(color);
+  return 0.299 * r + 0.587 * g + 0.114 * b > 0.55;
+}

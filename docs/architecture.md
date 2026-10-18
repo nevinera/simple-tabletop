@@ -103,6 +103,7 @@ Decks, bags, bowls, and hands.
 | `rotation`     |                                                               |
 | `face_up`      | decks: which way every card in the deck faces                 |
 | `spots`        | trays: JSON map of die key to `[x, y]` within the tray        |
+| `spawned`      | infinite bags: how many pieces the bag has handed out         |
 | `member_keys`  | ordered JSON array of piece keys; index 0 is the top          |
 | `held_by_id`   |                                                               |
 | `locked`       | boolean; starts as the manifest's `fixed`                     |
@@ -114,6 +115,9 @@ the container row in one transaction.
 
 Players can lock and unlock pieces and containers on any layer. Clients refuse to pick up locked things. The
 server doesn't check, because clients are trusted.
+
+A piece drawn from an infinite bag gets a new piece row keyed `<bag key>#<n>`, where `n` is the bag's `spawned`
+count after the draw. Dropping it back in deletes the row.
 
 A player can turn a loose card into a deck. The client picks the new container's key and sends its `spec`,
 since the manifest doesn't list it.
@@ -153,7 +157,7 @@ There's no free-form multi-select. To move or roll several things together, put 
 | `lock`     | toggle `locked`                                                |
 | `shuffle`  | replace a container's `member_keys` with a new order            |
 | `roll`     | set new `value`s for one die or every die in a tray, and new `spots` in a tray |
-| `draw`     | take a deck's top card; the drawing player holds it             |
+| `draw`     | take a deck's top card, a bag's `pick`, or a new piece from an infinite bag; the drawing player holds it, or with `toHand` it goes in their hand |
 | `makeDeck` | turn a loose card into a new deck holding just that card        |
 | `release`  | let go without changing anything                               |
 
@@ -162,9 +166,10 @@ Nobody can act on something someone else holds. Locked things can't move, flip, 
 still be drawn from and shuffled. Decks can't be flipped.
 
 Objects on the same layer can't overlap. A drop or rotation that would overlap something is refused, except
-that a card dropped with its center over a deck that accepts it goes on top of that deck.
+that a piece dropped with its center over a container that accepts it goes in.
 
-The client that shuffles picks the order, and the client that rolls picks the result. Clients are trusted, so
+The client that shuffles picks the order, the client that rolls picks the result, and the client that draws
+from a bag picks the member. Clients are trusted, so
 the server doesn't need to.
 
 ## Dice

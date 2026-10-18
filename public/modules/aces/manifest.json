@@ -13,7 +13,10 @@
       "shape": "rect",
       "size": [6.3, 8.8],
       "back": "assets/back.svg"
-    }
+    },
+    "red-chip": { "shape": "circle", "size": [2.4], "face": "assets/chip-red.svg" },
+    "blue-chip": { "shape": "circle", "size": [2.4], "face": "assets/chip-blue.svg" },
+    "heart": { "shape": "circle", "size": [2.2], "face": "assets/heart.svg" }
   },
   "hands": true,
   "pieces": [
@@ -28,11 +31,21 @@
     { "id": "d4", "shape": "die", "die": "d4", "size": [2.4] },
     { "id": "d10", "shape": "die", "die": "d10", "size": [2.2] },
     { "id": "d10t", "shape": "die", "die": "d10t", "size": [2.2], "color": "#3b6fd9" },
-    { "id": "d20", "shape": "die", "die": "d20", "size": [2.6] }
+    { "id": "d20", "shape": "die", "die": "d20", "size": [2.6] },
+    { "id": "red-1", "type": "red-chip" },
+    { "id": "red-2", "type": "red-chip" },
+    { "id": "red-3", "type": "red-chip" },
+    { "id": "red-4", "type": "red-chip" },
+    { "id": "blue-1", "type": "blue-chip" },
+    { "id": "blue-2", "type": "blue-chip" }
   ],
   "containers": [
     { "id": "pile", "kind": "deck", "position": [75, 20], "size": [6.3, 8.8], "faceUp": true, "accepts": [{ "type": "card" }] },
-    { "id": "dice-tray", "kind": "tray", "position": [16, 72], "size": [20, 14], "members": ["d4", "d10", "d10t", "d20"] }
+    { "id": "dice-tray", "kind": "tray", "position": [16, 72], "size": [20, 14], "members": ["d4", "d10", "d10t", "d20"] },
+    { "id": "chips", "kind": "bag", "position": [74, 70], "size": [8, 8], "text": "Chips", "color": "#2f4f6f",
+      "image": "assets/chip-red.svg", "members": ["red-1", "red-2", "red-3", "red-4", "blue-1", "blue-2"] },
+    { "id": "hearts", "kind": "bag", "position": [74, 82], "size": [8, 6], "text": "Health", "color": "#e8dcc4",
+      "image": "assets/heart.svg", "infinite": "heart" }
   ],
   "labels": [
     { "text": "Four\nAces", "position": [45, 45], "fontSize": 2, "color": "#f5e6b8" },

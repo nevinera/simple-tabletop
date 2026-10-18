@@ -137,6 +137,7 @@ of them.
 | `layer`    | no       | defaults to `pieces`                                          |
 | `shape`    | yes*     | `rect`, `circle`, or `die`                                    |
 | `size`     | yes*     | `[width, depth]`; circles and dice use the first value only   |
+| `thickness`| no       | in cm; circles on the top layer default to half the board layer's thickness, and everything else to its layer's |
 | `categories`| no      | list of strings; combined with the type's categories          |
 | `die`      | dice     | a built-in die name, or a key in `dieTypes`                   |
 | `face`     | yes*     | image for the up side; not used by dice                       |
@@ -213,9 +214,12 @@ To make a custom die, add an entry to `dieTypes`. Set the number of `sides` and 
 | `kind`     | yes      | `deck`, `bag`, `bowl`, or `tray`                              |
 | `position` | yes      |                                                               |
 | `rotation` | no       | defaults to 0                                                 |
-| `size`     | decks, trays | `[width, depth]`                                          |
+| `size`     | decks, trays, bags | `[width, depth]`                                    |
 | `layer`    | no       | defaults to `pieces`                                          |
-| `image`    | no       | decks: shown on top instead of the top card                   |
+| `image`    | no       | decks: shown on top instead of the top card; bags: shown in a circle on the lid |
+| `text`     | no       | bags: up to 16 characters, printed along each side            |
+| `color`    | no       | bags: the box's color                                         |
+| `infinite` | no       | bags: a piece type the bag hands out without end              |
 | `fixed`    | no       | starts locked; players can still take from it                 |
 | `faceUp`   | no       | decks only: which way every card in it faces; defaults to false |
 | `accepts`  | no       | which pieces can be dropped in; see below                     |
@@ -238,12 +242,16 @@ Without `accepts`, decks take pieces of their members' type, trays take dice, an
 - **deck:** an ordered stack. Players draw from the top and can shuffle it. It starts twice as tall as the board
   layer and grows toward six times that as cards go in, showing its `image` or else the top card. An empty deck stays on the table
   as an outlined placeholder.
-- **bag:** players can't see inside. Drawing takes a random member.
+- **bag:** a box with a fixed height. Drawing takes a random member, which keeps the way it faced. Holding Alt
+  over a bag lists what's inside. Bags take any piece, dice included, but never another container.
+- **infinite bag:** a bag with `infinite` set to a piece type. Every draw makes a new piece of that type, and a
+  piece of that type dropped back in is gone for good. It takes nothing else, and it can't list `members`.
 - **bowl:** contents sit visible in a pile. Players pick any member.
 - **tray:** dice only. Dice sit at random spots inside it, never overlapping, and can fill at most an eighth
   of its area. Rolling the tray rolls them all and scatters them to new spots.
 
-A piece belongs to at most one container. Hands are containers too, but each seat creates its own, so the
+A piece belongs to at most one container, and containers never go inside each other. Ids can't contain `#`,
+since pieces drawn from infinite bags use it. Hands are containers too, but each seat creates its own, so the
 manifest doesn't list them.
 
 ## Labels

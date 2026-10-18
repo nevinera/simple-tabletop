@@ -9,7 +9,11 @@
 //   pieces:     { [id]: { x, y, rotation, faceUp, stackOrder, containerId, heldBy, drag, locked } },
 //               plus { value, rolls } for dice
 //   containers: { [id]: { x, y, rotation, faceUp, members, heldBy, drag, locked, spec } },
-//               plus { spots } for trays (see state/trays.js)
+//               plus { spots } for trays (see state/trays.js), and { spawned }
+//               for infinite bags, counting the pieces they've handed out
+//
+// Pieces drawn from an infinite bag join pieces under ids from spawnedId(),
+// and leave it again when they go back in.
 //
 // rolls counts a die's rolls, so every browser can show each one.
 //
@@ -20,7 +24,7 @@
 // { kind: "hand", seatId }.
 
 import { landing } from "./footprint";
-import { findObject, handIndex, handSlots, pieceDef } from "./objects";
+import { accepts, findObject, handIndex, handSlots, pieceDef, spawnedId } from "./objects";
 import { nearestFree, scatter, seededRandom, toTray } from "./trays";
 import { handId, openSeats, seatOf } from "./seats";
 
@@ -36,17 +40,12 @@ export function initialState(manifest) {
     const order = nextOrder.get(piece.layer.id) || 0;
     nextOrder.set(piece.layer.id, order + 1);
     pieces[piece.id] = {
+      ...newPiece(piece),
       x: piece.position?.[0] ?? null,
       y: piece.position?.[1] ?? null,
-      rotation: piece.rotation,
-      faceUp: piece.faceUp,
       stackOrder: order,
       containerId: containerOf.get(piece.id) || null,
-      heldBy: null,
-      drag: null,
-      locked: piece.fixed,
     };
-    if (piece.shape === "die") Object.assign(pieces[piece.id], { value: piece.value, rolls: 0 });
   }
 
   const containers = {};
@@ -61,6 +60,7 @@ export function initialState(manifest) {
       drag: null,
       locked: container.fixed,
     };
+    if (container.template) containers[container.id].spawned = 0;
     if (container.kind === "tray") {
       // The same starting layout in every browser.
       const dice = container.members.map((id) => pieceDef(manifest, id));
@@ -96,7 +96,8 @@ export function initialState(manifest) {
 // or a container, plus:
 //   drag:     { x, y }
 //   drop:     { x, y }, or { into, index } to put a piece in a hand
-//   draw:     { toHand: true } to draw into the player's hand
+//   draw:     { toHand: true } to draw into the player's hand, plus { pick },
+//             the member to take, for a bag that isn't infinite
 //   roll:     { values } for a die or a tray's dice, { [dieId]: face index },
 //             plus { spots } for a tray
 //   rotate:   { degrees }, positive is clockwise
@@ -219,31 +220,49 @@ const HANDLERS = {
     return save(state, object, { locked: !object.state.locked, heldBy: null, drag: null });
   },
 
-  // Takes the top card off a deck, held by the player who drew it, so they
-  // can place it.
+  // Takes a piece out of a deck or bag, held by the player who drew it so
+  // they can place it, or with toHand, into their hand. A deck gives its top
+  // card, a bag the member the action picks, and an infinite bag a new piece.
   draw({ manifest, state, action, kind, def, object }) {
-    if (kind !== "container" || def.kind !== "deck") return reject(state, "Only decks can be drawn from.");
-    const [top, ...rest] = object.state.members;
-    if (!top) return reject(state, "That deck is empty.");
-    const deck = object.state;
-    const card = findObject(manifest, state, top);
+    if (kind !== "container" || !["deck", "bag"].includes(def.kind)) return reject(state, "Only decks and bags can be drawn from.");
+    let next = state;
+    let pieceId;
+    if (def.template) {
+      // A new piece, sitting in the bag until it comes out below.
+      const spawned = object.state.spawned + 1;
+      pieceId = spawnedId(def.id, spawned);
+      next = withObject(state, object, { spawned });
+      const piece = { ...newPiece(def.template), containerId: def.id };
+      next = { ...next, pieces: { ...next.pieces, [pieceId]: piece } };
+    } else if (def.kind === "bag") {
+      if (!object.state.members.length) return reject(state, "That bag is empty.");
+      if (!object.state.members.includes(action.pick)) return reject(state, "draw needs a pick from the bag.");
+      pieceId = action.pick;
+    } else {
+      pieceId = object.state.members[0];
+      if (!pieceId) return reject(state, "That deck is empty.");
+    }
+
+    const piece = findObject(manifest, next, pieceId);
     if (action.toHand) {
       const hand = ownHand(state, action.playerId);
       if (!hand) return reject(state, "You don't have a hand.");
+      if (!accepts(findObject(manifest, state, hand).def, piece.def)) return reject(state, "That can't go in a hand.");
       const end = state.containers[hand].members.length;
-      return addToContainer(manifest, state, card, hand, {}, end);
+      return addToContainer(manifest, next, piece, hand, {}, end);
     }
-    const withDeck = withObject(state, object, { members: rest });
-    return save(withDeck, card, {
+    const from = object.state;
+    const changes = {
       containerId: null,
-      x: deck.x,
-      y: deck.y,
-      rotation: deck.rotation,
-      faceUp: deck.faceUp,
-      stackOrder: topOfLayer(manifest, state, card.def.layer.id),
+      x: from.x,
+      y: from.y,
+      rotation: from.rotation,
+      stackOrder: topOfLayer(manifest, state, piece.def.layer.id),
       heldBy: action.playerId,
       drag: null,
-    });
+    };
+    if (def.kind === "deck") changes.faceUp = from.faceUp;
+    return save(withoutMember(next, piece), piece, changes);
   },
 
   // A die rolls in place. A tray rolls all its dice and scatters them.
@@ -268,8 +287,8 @@ const HANDLERS = {
     return { ok: true, state: { ...next, sequence: state.sequence + 1 } };
   },
 
-  shuffle({ state, action, kind, object }) {
-    if (kind !== "container") return reject(state, "Only containers can be shuffled.");
+  shuffle({ state, action, def, object }) {
+    if (def.kind !== "deck") return reject(state, "Only decks can be shuffled.");
     const members = object.state.members;
     const order = action.order;
     const same = Array.isArray(order) && order.length === members.length &&
@@ -302,21 +321,46 @@ const HANDLERS = {
 
 // Moves a piece into a container, out of any it was in. A deck takes it on
 // top, turned to face the way the deck does. A hand takes it face-up, at
-// `index` or where `point` falls among its cards, so it plays face-up.
+// `index` or where `point` falls among its cards, so it plays face-up. A bag
+// takes it as it is, and an infinite bag takes it off the table for good.
 function addToContainer(manifest, state, piece, containerId, changes, index = null, point = null) {
   const without = withoutMember(state, piece);
   const container = findObject(manifest, without, containerId);
+  if (container.def.template) {
+    const { [piece.id]: _gone, ...pieces } = without.pieces;
+    return { ok: true, state: { ...without, pieces, sequence: state.sequence + 1 } };
+  }
   const members = container.state.members;
   let at = 0;
   if (container.def.kind === "hand") {
     at = index ?? handIndex(container.def, handSlots(container.def, members.length, piece.def.size[0]), ...point);
     at = Math.max(0, Math.min(at, members.length));
   }
+  if (container.def.kind === "bag") at = members.length;
   const withContainer = withObject(without, container, {
     members: [...members.slice(0, at), piece.id, ...members.slice(at)],
   });
-  const facing = { faceUp: container.def.kind === "deck" ? container.state.faceUp : true };
+  const facing = {};
+  if (container.def.kind === "deck") facing.faceUp = container.state.faceUp;
+  if (container.def.kind === "hand") facing.faceUp = true;
   return save(withContainer, piece, { ...changes, ...facing, containerId, x: null, y: null });
+}
+
+// A piece's state before it's anywhere: off the table, in nothing.
+function newPiece(def) {
+  const piece = {
+    x: null,
+    y: null,
+    rotation: def.rotation,
+    faceUp: def.faceUp,
+    stackOrder: 0,
+    containerId: null,
+    heldBy: null,
+    drag: null,
+    locked: def.fixed,
+  };
+  if (def.shape === "die") Object.assign(piece, { value: def.value, rolls: 0 });
+  return piece;
 }
 
 // Drops a die in a tray: where it lands if it fits there, or else the free
@@ -366,9 +410,8 @@ function leaveSeat(state, playerId) {
 
 function topOfLayer(manifest, state, layerId) {
   let top = -1;
-  for (const def of manifest.pieces) {
-    const piece = state.pieces[def.id];
-    if (def.layer.id === layerId && !piece.containerId) top = Math.max(top, piece.stackOrder);
+  for (const [id, piece] of Object.entries(state.pieces)) {
+    if (pieceDef(manifest, id).layer.id === layerId && !piece.containerId) top = Math.max(top, piece.stackOrder);
   }
   return top + 1;
 }

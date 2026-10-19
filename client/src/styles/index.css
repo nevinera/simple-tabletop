@@ -262,19 +262,6 @@ body,
   color: #fff;
 }
 
-.joysticks { position: absolute; inset: 0; pointer-events: none; }
-
-.joystick {
-  position: absolute;
-  bottom: 24px;
-  width: 140px;
-  height: 140px;
-  pointer-events: auto;
-}
-
-.joystick-left { left: 24px; }
-.joystick-right { right: 24px; }
-
 .context-menu {
   position: fixed;
   min-width: 180px;

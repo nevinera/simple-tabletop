@@ -26,7 +26,6 @@ import { HelpPanel } from "./ui/HelpPanel";
 import { ReorderPanel } from "./ui/ReorderPanel";
 import { RaceChip } from "./ui/RaceChip";
 import { ActionBar } from "./ui/ActionBar";
-import { Joysticks } from "./ui/Joysticks";
 
 const ACTION_BAR_SETTING = "simple-tabletop:desktop-action-bar";
 // In the sandbox, one browser is one player.
@@ -60,7 +59,6 @@ export default function App({ manifestUrl, game = null }) {
   const [openMenu, setOpenMenu] = useState(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [reordering, setReordering] = useState(null); // deck id
-  const [joysticksVisible, setJoysticksVisible] = useState(false);
   const [desktopActionBar, setDesktopActionBar] = useStoredFlag(ACTION_BAR_SETTING, false);
   const [handStripVisible, setHandStripVisible] = useStoredFlag(HAND_STRIP_SETTING, true);
   const [trayRollScatters, setTrayRollScatters] = useStoredFlag(TRAY_SCATTER_SETTING, true);
@@ -231,7 +229,6 @@ export default function App({ manifestUrl, game = null }) {
   useCloseMenuOnOutsideClick(openMenu, setOpenMenu);
   useCloseMenuOnOutsideClick(contextMenu, closeContextMenu);
   const menus = { openMenu, setOpenMenu };
-  const hideJoysticks = useCallback(() => setJoysticksVisible(false), []);
 
   return (
     <div className={`app layout-${layout}`}>
@@ -268,7 +265,6 @@ export default function App({ manifestUrl, game = null }) {
           onLostRace={showLostRace}
           onError={setError}
         />
-        {joysticksVisible && <Joysticks scene={scene} onIdle={hideJoysticks} />}
         {showHandStrip && interaction && (
           <HandStrip cards={handCards} selectedId={selectedObject} interaction={interaction} canvas={scene?.canvas} />
         )}
@@ -319,8 +315,6 @@ export default function App({ manifestUrl, game = null }) {
           setMagnifyMode={setMagnifyMode}
           cameraPoints={cameraPoints}
           menus={menus}
-          joysticksVisible={joysticksVisible}
-          setJoysticksVisible={setJoysticksVisible}
           onReorder={startReorder}
         />
       )}

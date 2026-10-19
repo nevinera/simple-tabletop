@@ -32,7 +32,6 @@ const TOUCH = [
   ["Orbit", "Drag the table"],
   ["Pan", "Two-finger drag"],
   ["Zoom", "Pinch"],
-  ["Joysticks", "Action bar, 🕹 button"],
 ];
 
 const KEYS = [

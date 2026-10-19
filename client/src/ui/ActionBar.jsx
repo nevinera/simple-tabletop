@@ -6,8 +6,7 @@ const SLOTS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
 const ZOOM_STEP = 0.8;
 
 export function ActionBar({
-  scene, interaction, selectedObject, cameraPoints, menus, joysticksVisible, setJoysticksVisible, magnifyMode,
-  setMagnifyMode, onReorder,
+  scene, interaction, selectedObject, cameraPoints, menus, magnifyMode, setMagnifyMode, onReorder,
 }) {
   return (
     <nav className="action-bar" aria-label="Action bar">
@@ -39,15 +38,6 @@ export function ActionBar({
         onClick={() => setMagnifyMode(!magnifyMode)}
       >
         <span aria-hidden="true">🔍</span>
-      </button>
-      <button
-        type="button"
-        className={`bar-button${joysticksVisible ? " active" : ""}`}
-        aria-label="Joysticks"
-        aria-pressed={joysticksVisible}
-        onClick={() => setJoysticksVisible(!joysticksVisible)}
-      >
-        <span aria-hidden="true">🕹</span>
       </button>
     </nav>
   );

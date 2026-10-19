@@ -257,7 +257,7 @@ export class TableScene {
     this.wiggles.set(id, { start: performance.now(), direction: Math.sign(degrees) });
   }
 
-  // Continuous camera motion from one input (keys, a joystick). null stops it.
+  // Continuous camera motion from one input, like the keys. null stops it.
   setMotion(source, motion) {
     if (motion) this.motions.set(source, motion);
     else this.motions.delete(source);

@@ -77,14 +77,17 @@ export function containerDef(manifest, state, id) {
       accepts: null,
     };
   }
+  // A deck made during play looks like the card it was made from, and takes
+  // more of that card's type.
+  const card = pieceDef(manifest, spec.card);
   return {
     id,
-    kind: spec.kind,
+    kind: "deck",
     shape: "rect",
-    size: spec.size,
-    layer: manifest.layers.find((layer) => layer.id === spec.layer),
+    size: card.size,
+    layer: card.layer,
     image: null,
-    accepts: spec.accepts,
+    accepts: card.type ? [{ type: card.type }] : null,
   };
 }
 

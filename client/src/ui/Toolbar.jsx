@@ -2,11 +2,28 @@ import { Menu } from "./Menu";
 
 export function Toolbar({
   title, layout, menus, showActionBar, setShowActionBar, seatName, onLeaveSeat, handsEnabled, handStripVisible,
-  setHandStripVisible, soundOn, setSoundOn, trayRollScatters, setTrayRollScatters, helpOpen, setHelpOpen,
+  setHandStripVisible, soundOn, setSoundOn, trayRollScatters, setTrayRollScatters, helpOpen, setHelpOpen, game, onHost,
 }) {
+  const inviteUrl = game && `${window.location.origin}/games/${game.token}`;
   return (
     <nav className="toolbar" aria-label="Toolbar">
       <span className="toolbar-title">{title}</span>
+      <Menu id="game" label="Game" icon="🔗" {...menus}>
+        {game ? (
+          <>
+            <p className="menu-note">Anyone with this link can join:</p>
+            <code className="invite-link">{inviteUrl}</code>
+            <button type="button" className="menu-item" onClick={() => navigator.clipboard?.writeText(inviteUrl)}>
+              Copy invite link
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="menu-note">This table only lives in your browser.</p>
+            <button type="button" className="menu-item" disabled={!onHost} onClick={onHost}>Host it as a game…</button>
+          </>
+        )}
+      </Menu>
       <Menu id="seat" label="Seat" icon="🪑" disabled={!seatName} {...menus}>
         <p className="menu-note">You're sitting at {seatName}.</p>
         <button type="button" className="menu-item" onClick={onLeaveSeat}>Change seat</button>

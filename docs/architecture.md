@@ -109,7 +109,7 @@ Decks, bags, bowls, and hands.
 | `member_keys`  | ordered JSON array of piece keys; index 0 is the top          |
 | `held_by_id`   |                                                               |
 | `locked`       | boolean; starts as the manifest's `fixed`                     |
-| `spec`         | JSON for containers made during play: decks have `kind`, `size`, `layer`, `accepts`; stacks have `kind: "stack"` |
+| `spec`         | JSON for containers made during play: decks have `kind` and the `card` they were made from; stacks have `kind: "stack"` |
 
 A piece inside a container has no position of its own. The container's `member_keys` holds the order, so
 shuffling a 500-card deck rewrites one row. Moving a piece in or out of a container updates the piece row and

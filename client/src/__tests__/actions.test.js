@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { applyAction, initialState } from "../state/actions";
 import { normalizeManifest } from "../manifest/manifest";
+import { findObject } from "../state/objects";
 
 const manifest = normalizeManifest({
   formatVersion: 1,
@@ -212,8 +213,9 @@ describe("decks", () => {
     const result = act(initialState(manifest), { type: "makeDeck", id: "AH", deckId: "deck-1" });
     expect(result.state.containers["deck-1"]).toMatchObject({
       x: 30, y: 20, rotation: 90, faceUp: false, members: ["AH"],
-      spec: { kind: "deck", size: [6.3, 8.8], layer: "pieces", accepts: [{ type: "card" }] },
+      spec: { kind: "deck", card: "AH" },
     });
+    expect(findObject(manifest, result.state, "deck-1").def).toMatchObject({ size: [6.3, 8.8], accepts: [{ type: "card" }] });
     expect(result.state.pieces.AH).toMatchObject({ containerId: "deck-1", x: null });
     expect(act(result.state, { type: "draw", id: "deck-1" }).state.pieces.AH).toMatchObject({ x: 30, y: 20, rotation: 90 });
     expect(act(initialState(manifest), { type: "makeDeck", id: "AS", deckId: "deck" }).ok).toBe(false);

@@ -22,7 +22,8 @@
 // drag is the in-progress position of a held object, { x, y }, or null. The
 // server relays it without saving it. members runs top first, or left to
 // right in a hand. spec describes a container the manifest doesn't list: a
-// deck made during play, { kind, size, layer, accepts }, or a seat's hand,
+// deck made during play, { kind: "deck", card } naming the card it was made
+// from, or a seat's hand,
 // { kind: "hand", seatId }. A card dropped on a card like it makes a deck
 // with the id "#deck-<sequence>".
 //
@@ -373,9 +374,10 @@ function sameMembers(members, order) {
     [...order].sort().join("\n") === [...members].sort().join("\n");
 }
 
-// What a deck made during play from `card` remembers about itself.
+// What a deck made during play from `card` remembers about itself. The rest
+// comes from the manifest.
 function deckSpec(card) {
-  return { kind: "deck", size: card.size, layer: card.layer.id, accepts: card.type ? [{ type: card.type }] : null };
+  return { kind: "deck", card: card.id };
 }
 
 // Drops a card on a loose one like it: the two become a deck where the one

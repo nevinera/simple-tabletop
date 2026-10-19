@@ -350,6 +350,19 @@ kbd {
 .seat-picker-panel h2 { margin: 0 0 12px; font-size: 16px; }
 .seat-picker-seats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
 .seat-picker-seats .menu-item { justify-content: flex-start; }
+.name-form { display: flex; flex-direction: column; gap: 10px; }
+.name-form h2 { margin: 0 0 2px; }
+.name-form label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 13px; }
+.name-form input {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--bar-border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font: inherit;
+}
+.invite-link { display: block; max-width: 280px; overflow-wrap: anywhere; font-size: 12px; color: var(--muted); }
 
 .seat-swatch {
   width: 12px;

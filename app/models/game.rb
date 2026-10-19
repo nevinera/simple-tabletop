@@ -3,6 +3,7 @@
 # (see plans/server.md) without knowing what any of it looks like.
 class Game < ApplicationRecord
   SEATINGS = %w[four eight].freeze
+  QUIET_AFTER = 30.seconds
 
   has_many :players, dependent: :destroy
   has_many :pieces, dependent: :delete_all
@@ -52,6 +53,27 @@ class Game < ApplicationRecord
     end
     reload if taken
     taken
+  end
+
+  # Lets go of everything held by players nobody has heard from lately, as a
+  # change of its own. Players keep their seats. Returns the changed rows in
+  # the client's shape, or nil when nothing was held.
+  def release_stale_holds!
+    quiet = players.where(seen_at: ...QUIET_AFTER.ago).pluck(:public_id)
+    return if quiet.empty?
+
+    released = transaction do
+      held = [ pieces, containers ].map { |objects| objects.where(held_by: quiet).to_a }
+      next if held.all?(&:empty?)
+
+      Game.where(id:).update_all("sequence = sequence + 1")
+      held.flatten.each { |object| object.update_columns(held_by: nil) }
+      held
+    end
+    return unless released
+
+    reload
+    %w[pieces containers].zip(released).to_h { |kind, objects| [ kind, objects.to_h { |object| [ object.key, object.to_client ] } ] }
   end
 
   # Everything a client needs to show the table, in its own shape. players

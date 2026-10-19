@@ -41,6 +41,7 @@ export default function App({ manifestUrl, game = null }) {
   const playerId = player?.id || null;
   const [serverState, setServerState] = useState(null);
   const [hosting, setHosting] = useState(false);
+  const [replaced, setReplaced] = useState(false); // this player opened the game somewhere else
   const viewport = useViewportMode();
   const layout = viewport.isPortraitPhone ? "portrait" : viewport.isLandscapePhone ? "landscape" : "desktop";
 
@@ -91,9 +92,9 @@ export default function App({ manifestUrl, game = null }) {
 
   // Once this browser has a player in the game, it syncs with the server.
   useEffect(() => {
-    if (!game || !player || !store) return undefined;
-    return connectGame(game.token, store);
-  }, [game, player, store]);
+    if (!game || !player || !store || replaced) return undefined;
+    return connectGame(game.token, store, { onReplaced: () => setReplaced(true) });
+  }, [game, player, store, replaced]);
 
   const join = useCallback(async ({ name }) => setPlayer(await joinGame(game.token, name)), [game]);
   const host = useCallback(async ({ name, gameName }) => {
@@ -242,7 +243,15 @@ export default function App({ manifestUrl, game = null }) {
         {showHandStrip && interaction && (
           <HandStrip cards={handCards} selectedId={selectedObject} interaction={interaction} canvas={scene?.canvas} />
         )}
-        {store && player && !seated && <SeatPicker seats={seats || []} onPick={sit} />}
+        {store && player && !seated && !replaced && <SeatPicker seats={seats || []} onPick={sit} />}
+        {replaced && (
+          <div className="seat-picker" role="dialog" aria-label="Open somewhere else">
+            <div className="seat-picker-panel">
+              <h2>This game is open in another tab</h2>
+              <button type="button" className="menu-item" onClick={() => setReplaced(false)}>Play here instead</button>
+            </div>
+          </div>
+        )}
         {game && !player && <NameForm title={`Join ${game.name}`} submitLabel="Join" onSubmit={join} />}
         {hosting && (
           <NameForm title="Host this table" askGameName submitLabel="Start" onSubmit={host} onCancel={() => setHosting(false)} />

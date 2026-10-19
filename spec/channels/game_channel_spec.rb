@@ -52,4 +52,34 @@ RSpec.describe GameChannel, type: :channel do
     expect(transmissions.last).to include("type" => "refused", "actionId" => "a1", "sequence" => 1)
     expect(game.pieces.find_by(key: "AS").x).to eq(1)
   end
+
+  it "passes drags to the game" do
+    subscribe_as(host)
+    expect { perform :drag, id: "AS", x: 5, y: 6 }.to have_broadcasted_to(game).with(
+      "type" => "drag", "id" => "AS", "x" => 5, "y" => 6, "actor" => host.public_id
+    )
+  end
+
+  it "boots the player's older connection" do
+    subscribe_as(host)
+    expect { subscribe_as(host) }.to have_broadcasted_to(host).with(hash_including("type" => "connected"))
+  end
+
+  it "lets go of what quiet players hold when someone pings" do
+    alex = game.players.create!(name: "Alex")
+    game.pieces.find_by(key: "AS").update!(held_by: alex.public_id)
+    alex.update!(seen_at: 31.seconds.ago)
+    subscribe_as(host)
+    expect { perform :ping }.to have_broadcasted_to(game).with(
+      hash_including("type" => "change", "sequence" => 1, "actor" => nil, "rows" => hash_including("pieces" => { "AS" => hash_including("heldBy" => nil) }))
+    )
+    expect(game.pieces.find_by(key: "AS").held_by).to be_nil
+    expect { perform :ping }.not_to have_broadcasted_to(game)
+  end
+
+  it "leaves holds alone while their players are around" do
+    game.pieces.find_by(key: "AS").update!(held_by: host.public_id)
+    subscribe_as(host)
+    expect { perform :ping }.not_to have_broadcasted_to(game)
+  end
 end

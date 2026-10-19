@@ -22,7 +22,7 @@ function fakeServer() {
   const outbox = []; // [store, message]
   const server = {
     get state() { return state; },
-    join(store) {
+    join(store, playerId) {
       stores.push(store);
       store.connect({
         act: (message) => {
@@ -34,6 +34,7 @@ function fakeServer() {
           const change = { type: "change", sequence: state.sequence, actionId: message.actionId, action: message.tableAction, rows: message.rows };
           stores.forEach((each) => outbox.push([each, change]));
         },
+        drag: (message) => stores.forEach((each) => each !== store && outbox.push([each, { type: "drag", ...message, actor: playerId }])),
         resync: () => outbox.push([store, { type: "snapshot", ...state }]),
       });
       store.receive({ type: "snapshot", ...state });
@@ -50,7 +51,7 @@ function fakeServer() {
   return server;
 }
 
-const player = (server) => server.join(createTableStore(manifest, null, { synced: true }));
+const player = (server, playerId) => server.join(createTableStore(manifest, null, { synced: true }), playerId);
 
 describe("rows", () => {
   it("lists what changed, and what's gone", () => {
@@ -148,5 +149,38 @@ describe("a synced store", () => {
     alex.dispatch({ type: "flip", id: "b", playerId: "alex" });
     server.deliver();
     expect(heard).toEqual(["flip", null, "flip"]);
+  });
+});
+
+describe("drags", () => {
+  it("go out once the grab is confirmed, newest first", () => {
+    const server = fakeServer();
+    const sam = player(server, "sam");
+    const alex = player(server, "alex");
+    sam.dispatch({ type: "grab", id: "a", playerId: "sam" });
+    sam.dispatch({ type: "drag", id: "a", playerId: "sam", x: 40, y: 40 });
+    sam.dispatch({ type: "drag", id: "a", playerId: "sam", x: 45, y: 40 });
+    server.deliver();
+    expect(alex.getState().pieces.a.drag).toEqual({ x: 45, y: 40 });
+    sam.dispatch({ type: "drag", id: "a", playerId: "sam", x: 50, y: 40 });
+    server.deliver();
+    expect(alex.getState().pieces.a.drag).toEqual({ x: 50, y: 40 });
+  });
+
+  it("show only on objects their sender holds, until the hold ends", () => {
+    const server = fakeServer();
+    const sam = player(server, "sam");
+    const alex = player(server, "alex");
+    alex.receive({ type: "drag", id: "a", x: 1, y: 1, actor: "sam" });
+    expect(alex.getState().pieces.a.drag).toBeNull();
+    sam.dispatch({ type: "grab", id: "a", playerId: "sam" });
+    sam.dispatch({ type: "drag", id: "a", playerId: "sam", x: 40, y: 40 });
+    server.deliver();
+    alex.dispatch({ type: "flip", id: "b", playerId: "alex" });
+    server.deliver();
+    expect(alex.getState().pieces.a.drag).toEqual({ x: 40, y: 40 });
+    sam.dispatch({ type: "release", id: "a", playerId: "sam" });
+    server.deliver();
+    expect(alex.getState().pieces.a).toMatchObject({ heldBy: null, drag: null });
   });
 });

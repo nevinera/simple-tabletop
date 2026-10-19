@@ -111,7 +111,8 @@ One Action Cable channel per game, `GameChannel`, identified by the player's coo
 | `snapshot` | `sequence`, `seating`, `players`, every object                     |
 | `change`   | `sequence`, `actor`, `actionId`, `action`, `rows`                  |
 | `refused`  | to the sender only: `actionId`, `sequence` the game is at          |
-| `drag`     | `id`, `x`, `y`, `actor`; not saved                                 |
+| `drag`     | `id`, `x`, `y`, `actor`; not saved, and not sent back to its sender |
+| `replaced` | to an older connection when the same player connects again         |
 
 `rows` lists each changed object, player, or game field in full, with `null` for an object that's gone. `action`
 is the action as the client sent it, minus anything bulky, so every browser can play its sound, swirl a rolled
@@ -192,15 +193,20 @@ compare-and-set as everything else.
 
 ### Leaving
 
-The server releases a player's holds when they go away, as its own change:
+The server releases a player's holds once nobody has heard from them in 30 seconds. Each client pings
+every 8 to 10 seconds, picked at random each time so players don't ping in step. Every ping refreshes the
+sender's `seen_at`, then releases what quiet players in the game hold. As long as anyone is playing, a stuck
+hold clears within about 40 seconds. Closing a connection releases nothing by itself, and no job runs.
 
-- when their cable connection closes, or
-- when `seen_at` is more than 30 seconds old. A recurring job checks every 10 seconds. The client pings every
-  10 seconds, which catches half-open connections Action Cable misses.
-
-Releasing clears `held_by` on every row the player holds, puts the objects back at their saved
+Releasing clears `held_by` on every row the player holds, which puts the objects back at their saved
 spots, bumps the sequence, and broadcasts a `change` with `actor: null`. The player keeps their seat, and
 reconnecting gets them a snapshot.
+
+### One connection per player
+
+A player who opens the game in a second tab takes it over. The new connection broadcasts on the player's own
+stream, and the older one stops and gets `replaced`. That tab says the game is open somewhere else and offers
+to play there instead, which boots the other tab in turn. A booted tab never reconnects by itself.
 
 ## Concurrent actions
 
@@ -291,10 +297,9 @@ that for later, since a group can just make a new game.
   link. `#show` serves the client for a game.
 - `PlayersController#create`: takes a name, sets the cookie.
 - `ApplicationCable::Connection`: finds the player by cookie, or refuses.
-- `GameChannel`: `subscribed` streams the game and transmits a snapshot; `act`, `drag`, `ping`, `resync`, `host`;
-  `unsubscribed` releases holds.
-- `ApplyChange`: the transaction in [What the server does with act](#what-the-server-does-with-act).
-- `ReleaseHolds`: used on disconnect and by `ReleaseStaleHoldsJob`.
+- `GameChannel`: `subscribed` streams the game and transmits a snapshot; `act`, `drag`, `ping`, `resync`, `host`.
+- `Game#apply_change!`: the transaction in [What the server does with act](#what-the-server-does-with-act).
+- `Game#release_stale_holds!`: run on every ping.
 
 ## Milestones
 
@@ -302,7 +307,7 @@ that for later, since a group can just make a new game.
    cookies. The client loads a game's state from the server instead of building it.
 2. **Change log.** `GameChannel` with `act`, `change`, `refused`, and snapshots. The store's confirmed and shown
    states and the send queue. One browser per player, two browsers on one table.
-3. **Drags and holds.** Relayed drags, releasing on disconnect and on stale pings.
+3. **Drags and holds.** Relayed drags, one connection per player, and releasing holds on stale pings.
 4. **Race UX.** The seat-colored shadows, name tags, and the "Sam has that" chip.
 5. **Host commands.** Locking the table, reset, kick, new invite links, and handing off host.
 

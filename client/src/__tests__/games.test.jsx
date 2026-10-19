@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import App from "../App";
 import { fetchGameState, joinGame, startGame } from "../server/api";
 import { connectGame } from "../server/sync";
@@ -50,10 +50,18 @@ describe("server games", () => {
     fireEvent.click(screen.getByRole("button", { name: "Join" }));
     expect(await screen.findByRole("dialog", { name: "Pick a seat" })).toBeTruthy();
     expect(joinGame).toHaveBeenCalledWith("abc", "Alex");
-    expect(connectGame).toHaveBeenCalledWith("abc", window.tableStore);
+    expect(connectGame).toHaveBeenCalledWith("abc", window.tableStore, expect.anything());
     expect(window.tableStore.getState().pieces.AS).toMatchObject({ x: 20, y: 30 });
     fireEvent.click(screen.getByRole("button", { name: "South" }));
     expect(window.tableStore.getState().players.p2).toEqual({ seatId: "south-left" });
+  });
+
+  it("steps aside when the player opens the game somewhere else", async () => {
+    render(<App manifestUrl="/m.json" game={{ token: "abc", name: "Friday", player: { id: "p1", name: "Sam" } }} />);
+    await vi.waitFor(() => expect(connectGame).toHaveBeenCalled());
+    act(() => connectGame.mock.calls[0][2].onReplaced());
+    fireEvent.click(await screen.findByRole("button", { name: "Play here instead" }));
+    expect(connectGame).toHaveBeenCalledTimes(2);
   });
 
   it("hosts the sandbox table as a new game", async () => {

@@ -11,7 +11,10 @@ const ROW_KINDS = ["pieces", "containers", "players"];
 // sent, and shown, which is confirmed with this browser's unconfirmed actions
 // replayed on top. getState and listeners see shown. Saved actions queue up
 // and go to the server one at a time once connect() gives the store a
-// transport: { act(message), resync() }.
+// transport: { act(message), drag(message), resync() }.
+//
+// Drags aren't saved. Yours go out once the server has confirmed your hold,
+// and others' show on objects they hold until the hold ends.
 export function createTableStore(manifest, start = null, { synced = false } = {}) {
   let confirmed = start || initialState(manifest);
   let shown = confirmed;
@@ -19,6 +22,7 @@ export function createTableStore(manifest, start = null, { synced = false } = {}
   let queue = []; // { actionId, action, tries }, oldest first
   let sent = null; // the queued action the server is deciding on
   let waitFor = null; // after a refusal, the sequence to catch up to before retrying
+  const unsentDrags = new Map(); // object id -> player id, for drags waiting on their grab
   const listeners = new Set();
 
   const notify = (action) => listeners.forEach((listener) => listener(shown, action));
@@ -33,6 +37,30 @@ export function createTableStore(manifest, start = null, { synced = false } = {}
       if (result.ok) next = result.state;
     }
     shown = keepDrags(shown, next);
+  };
+
+  const heldIn = (state, id) => (state.pieces[id] || state.containers[id])?.heldBy;
+
+  const sendDrag = (id) => {
+    const drag = (shown.pieces[id] || shown.containers[id])?.drag;
+    if (drag) transport?.drag({ id, x: drag.x, y: drag.y });
+  };
+
+  // Sends the newest drag for each grab that's now confirmed, and forgets
+  // ones whose hold is gone.
+  const sendUnsentDrags = () => {
+    for (const [id, playerId] of unsentDrags) {
+      if (heldIn(confirmed, id) === playerId) sendDrag(id);
+      if (heldIn(confirmed, id) === playerId || heldIn(shown, id) !== playerId) unsentDrags.delete(id);
+    }
+  };
+
+  const otherDrag = (message) => {
+    const kind = shown.pieces[message.id] ? "pieces" : "containers";
+    const object = shown[kind][message.id];
+    if (!object || object.heldBy !== message.actor) return;
+    shown = { ...shown, [kind]: { ...shown[kind], [message.id]: { ...object, drag: { x: message.x, y: message.y } } } };
+    notify(null);
   };
 
   const send = () => {
@@ -78,6 +106,7 @@ export function createTableStore(manifest, start = null, { synced = false } = {}
     if (waitFor != null && confirmed.sequence >= waitFor) waitFor = null;
     rebuild();
     notify(mine ? null : message.action);
+    sendUnsentDrags();
     send();
   };
 
@@ -102,6 +131,8 @@ export function createTableStore(manifest, start = null, { synced = false } = {}
       shown = result.state;
       if (!synced) confirmed = shown;
       else if (saved) queue.push({ actionId: newActionId(), action, tries: 0 });
+      else if (action.type === "drag" && heldIn(confirmed, action.id) === action.playerId) sendDrag(action.id);
+      else if (action.type === "drag") unsentDrags.set(action.id, action.playerId);
       notify(action);
       if (synced && saved) send();
       return result;
@@ -129,6 +160,7 @@ export function createTableStore(manifest, start = null, { synced = false } = {}
       if (message.type === "snapshot") load(message);
       else if (message.type === "change") change(message);
       else if (message.type === "refused") refused(message);
+      else if (message.type === "drag") otherDrag(message);
     },
   };
 }

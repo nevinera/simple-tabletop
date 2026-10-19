@@ -71,6 +71,7 @@ export function normalizeManifest(raw, baseUrl) {
   return {
     id: raw.id,
     name: raw.name,
+    version: raw.version ?? null,
     table: normalizeTable(raw.table, image),
     layers,
     hands: normalizeHands(raw.hands),

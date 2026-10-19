@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { rememberName, rememberedName } from "../browserMemory";
 
 // A small form over the table asking for names: yours, to join a game, and
 // the game's, to start one. onSubmit({ name, gameName }) returns a promise;
-// a rejection shows its message.
+// a rejection shows its message. Your name starts as the one you used last.
 export function NameForm({ title, askGameName = false, submitLabel, onSubmit, onCancel }) {
-  const [name, setName] = useState("");
+  const [name, setName] = useState(rememberedName);
   const [gameName, setGameName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
@@ -14,6 +15,7 @@ export function NameForm({ title, askGameName = false, submitLabel, onSubmit, on
     setBusy(true);
     setError(null);
     try {
+      rememberName(name.trim());
       await onSubmit({ name: name.trim(), gameName: gameName.trim() });
     } catch (err) {
       setError(err.message);

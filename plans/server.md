@@ -37,7 +37,7 @@ those from the module.
 
 | column         | notes                                          |
 |----------------|------------------------------------------------|
-| `invite_token` | random, unique, used in the invite link        |
+| `ulid`         | unique; the table's URL, `/tables/<ulid>`, which is also its invite |
 | `manifest_url` | absolute URL; clients resolve assets from it   |
 | `name`         |                                                |
 | `sequence`     | bumped on every accepted change                |
@@ -51,7 +51,7 @@ those from the module.
 | `game_id`      |                                                |
 | `public_id`    | random; the `playerId` clients see in state    |
 | `name`         |                                                |
-| `cookie_token` | random; matches the player's cookie            |
+| `browser_token`| matches the browser's one `browser_token` cookie; unique per game |
 | `seat_key`     | seat id, or null                               |
 | `host`         | boolean                                        |
 | `seen_at`      | last message or ping; see [Leaving](#leaving)  |
@@ -267,7 +267,6 @@ The player who creates the game is the host. Other players can't do any of this.
 | `lockTable`    | toggles `table_locked`; while locked, only the host can change the table |
 | `resetTable`   | replaces every piece and container with the starting state             |
 | `kick`         | removes a player: frees their seat, releases their holds, closes their connection |
-| `newInvite`    | replaces the invite token, so old links stop working                   |
 | `handOff`      | makes another player the host                                          |
 
 Each command bumps the sequence like an `act`. `lockTable`, `kick`, and `handOff` broadcast a `change`.
@@ -275,8 +274,8 @@ Each command bumps the sequence like an `act`. `lockTable`, `kick`, and `handOff
 when it created the game, and broadcasts a fresh `snapshot`. Players keep their seats through a reset, but
 their hands empty.
 
-A kicked player can come back through the invite link and pick a name like anyone new. `newInvite` keeps them
-out for good.
+A kicked player can come back through the table's link and pick a name like anyone new. To keep someone out
+for good, save the table and start a new one from the file (#3).
 
 ### A locked table
 
@@ -287,7 +286,7 @@ sees a lift that slides back.
 - Pointer gestures only move the camera. The cursor never shows grab.
 - Menus only offer Magnify. Alt still magnifies, and players can still pick or leave a seat.
 - Locking releases everything non-hosts hold, putting it back where it was.
-- The host gets a toolbar toggle to lock and unlock, plus reset, kick, a new invite link, and hand off in a
+- The host gets a toolbar toggle to lock and unlock, plus reset, kick, and hand off in a
   Host menu.
 
 If the host leaves for good, nobody can use these commands until a player claims host. The plan leaves
@@ -296,9 +295,9 @@ that for later, since a group can just make a new game.
 ## Rails pieces
 
 - `Game`, `Player`, `Piece`, `Container` models.
-- `GamesController#create`: the host posts the manifest URL, name, and starting state; returns the invite
+- `TablesController#create`: the host posts the manifest URL, name, and starting state; returns the table's
   link. `#show` serves the client for a game.
-- `PlayersController#create`: takes a name, sets the cookie.
+- `PlayersController#create`: takes a name, and gives the browser its cookie if it has none.
 - `ApplicationCable::Connection`: finds the player by cookie, or refuses.
 - `GameChannel`: `subscribed` streams the game and transmits a snapshot; `act`, `drag`, `ping`, `resync`, `host`.
 - `Game#apply_change!`: the transaction in [What the server does with act](#what-the-server-does-with-act).
@@ -312,7 +311,7 @@ that for later, since a group can just make a new game.
    states and the send queue. One browser per player, two browsers on one table.
 3. **Drags and holds.** Relayed drags, one connection per player, and releasing holds on stale pings.
 4. **Race UX.** The seat-colored shadows, name tags, and the "Sam has that" chip.
-5. **Host commands.** Locking the table, reset, kick, new invite links, and handing off host.
+5. **Host commands.** Locking the table, reset, kick, and handing off host.
 
 ## Later
 

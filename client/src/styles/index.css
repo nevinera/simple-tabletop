@@ -468,3 +468,50 @@ kbd {
   pointer-events: none;
   box-shadow: 0 2px 6px rgb(0 0 0 / 40%);
 }
+
+.home {
+  height: 100%;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 32px 16px 48px;
+}
+
+.home > * {
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.home-header h1 { margin: 0 0 4px; font-size: 26px; }
+.home-header p { margin: 0 0 24px; color: var(--muted); }
+
+.home-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--bar-bg);
+  border: 1px solid var(--bar-border);
+  border-radius: 10px;
+}
+
+.home-section h2 { margin: 0 0 10px; font-size: 16px; }
+
+.home-tables { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.home-tables li { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.home-tables a { color: var(--accent); font-weight: 600; }
+
+.home-modules { margin: 0; padding: 0; border: 0; display: grid; gap: 4px; }
+.home-modules legend { padding: 0; margin-bottom: 4px; color: var(--muted); font-size: 13px; }
+
+.home .name-form label.home-module {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.home-module input[type="url"] { flex: 1; min-width: 0; }
+.home-module-name { font-weight: 600; }
+.home-module-detail { color: var(--muted); font-size: 12px; }
+.home .piece-actions-row { justify-content: flex-end; }
+.home a.menu-item { text-decoration: none; }

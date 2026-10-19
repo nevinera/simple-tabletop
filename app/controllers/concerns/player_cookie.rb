@@ -1,16 +1,27 @@
-# Ties a browser to its player in each game it has joined, through a signed
-# cookie per game.
+# Ties a browser to its players, one per table it has joined, through one
+# signed cookie that every player row stores.
 module PlayerCookie
+  COOKIE = :browser_token
+
   private
 
-  def remember_player(player)
-    cookies.signed.permanent[cookie_name(player.game)] = { value: player.cookie_token, httponly: true, same_site: :lax }
-  end
-
   def current_player(game)
-    token = cookies.signed[cookie_name(game)]
-    token && game.players.find_by(cookie_token: token)
+    token = browser_token
+    token && game.players.find_by(browser_token: token)
   end
 
-  def cookie_name(game) = "player_#{game.id}"
+  # Every player this browser has been, newest table visit first.
+  def browser_players
+    token = browser_token
+    token ? Player.where(browser_token: token).includes(:game).order(seen_at: :desc, id: :desc) : Player.none
+  end
+
+  def browser_token = cookies.signed[COOKIE]
+
+  # The browser's token, handing it one first if it has none.
+  def browser_token!
+    browser_token || SecureRandom.urlsafe_base64(24).tap do |token|
+      cookies.signed.permanent[COOKIE] = { value: token, httponly: true, same_site: :lax }
+    end
+  end
 end

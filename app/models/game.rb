@@ -9,21 +9,24 @@ class Game < ApplicationRecord
   has_many :pieces, dependent: :delete_all
   has_many :containers, dependent: :delete_all
 
-  validates :invite_token, :manifest_url, :name, presence: true
+  validates :ulid, :manifest_url, :name, presence: true
   validates :seating, inclusion: { in: SEATINGS }
   validates :manifest_url, format: { with: %r{\Ahttps?://}, message: "must be an http or https URL" }
 
-  before_validation { self.invite_token ||= SecureRandom.urlsafe_base64(16) }
+  before_validation { self.ulid ||= Ulid.generate }
 
-  def to_param = invite_token
+  def to_param = ulid
+
+  # ULIDs read the same in either case.
+  def self.find_by_ulid!(ulid) = find_by!(ulid: ulid.to_s.upcase)
 
   # Creates a game from the starting state the host's browser built from the
   # manifest, with the host as its first player.
-  def self.start!(manifest_url:, name:, host_name:, state:)
+  def self.start!(manifest_url:, name:, host_name:, browser_token:, state:)
     transaction do
       game = create!(manifest_url:, name:)
       game.replace_objects!(state)
-      [ game, game.players.create!(name: host_name, host: true) ]
+      [ game, game.players.create!(name: host_name, host: true, browser_token:) ]
     end
   end
 

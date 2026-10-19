@@ -1,1 +1,7 @@
-<%= tag.div id: "app", data: { manifest_url: @manifest_url } %>
+<%= tag.div id: "app", data: {
+  manifest_url: @game.manifest_url,
+  game_token: @game.ulid,
+  game_name: @game.name,
+  player_id: @player&.public_id,
+  player_name: @player&.name
+} %>

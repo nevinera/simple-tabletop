@@ -1,12 +1,15 @@
-# Joining a game from its invite link: a name, then a cookie that brings the
-# browser back as the same player. Everyone at the table hears about them.
+# Joining a table from its link: a name, tied to this browser's cookie so it
+# comes back as the same player. Everyone at the table hears about them.
 class PlayersController < ApplicationController
   include PlayerCookie
 
   def create
-    game = Game.find_by!(invite_token: params[:game_id])
-    player = game.players.create!(name: params.require(:name))
-    remember_player(player)
+    game = Game.find_by_ulid!(params[:table_id])
+    if (player = current_player(game))
+      return render json: player.to_client
+    end
+
+    player = game.players.create!(name: params.require(:name), browser_token: browser_token!)
     GameChannel.broadcast_to(game, { type: "roster", roster: game.players.map(&:to_client) })
     render json: player.to_client, status: :created
   rescue ActiveRecord::RecordInvalid => e

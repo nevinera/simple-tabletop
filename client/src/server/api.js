@@ -1,10 +1,10 @@
-// Calls to the Rails app for starting and joining games (see
+// Calls to the Rails app for starting and joining tables (see
 // plans/server.md). Each returns the parsed JSON, or throws an Error with the
 // server's message.
 
 export function startGame({ manifestUrl, name, playerName, state }) {
   const { sequence, seating, pieces, containers } = state;
-  return request("/games", {
+  return request("/tables", {
     manifest_url: new URL(manifestUrl, window.location.href).href,
     name,
     player_name: playerName,
@@ -13,13 +13,13 @@ export function startGame({ manifestUrl, name, playerName, state }) {
 }
 
 export function joinGame(token, name) {
-  return request(`/games/${encodeURIComponent(token)}/players`, { name });
+  return request(`/tables/${encodeURIComponent(token)}/players`, { name });
 }
 
 // The table as the server has it: { sequence, seating, tableLocked, players,
 // roster, pieces, containers }.
 export function fetchGameState(token) {
-  return request(`/games/${encodeURIComponent(token)}/state`);
+  return request(`/tables/${encodeURIComponent(token)}/state`);
 }
 
 async function request(path, body) {

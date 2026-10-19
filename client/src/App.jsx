@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import TableCanvas from "./table/TableCanvas";
 import { CameraSlots } from "./table/cameraSlots";
 import { fetchManifest } from "./manifest/manifest";
+import { rememberModule } from "./browserMemory";
 import { createTableStore } from "./state/store";
 import { useViewportMode } from "./useViewportMode";
 import { useTableKeys } from "./useTableKeys";
@@ -73,7 +74,11 @@ export default function App({ manifestUrl, game = null }) {
   useEffect(() => {
     let cancelled = false;
     fetchManifest(manifestUrl).then(
-      (loaded) => !cancelled && setManifest(loaded),
+      (loaded) => {
+        if (cancelled) return;
+        setManifest(loaded);
+        rememberModule({ url: new URL(manifestUrl, window.location.href).href, name: loaded.name, version: loaded.version });
+      },
       (err) => !cancelled && setError(err)
     );
     return () => { cancelled = true; };

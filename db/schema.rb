@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_18_230000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_19_000000) do
   create_table "containers", force: :cascade do |t|
     t.integer "game_id", null: false
     t.string "key", null: false
@@ -27,7 +27,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_18_230000) do
   end
 
   create_table "games", force: :cascade do |t|
-    t.string "invite_token", null: false
+    t.string "ulid", null: false
     t.string "manifest_url", null: false
     t.string "name", null: false
     t.integer "sequence", default: 0, null: false
@@ -35,7 +35,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_18_230000) do
     t.boolean "table_locked", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["invite_token"], name: "index_games_on_invite_token", unique: true
+    t.index ["ulid"], name: "index_games_on_ulid", unique: true
   end
 
   create_table "pieces", force: :cascade do |t|
@@ -58,13 +58,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_18_230000) do
     t.integer "game_id", null: false
     t.string "public_id", null: false
     t.string "name", null: false
-    t.string "cookie_token", null: false
+    t.string "browser_token", null: false
     t.string "seat_key"
     t.boolean "host", default: false, null: false
     t.datetime "seen_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["cookie_token"], name: "index_players_on_cookie_token", unique: true
+    t.index ["browser_token", "game_id"], name: "index_players_on_browser_token_and_game_id", unique: true
     t.index ["game_id", "public_id"], name: "index_players_on_game_id_and_public_id", unique: true
     t.index ["game_id"], name: "index_players_on_game_id"
   end

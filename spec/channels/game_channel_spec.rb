@@ -3,7 +3,7 @@ require "rails_helper"
 RSpec.describe GameChannel, type: :channel do
   let(:piece) { { "x" => 10, "y" => 20, "rotation" => 0, "faceUp" => true, "stackOrder" => 0, "containerId" => nil, "heldBy" => nil, "drag" => nil, "locked" => false } }
   let(:started) do
-    Game.start!(manifest_url: "https://example.com/m.json", name: "Friday", host_name: "Sam",
+    Game.start!(manifest_url: "https://example.com/m.json", name: "Friday", host_name: "Sam", browser_token: "sams-browser",
                 state: { pieces: { "AS" => piece, "KS" => piece.merge("x" => 30) }, containers: {} })
   end
   let(:game) { started.first }
@@ -13,7 +13,7 @@ RSpec.describe GameChannel, type: :channel do
     stub_connection
     # The stub connection has no cookies, so it stands in for finding the player by cookie.
     connection.define_singleton_method(:current_player) { |_game| player }
-    subscribe(game: game.invite_token)
+    subscribe(game: game.ulid.downcase)
   end
 
   def act(base:, rows:, action: { "type" => "grab", "id" => "AS" })
@@ -66,7 +66,7 @@ RSpec.describe GameChannel, type: :channel do
   end
 
   it "lets go of what quiet players hold when someone pings" do
-    alex = game.players.create!(name: "Alex")
+    alex = game.players.create!(name: "Alex", browser_token: "alexs-browser")
     game.pieces.find_by(key: "AS").update!(held_by: alex.public_id)
     alex.update!(seen_at: 31.seconds.ago)
     subscribe_as(host)

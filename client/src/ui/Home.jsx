@@ -1,0 +1,127 @@
+import { useState } from "react";
+import { fetchManifest } from "../manifest/manifest";
+import { initialState } from "../state/actions";
+import { startGame } from "../server/api";
+import { recentModules, rememberName, rememberedName } from "../browserMemory";
+
+// The front page: get back to a table this browser joined, or start one from
+// a built-in module, one you played recently, or a manifest URL you paste.
+// tables is [{ path, name, playerName }], newest visit first.
+export function Home({ tables, builtIns }) {
+  const absolute = (url) => new URL(url, window.location.href).href;
+  const builtInUrls = new Set(builtIns.map((module) => absolute(module.url)));
+  const [recent] = useState(() => recentModules().filter((module) => !builtInUrls.has(module.url)));
+  const [selected, setSelected] = useState(() => recent[0]?.url || builtIns[0]?.url || "");
+  const [pasted, setPasted] = useState("");
+  const [gameName, setGameName] = useState("");
+  const [name, setName] = useState(rememberedName);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const manifestUrl = selected === "pasted" ? pasted.trim() : selected;
+
+  const start = async (event) => {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const manifest = await fetchManifest(manifestUrl);
+      rememberName(name.trim());
+      const { path } = await startGame({
+        manifestUrl, name: gameName.trim() || manifest.name, playerName: name.trim(), state: initialState(manifest),
+      });
+      window.location.assign(path);
+    } catch (err) {
+      setError(err.message);
+      setBusy(false);
+    }
+  };
+
+  const option = (module, label, detail) => (
+    <label key={module.url} className="home-module">
+      <input type="radio" name="module" checked={selected === module.url} onChange={() => setSelected(module.url)} />
+      <span className="home-module-name">{label}</span>
+      {detail && <span className="home-module-detail">{detail}</span>}
+    </label>
+  );
+
+  return (
+    <div className="home">
+      <header className="home-header">
+        <h1>Simple Tabletop</h1>
+        <p>Card and board games in the browser, without the physics.</p>
+      </header>
+
+      {tables.length > 0 && (
+        <section className="home-section" aria-label="Your tables">
+          <h2>Your tables</h2>
+          <ul className="home-tables">
+            {tables.map((table) => (
+              <li key={table.path}>
+                <a href={table.path}>{table.name}</a>
+                <span className="home-module-detail">as {table.playerName}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <form className="home-section name-form" onSubmit={start} aria-label="Start a table">
+        <h2>Start a table</h2>
+        <fieldset className="home-modules">
+          <legend>Built in</legend>
+          {builtIns.map((module) => option(module, module.name))}
+        </fieldset>
+        {recent.length > 0 && (
+          <fieldset className="home-modules">
+            <legend>Played recently</legend>
+            {recent.map((module) => option(module, module.name, moduleDetail(module)))}
+          </fieldset>
+        )}
+        <fieldset className="home-modules">
+          <legend>Another module</legend>
+          <label className="home-module">
+            <input type="radio" name="module" checked={selected === "pasted"} onChange={() => setSelected("pasted")} />
+            <input
+              aria-label="Manifest URL"
+              type="url"
+              placeholder="https://…/manifest.json"
+              value={pasted}
+              onFocus={() => setSelected("pasted")}
+              onChange={(event) => setPasted(event.target.value)}
+            />
+          </label>
+        </fieldset>
+        <label>
+          Table name
+          <input value={gameName} maxLength={60} placeholder="The module's name" onChange={(event) => setGameName(event.target.value)} />
+        </label>
+        <label>
+          Your name
+          <input value={name} maxLength={40} required onChange={(event) => setName(event.target.value)} />
+        </label>
+        {error && <p className="menu-note" role="alert">{error}</p>}
+        <div className="piece-actions-row">
+          <a className="menu-item" href={sandboxPath(manifestUrl, builtIns)}>Try it alone</a>
+          <button type="submit" className="menu-item" disabled={busy || !name.trim() || !manifestUrl}>Start table</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// "1.2.0 · example.com"
+function moduleDetail(module) {
+  let host = "";
+  try {
+    host = new URL(module.url).host;
+  } catch {
+    // Not a URL we can read a host from; show the version alone.
+  }
+  return [module.version, host].filter(Boolean).join(" · ");
+}
+
+// The sandbox opens the first built-in module when it isn't told one.
+function sandboxPath(manifestUrl, builtIns) {
+  if (!manifestUrl || manifestUrl === builtIns[0]?.url) return "/sandbox";
+  return `/sandbox?manifest=${encodeURIComponent(manifestUrl)}`;
+}

@@ -4,7 +4,7 @@ export function Toolbar({
   title, layout, menus, showActionBar, setShowActionBar, seatName, onLeaveSeat, handsEnabled, handStripVisible,
   setHandStripVisible, soundOn, setSoundOn, trayRollScatters, setTrayRollScatters, helpOpen, setHelpOpen, game, onHost,
 }) {
-  const inviteUrl = game && `${window.location.origin}/games/${game.token}`;
+  const inviteUrl = game && `${window.location.origin}/tables/${game.token}`;
   return (
     <nav className="toolbar" aria-label="Toolbar">
       <span className="toolbar-title">{title}</span>

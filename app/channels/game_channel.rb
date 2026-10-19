@@ -7,7 +7,7 @@
 # connection at a time: a newer one boots the older.
 class GameChannel < ApplicationCable::Channel
   def subscribed
-    @game = Game.find_by(invite_token: params[:game])
+    @game = Game.find_by(ulid: params[:game].to_s.upcase)
     @player = @game && connection.current_player(@game)
     return reject unless @player
 

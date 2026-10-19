@@ -35,6 +35,6 @@
 
 
 # Client build output and dependencies.
-/node_modules
+node_modules/
 /public/client
 /coverage

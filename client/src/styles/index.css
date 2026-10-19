@@ -516,3 +516,8 @@ kbd {
 .home-module-detail { color: var(--muted); font-size: 12px; }
 .home .piece-actions-row { justify-content: flex-end; }
 .home a.menu-item { text-decoration: none; }
+.home-builtin { padding: 6px; border-radius: 8px; }
+.home-builtin:has(input:checked) { background: rgba(255, 255, 255, 0.06); }
+.home-builtin > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.home-builtin-thumbnail { width: 88px; aspect-ratio: 4 / 3; flex: none; border-radius: 6px; object-fit: cover; }
+.home-builtin-description { color: var(--muted); font-size: 12px; }

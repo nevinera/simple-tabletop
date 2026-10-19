@@ -1,0 +1,8 @@
+# Games the home page offers, in order. Each lives in public/builtins/<slug>/
+# with a manifest.json, and thumbnail is a path inside that directory. A
+# directory left out of this list, like aces, a sampler of what the table can
+# do, is still served but never offered.
+- slug: checkers
+  name: Checkers
+  description: Two players, twelve checkers each. Flip a checker over to crown it.
+  thumbnail: thumbnail.svg

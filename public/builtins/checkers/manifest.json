@@ -1,0 +1,46 @@
+{
+  "formatVersion": 1,
+  "id": "checkers",
+  "name": "Checkers",
+  "version": "1.0.0",
+  "table": { "size": [64, 64], "color": "#2e6b3f" },
+  "layers": [
+    { "id": "board", "thickness": 0.1 },
+    { "id": "pieces", "thickness": 0.6 }
+  ],
+  "seats": [
+    { "id": "red", "name": "Red", "side": "south", "color": "#c0392b" },
+    { "id": "black", "name": "Black", "side": "north", "color": "#3d3d3d" }
+  ],
+  "pieceTypes": {
+    "red": { "kind": "chip", "size": [4.2], "thickness": 0.6, "face": "assets/red.svg", "back": "assets/red-king.svg" },
+    "black": { "kind": "chip", "size": [4.2], "thickness": 0.6, "face": "assets/black.svg", "back": "assets/black-king.svg" }
+  },
+  "pieces": [
+    { "id": "board", "kind": "board", "size": [44, 44], "face": "assets/board.svg", "position": [32, 32], "fixed": true },
+    { "id": "red-1", "type": "red", "position": [14.5, 14.5] },
+    { "id": "red-2", "type": "red", "position": [24.5, 14.5] },
+    { "id": "red-3", "type": "red", "position": [34.5, 14.5] },
+    { "id": "red-4", "type": "red", "position": [44.5, 14.5] },
+    { "id": "red-5", "type": "red", "position": [19.5, 19.5] },
+    { "id": "red-6", "type": "red", "position": [29.5, 19.5] },
+    { "id": "red-7", "type": "red", "position": [39.5, 19.5] },
+    { "id": "red-8", "type": "red", "position": [49.5, 19.5] },
+    { "id": "red-9", "type": "red", "position": [14.5, 24.5] },
+    { "id": "red-10", "type": "red", "position": [24.5, 24.5] },
+    { "id": "red-11", "type": "red", "position": [34.5, 24.5] },
+    { "id": "red-12", "type": "red", "position": [44.5, 24.5] },
+    { "id": "black-1", "type": "black", "position": [19.5, 39.5], "rotation": 180 },
+    { "id": "black-2", "type": "black", "position": [29.5, 39.5], "rotation": 180 },
+    { "id": "black-3", "type": "black", "position": [39.5, 39.5], "rotation": 180 },
+    { "id": "black-4", "type": "black", "position": [49.5, 39.5], "rotation": 180 },
+    { "id": "black-5", "type": "black", "position": [14.5, 44.5], "rotation": 180 },
+    { "id": "black-6", "type": "black", "position": [24.5, 44.5], "rotation": 180 },
+    { "id": "black-7", "type": "black", "position": [34.5, 44.5], "rotation": 180 },
+    { "id": "black-8", "type": "black", "position": [44.5, 44.5], "rotation": 180 },
+    { "id": "black-9", "type": "black", "position": [19.5, 49.5], "rotation": 180 },
+    { "id": "black-10", "type": "black", "position": [29.5, 49.5], "rotation": 180 },
+    { "id": "black-11", "type": "black", "position": [39.5, 49.5], "rotation": 180 },
+    { "id": "black-12", "type": "black", "position": [49.5, 49.5], "rotation": 180 }
+  ]
+}

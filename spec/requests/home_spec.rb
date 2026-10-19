@@ -12,6 +12,15 @@ RSpec.describe "Home", type: :request do
     expect(tables_listed).to eq([])
   end
 
+  it "lists the built-in games" do
+    get root_path
+    builtins = JSON.parse(Nokogiri::HTML(response.body).at_css("#app")["data-builtins"])
+    expect(builtins.first).to include(
+      "slug" => "checkers", "name" => "Checkers", "url" => "/builtins/checkers/manifest.json",
+      "thumbnailUrl" => "/builtins/checkers/thumbnail.svg"
+    )
+  end
+
   it "lists the tables this browser joined, newest visit first" do
     %w[Friday Saturday].each do |name|
       post tables_path, params: { manifest_url: "https://example.com/m.json", name:, player_name: "Sam", state: { pieces: {}, containers: {} } }, as: :json

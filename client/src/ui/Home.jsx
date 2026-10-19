@@ -6,7 +6,8 @@ import { recentModules, rememberName, rememberedName } from "../browserMemory";
 
 // The front page: get back to a table this browser joined, or start one from
 // a built-in module, one you played recently, or a manifest URL you paste.
-// tables is [{ path, name, playerName }], newest visit first.
+// tables is [{ path, name, playerName }], newest visit first, and builtIns
+// [{ url, name, description, thumbnailUrl }] from config/builtins.yml.
 export function Home({ tables, builtIns }) {
   const absolute = (url) => new URL(url, window.location.href).href;
   const builtInUrls = new Set(builtIns.map((module) => absolute(module.url)));
@@ -69,7 +70,16 @@ export function Home({ tables, builtIns }) {
         <h2>Start a table</h2>
         <fieldset className="home-modules">
           <legend>Built in</legend>
-          {builtIns.map((module) => option(module, module.name))}
+          {builtIns.map((module) => (
+            <label key={module.url} className="home-module home-builtin">
+              <input type="radio" name="module" checked={selected === module.url} onChange={() => setSelected(module.url)} />
+              <img className="home-builtin-thumbnail" src={module.thumbnailUrl} alt="" />
+              <span>
+                <span className="home-module-name">{module.name}</span>
+                <span className="home-builtin-description">{module.description}</span>
+              </span>
+            </label>
+          ))}
         </fieldset>
         {recent.length > 0 && (
           <fieldset className="home-modules">

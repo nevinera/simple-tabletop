@@ -15,7 +15,7 @@ Rails.application.configure do
   # Turn on fragment caching in view templates.
   config.action_controller.perform_caching = true
 
-  # Cache public files for a year. Module files under public/modules keep
+  # Cache public files for a year. Module files under public/builtins keep
   # their names when they change, so set DISABLE_ASSET_CACHING=1 on a box
   # that deploys often, or browsers keep serving the old ones.
   config.public_file_server.headers =

@@ -15,7 +15,9 @@ vi.mock("../manifest/manifest", async (importActual) => {
   return { ...actual, fetchManifest: vi.fn((url) => Promise.resolve(actual.normalizeManifest(raw, new URL(url, "http://localhost/").href))) };
 });
 
-const BUILT_INS = [{ url: "/modules/aces/manifest.json", name: "Four Aces (sample)" }];
+const BUILT_INS = [
+  { url: "/builtins/checkers/manifest.json", name: "Checkers", description: "Crown your checkers.", thumbnailUrl: "/builtins/checkers/thumbnail.svg" },
+];
 let assign;
 
 beforeEach(() => {
@@ -40,7 +42,7 @@ describe("Home", () => {
     fireEvent.click(screen.getByRole("button", { name: "Start table" }));
     await vi.waitFor(() => expect(assign).toHaveBeenCalledWith("/tables/01XYZ"));
     expect(startGame).toHaveBeenCalledWith(expect.objectContaining({
-      manifestUrl: "/modules/aces/manifest.json", name: "Four Aces", playerName: "Sam",
+      manifestUrl: "/builtins/checkers/manifest.json", name: "Four Aces", playerName: "Sam",
     }));
     expect(localStorage.getItem("simple-tabletop:player-name")).toBe("Sam");
   });
@@ -48,11 +50,11 @@ describe("Home", () => {
   it("offers modules you played, newest first, and picks the newest", () => {
     rememberModule({ url: "https://a.test/old.json", name: "Old", version: "1.0" }, localStorage, 1);
     rememberModule({ url: "https://b.test/new.json", name: "New", version: "2.0" }, localStorage, 2);
-    rememberModule({ url: "http://localhost/modules/aces/manifest.json", name: "Four Aces" }, localStorage, 0);
+    rememberModule({ url: "http://localhost/builtins/checkers/manifest.json", name: "Checkers" }, localStorage, 0);
     render(<Home tables={[]} builtIns={BUILT_INS} />);
     const radios = screen.getAllByRole("radio");
     expect(radios.map((radio) => radio.closest("label").textContent)).toEqual([
-      "Four Aces (sample)", "New2.0 · b.test", "Old1.0 · a.test", "",
+      "CheckersCrown your checkers.", "New2.0 · b.test", "Old1.0 · a.test", "",
     ]);
     expect(radios[1].checked).toBe(true);
     expect(screen.getByRole("link", { name: "Try it alone" }).getAttribute("href")).toBe(

@@ -7,9 +7,11 @@ const PING_JITTER = 2000; // ms taken off at random, so players don't ping in st
 // Joins a game's channel and ties the store to it: the store sends its
 // actions and drags, and gets the snapshot and every change back (see
 // plans/server.md). The server knows the player by this browser's cookie.
-// onReplaced runs when the player opens the game somewhere else, which
-// disconnects this one. Returns a function that disconnects.
-export function connectGame(token, store, { onReplaced = () => {} } = {}) {
+// onRoster gets the game's players, [{ id, name, host }], on connecting and
+// whenever someone joins. onReplaced runs when the player opens the game
+// somewhere else, which disconnects this one. Returns a function that
+// disconnects.
+export function connectGame(token, store, { onRoster = () => {}, onReplaced = () => {} } = {}) {
   const consumer = createConsumer();
   let pingTimer = null;
   const drags = throttledDrags((message) => subscription.perform("drag", message));
@@ -30,6 +32,8 @@ export function connectGame(token, store, { onReplaced = () => {} } = {}) {
 
   const subscription = consumer.subscriptions.create({ channel: "GameChannel", game: token }, {
     received(message) {
+      if (message.roster) onRoster(message.roster);
+      if (message.type === "roster") return;
       if (message.type !== "replaced") return store.receive(message);
       stop();
       onReplaced();

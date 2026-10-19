@@ -96,8 +96,9 @@ export function placement(def, state, floor = 0) {
 }
 
 // rank is the piece's place in its layer's stacking order, 0 at the bottom.
-// blocked means a held piece would overlap something where it hovers.
-export function applyPlacement(mesh, def, state, rank, { blocked = false, floor = 0 } = {}) {
+// blocked means a held piece would overlap something where it hovers, and
+// tints its shadow red; color tints it otherwise.
+export function applyPlacement(mesh, def, state, rank, { blocked = false, floor = 0, color = SHADOW_COLOR } = {}) {
   const place = placement(def, state, floor);
   const { shadow, ghost } = mesh.userData;
   restingTurn(mesh, state);
@@ -114,7 +115,7 @@ export function applyPlacement(mesh, def, state, rank, { blocked = false, floor 
     const { x, y } = state.drag || state;
     shadow.position.fromArray(tableToThree([x, def.layer.base + floor + SHADOW_LIFT, y]));
     shadow.rotation.set(-Math.PI / 2, place.rotation[1], 0);
-    shadow.material.color.setHex(blocked ? BLOCKED_SHADOW_COLOR : SHADOW_COLOR);
+    shadow.material.color.set(blocked ? BLOCKED_SHADOW_COLOR : color);
   }
   if (ghost.visible) {
     const rest = placement(def, { ...state, ...mesh.userData.restingTurn, heldBy: null, drag: null });

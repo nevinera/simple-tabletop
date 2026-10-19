@@ -78,9 +78,10 @@ export function deckTopImage(def, deckState, cardDef) {
 }
 
 // Places the deck for its state. floor lifts a held deck over whatever is
-// under it; blocked tints its shadow. A splayed deck shows no box: the scene
-// lays its cards out (see fanSpots), and this places its shadow under them.
-export function applyDeckPlacement(group, def, state, { blocked = false, floor = 0 } = {}) {
+// under it; blocked tints its shadow red, and color tints it otherwise. A
+// splayed deck shows no box: the scene lays its cards out (see fanSpots), and
+// this places its shadow under them.
+export function applyDeckPlacement(group, def, state, { blocked = false, floor = 0, color = 0x000000 } = {}) {
   const { box, placeholder, ghost, shadow, top, ghostTop } = group.userData;
   const rest = restingTurn(group, state);
   // While held, the ghost keeps the top it had when picked up, even if the
@@ -117,7 +118,7 @@ export function applyDeckPlacement(group, def, state, { blocked = false, floor =
     shadow.position.fromArray(tableToThree([middleX, layer.base + floor + SHADOW_LIFT, middleY]));
     shadow.rotation.set(-Math.PI / 2, rotation, 0);
     shadow.scale.set((SHADOW_SCALE * fanWidth) / width, (SHADOW_SCALE * fanDepth) / depth, 1);
-    shadow.material.color.setHex(blocked ? BLOCKED_SHADOW_COLOR : 0x000000);
+    shadow.material.color.set(blocked ? BLOCKED_SHADOW_COLOR : color);
   }
 
   ghost.visible = held && Boolean(state.drag) && !empty && !splayed;

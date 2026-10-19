@@ -60,7 +60,8 @@ RSpec.describe "Games", type: :request do
     cookies.delete("player_#{game.id}")
     get game_path(game)
     expect(response.body).not_to include("data-player-id")
-    post game_players_path(game), params: { name: "Alex" }, as: :json
+    expect { post game_players_path(game), params: { name: "Alex" }, as: :json }.to have_broadcasted_to(game).from_channel(GameChannel)
+      .with(hash_including("type" => "roster", "roster" => [ include("name" => "Sam"), include("name" => "Alex") ]))
     expect(response.parsed_body).to include("name" => "Alex", "host" => false)
     get game_path(game)
     expect(response.body).to include(%(data-player-name="Alex"))

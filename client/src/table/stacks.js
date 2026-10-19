@@ -69,8 +69,8 @@ export function buildStack(id, def) {
 }
 
 // Places the stack for its state. floor lifts a held stack over whatever is
-// under it; blocked tints its shadow.
-export function applyStackPlacement(group, def, state, { blocked = false, floor = 0 } = {}) {
+// under it; blocked tints its shadow red, and color tints it otherwise.
+export function applyStackPlacement(group, def, state, { blocked = false, floor = 0, color = 0x000000 } = {}) {
   const { body, counter, ghost, shadow } = group.userData;
   const rest = restingTurn(group, state);
   const count = state.members.length;
@@ -93,7 +93,7 @@ export function applyStackPlacement(group, def, state, { blocked = false, floor 
   if (held) {
     shadow.position.fromArray(tableToThree([x, def.layer.base + floor + SHADOW_LIFT, y]));
     shadow.rotation.set(-Math.PI / 2, rotation, 0);
-    shadow.material.color.setHex(blocked ? BLOCKED_SHADOW_COLOR : 0x000000);
+    shadow.material.color.set(blocked ? BLOCKED_SHADOW_COLOR : color);
   }
   ghost.visible = held && Boolean(state.drag);
   if (ghost.visible) {

@@ -73,9 +73,10 @@ export function buildDie(def, textures) {
 }
 
 // Places a die: spot is { x, y, base }, where base is the height it rests
-// on. floor lifts a held die over what's under it; blocked tints its shadow;
-// rest is { x, y, base } of where it came from, for the ghost.
-export function applyDiePlacement(group, def, state, spot, { blocked = false, floor = 0, rest = null } = {}) {
+// on. floor lifts a held die over what's under it; blocked tints its shadow
+// red, and color tints it otherwise; rest is { x, y, base } of where it came
+// from, for the ghost.
+export function applyDiePlacement(group, def, state, spot, { blocked = false, floor = 0, color = 0x000000, rest = null } = {}) {
   const { ghost, shadow, swirl } = group.userData;
   const resting = restingTurn(group, state);
   const sides = def.die.sides;
@@ -94,7 +95,7 @@ export function applyDiePlacement(group, def, state, spot, { blocked = false, fl
   shadow.visible = held;
   if (held) {
     shadow.position.fromArray(tableToThree([spot.x, spot.base + floor + SHADOW_LIFT, spot.y]));
-    shadow.material.color.setHex(blocked ? BLOCKED_SHADOW_COLOR : 0x000000);
+    shadow.material.color.set(blocked ? BLOCKED_SHADOW_COLOR : color);
   }
   ghost.visible = held && Boolean(rest);
   if (ghost.visible) {

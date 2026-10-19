@@ -117,6 +117,18 @@ describe("a synced store", () => {
     expect(sam.getState().pieces.a.heldBy).toBe("sam");
   });
 
+  it("tells the loser who got there first", () => {
+    const server = fakeServer();
+    const sam = player(server, "sam");
+    const alex = player(server, "alex");
+    const lost = [];
+    alex.onLost((each) => lost.push(each));
+    sam.dispatch({ type: "grab", id: "a", playerId: "sam" });
+    alex.dispatch({ type: "grab", id: "a", playerId: "alex" });
+    server.deliver();
+    expect(lost).toEqual([{ action: { type: "grab", id: "a", playerId: "alex" }, reason: "Someone else is holding that.", holder: "sam" }]);
+  });
+
   it("retries a refused action that still works on the newer state", () => {
     const server = fakeServer();
     const sam = player(server);

@@ -76,8 +76,8 @@ export function buildBag(id, def, textures) {
 }
 
 // Places the bag for its state. floor lifts a held bag over whatever is
-// under it; blocked tints its shadow.
-export function applyBagPlacement(group, def, state, { blocked = false, floor = 0 } = {}) {
+// under it; blocked tints its shadow red, and color tints it otherwise.
+export function applyBagPlacement(group, def, state, { blocked = false, floor = 0, color = 0x000000 } = {}) {
   const { ghost, shadow, height } = group.userData;
   const rest = restingTurn(group, state);
   const held = Boolean(state.heldBy);
@@ -91,7 +91,7 @@ export function applyBagPlacement(group, def, state, { blocked = false, floor = 
   if (held) {
     shadow.position.fromArray(tableToThree([x, def.layer.base + floor + SHADOW_LIFT, y]));
     shadow.rotation.set(-Math.PI / 2, rotation, 0);
-    shadow.material.color.setHex(blocked ? BLOCKED_SHADOW_COLOR : 0x000000);
+    shadow.material.color.set(blocked ? BLOCKED_SHADOW_COLOR : color);
   }
   ghost.visible = held && Boolean(state.drag);
   if (ghost.visible) {

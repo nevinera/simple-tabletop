@@ -24,6 +24,7 @@ export function createTableStore(manifest, start = null, { synced = false } = {}
   let waitFor = null; // after a refusal, the sequence to catch up to before retrying
   const unsentDrags = new Map(); // object id -> player id, for drags waiting on their grab
   const listeners = new Set();
+  const lostListeners = new Set();
 
   const notify = (action) => listeners.forEach((listener) => listener(shown, action));
 
@@ -69,6 +70,9 @@ export function createTableStore(manifest, start = null, { synced = false } = {}
       const result = applyAction(manifest, confirmed, entry.action);
       if (!result.ok) {
         queue.shift();
+        const holder = heldIn(confirmed, entry.action.id);
+        const lost = { action: entry.action, reason: result.reason, holder: holder !== entry.action.playerId ? holder || null : null };
+        lostListeners.forEach((listener) => listener(lost));
         continue;
       }
       sent = entry;
@@ -144,6 +148,15 @@ export function createTableStore(manifest, start = null, { synced = false } = {}
     subscribe(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);
+    },
+
+    // Listens for your actions that someone else's change got ahead of, so
+    // they no longer apply. The listener gets { action, reason, holder },
+    // where holder is whoever holds the action's object now, if not you.
+    // Returns an unsubscribe function.
+    onLost(listener) {
+      lostListeners.add(listener);
+      return () => lostListeners.delete(listener);
     },
 
     connect(next) {

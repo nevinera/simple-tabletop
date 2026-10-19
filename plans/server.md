@@ -235,7 +235,7 @@ A grab the server turns down usually arrives 50 to 150 milliseconds after the ob
   that".
 - The pointer gesture ends. Moving the mouse further doesn't move anything or turn the camera until you let
   go.
-- A card you drew that came back rejected slides back into its deck or bag the same way.
+- A card you drew that came back rejected goes straight back into its deck or bag.
 
 A blocked drop isn't a lost race to the player. The piece keeps floating with its red shadow, exactly as when
 you drop onto something that was always there.
@@ -251,9 +251,12 @@ winner's side would be noise in a game where reaching for the same card is norma
 
 They see the winner's hold, the same as any hold. That works better if holds are easy to read in general:
 
-- A held object's shadow takes the holder's seat color.
+- A held object's shadow takes the holder's seat color. Only your own holds tint red where they can't land,
+  so a red seat never reads as blocked.
 - A name tag floats above an object someone else holds.
 - Hovering it shows a not-allowed cursor, and its menu says "Sam has that".
+- Everything you aren't moving yourself slides to its new spot over about 150 milliseconds, so others' drags
+  look smooth at 20 updates a second.
 
 ## The host
 

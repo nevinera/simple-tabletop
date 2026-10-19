@@ -14,6 +14,10 @@
 // except a splayed deck's top card, which moves the deck. The hand strip drives
 // drags from outside the canvas through the hand* methods.
 //
+// When the server turns down your action because someone got there first,
+// lost() ends the gesture it came from, and the pointer does nothing more
+// until you let go.
+//
 // The scene supplies hit testing through `pick` and `tablePoint`, so this
 // runs without WebGL in tests.
 
@@ -38,14 +42,16 @@ export class PieceInteraction {
     onBlockedRotate = () => {}, // (id, degrees): turning would overlap something
     onHover = () => {}, // (id or null): whatever is under the mouse, movable or not
     onMagnify = () => {}, // (id or null): a magnify-mode tap
+    onLostRace = () => {}, // ({ id, holder, clientX, clientY }): someone else got it first
     schedule = setTimeout,
     unschedule = clearTimeout,
     random = Math.random,
   }) {
     Object.assign(this, {
       store, manifest, playerId, pick, tablePoint, clampToTable, setCameraEnabled, setCursor, onContextMenu,
-      onBlockedRotate, onHover, onMagnify, random,
+      onBlockedRotate, onHover, onMagnify, onLostRace, random,
     });
+    this.nameOf = () => null; // player id -> name
     this.magnifyMode = false;
     this.relocateOnTrayRoll = true; // whether rolling a tray scatters its dice
     // Wrapped, since the browser's timer functions throw when called as methods.
@@ -53,6 +59,7 @@ export class PieceInteraction {
     this.unschedule = (id) => unschedule(id);
     this.gesture = null;
     this.hoveredId = null;
+    this.pointer = { x: 0, y: 0 }; // where the pointer was last seen
   }
 
   selectedId() {
@@ -90,6 +97,25 @@ export class PieceInteraction {
       inTray: die && Boolean(object.state.containerId),
       trayId: die ? object.state.containerId : null,
     };
+  }
+
+  // The name of whoever else holds an object, or null.
+  holderName(id) {
+    const holder = this.#heldByOther(id);
+    return holder ? this.nameOf(holder) || "Someone else" : null;
+  }
+
+  // Your action no longer applies after someone else's change: { action,
+  // holder } from the store. A turn or flip wiggles, and losing something to
+  // another player says who has it.
+  lost({ action, holder }) {
+    const gesture = this.gesture;
+    if (gesture && !gesture.done && [gesture.objectId, gesture.deckId].includes(action.id)) {
+      gesture.done = true;
+      this.setCursor("");
+    }
+    if (["flip", "rotate", "splay"].includes(action.type)) this.onBlockedRotate(action.id, action.degrees || 1);
+    else if (holder) this.onLostRace({ id: action.id, holder, clientX: this.pointer.x, clientY: this.pointer.y });
   }
 
   flip(id = this.actionTarget()) {
@@ -199,6 +225,7 @@ export class PieceInteraction {
   // capture the pointer.
   pointerDown(event) {
     if (!event.isPrimary) return false;
+    this.pointer = { x: event.clientX, y: event.clientY };
     const start = { x: event.clientX, y: event.clientY };
     const pointerType = event.pointerType;
 
@@ -246,7 +273,7 @@ export class PieceInteraction {
     if (pointerType === "touch") {
       gesture.timer = this.#later(gesture, () => {
         if (selected) this.#place(selected, start.x, start.y);
-        else if (hit && this.describe(hit)) this.#openMenu(hit, start, pointerType);
+        else if (hit && this.#hasMenu(hit)) this.#openMenu(hit, start, pointerType);
       });
     }
     return false;
@@ -254,12 +281,14 @@ export class PieceInteraction {
 
   pointerMove(event) {
     const gesture = this.gesture;
+    if (event.isPrimary) this.pointer = { x: event.clientX, y: event.clientY };
     if (!gesture) {
       if (event.pointerType === "mouse") {
         const hit = this.pick(event.clientX, event.clientY);
         this.onHover(hit);
         this.hoveredId = hit && this.describe(hit) ? hit : null;
-        this.setCursor(hit && (this.#canMove(hit) || this.#canDrawFrom(hit)) ? "grab" : "");
+        if (hit && this.#heldByOther(hit)) this.setCursor("not-allowed");
+        else this.setCursor(hit && (this.#canMove(hit) || this.#canDrawFrom(hit)) ? "grab" : "");
       }
       return;
     }
@@ -299,7 +328,7 @@ export class PieceInteraction {
     } else if (gesture.kind === "secondary") {
       if (!gesture.moved) {
         const hit = this.pick(event.clientX, event.clientY);
-        if (hit && this.describe(hit)) this.#openMenu(hit, { x: event.clientX, y: event.clientY }, event.pointerType);
+        if (hit && this.#hasMenu(hit)) this.#openMenu(hit, { x: event.clientX, y: event.clientY }, event.pointerType);
       }
     } else if (gesture.kind === "object") {
       const object = this.#object(gesture.objectId);
@@ -360,6 +389,16 @@ export class PieceInteraction {
     const opened = (holder?.spots || holder?.splay) && free(holder.heldBy);
     const inReach = !containerId || containerId === this.#ownHand() || opened;
     return Boolean(inReach && free(heldBy));
+  }
+
+  #heldByOther(id) {
+    const holder = this.#object(id)?.state.heldBy;
+    return holder && holder !== this.playerId ? holder : null;
+  }
+
+  // Your things have their actions, and others' say who has them.
+  #hasMenu(id) {
+    return Boolean(this.describe(id) || this.#heldByOther(id));
   }
 
   #ownHand() {

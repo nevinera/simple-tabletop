@@ -6,7 +6,7 @@
 // your hand or a deck's fan only magnify. Decks also splay, locked or not. onDone runs after any action, so a menu can close.
 export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onDone = () => {} }) {
   const object = interaction.describe(objectId);
-  if (!object) return <p className="menu-note">Someone else has that.</p>;
+  if (!object) return <p className="menu-note">{interaction.holderName(objectId) || "Someone else"} has that.</p>;
 
   const act = (fn) => () => {
     fn();

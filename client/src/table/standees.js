@@ -73,7 +73,7 @@ export async function buildStandee(piece, textures) {
 }
 
 // Places a standee for its state, like applyPlacement does for flat pieces.
-export function applyStandeePlacement(group, def, state, { blocked = false, floor = 0 } = {}) {
+export function applyStandeePlacement(group, def, state, { blocked = false, floor = 0, color = 0x000000 } = {}) {
   const { shadow, ghost } = group.userData;
   const rest = restingTurn(group, state);
   const loose = !state.containerId;
@@ -92,7 +92,7 @@ export function applyStandeePlacement(group, def, state, { blocked = false, floo
   if (shadow.visible) {
     shadow.position.fromArray(tableToThree([x, def.layer.base + floor + SHADOW_LIFT, y]));
     shadow.rotation.set(-Math.PI / 2, rotation, 0);
-    shadow.material.color.setHex(blocked ? BLOCKED_SHADOW_COLOR : 0x000000);
+    shadow.material.color.set(blocked ? BLOCKED_SHADOW_COLOR : color);
   }
   if (ghost.visible) {
     ghost.position.fromArray(tableToThree([state.x, def.layer.base, state.y]));

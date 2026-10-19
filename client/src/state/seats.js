@@ -21,6 +21,12 @@ export function seatOf(state, playerId) {
   return state.players[playerId]?.seatId || null;
 }
 
+// A player's seat color, or null if they aren't seated.
+export function playerColor(manifest, state, playerId) {
+  const seatId = seatOf(state, playerId);
+  return manifest.seats.find((seat) => seat.id === seatId)?.color || null;
+}
+
 // The seats that exist right now.
 export function activeSeats(manifest, state) {
   if (manifest.listedSeats) return manifest.seats;

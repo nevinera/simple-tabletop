@@ -369,3 +369,40 @@ describe("PieceInteraction", () => {
     expect(piece("AS").locked).toBe(false);
   });
 });
+
+describe("losing a race", () => {
+  it("ends the drag, says who has it, and leaves the camera off until you let go", () => {
+    const races = [];
+    interaction.onLostRace = (race) => races.push(race);
+    interaction.pointerDown(pointer(10, 10));
+    interaction.pointerMove(pointer(20, 20));
+    interaction.lost({ action: { type: "grab", id: "AS", playerId: "me" }, holder: "sam" });
+    expect(races).toEqual([{ id: "AS", holder: "sam", clientX: 20, clientY: 20 }]);
+    store.dispatch({ type: "release", id: "AS", playerId: "me" }); // what the server's version would show
+    interaction.pointerMove(pointer(40, 40));
+    expect(piece("AS").drag).toBeNull();
+    expect(camera.enabled).toBe(false);
+    interaction.pointerUp(pointer(40, 40));
+    expect(piece("AS")).toMatchObject({ x: 10, y: 10, heldBy: null });
+    expect(camera.enabled).toBe(true);
+  });
+
+  it("wiggles a turn or flip that no longer applies", () => {
+    interaction.lost({ action: { type: "flip", id: "AH", playerId: "me" }, holder: "sam" });
+    expect(wiggles).toEqual([["AH", 1]]);
+  });
+
+  it("shows what others hold as off limits, with who has it", () => {
+    const cursors = [];
+    interaction.setCursor = (cursor) => cursors.push(cursor);
+    interaction.nameOf = (id) => ({ sam: "Sam" })[id];
+    store.dispatch({ type: "grab", id: "AH", playerId: "sam" });
+    interaction.pointerMove(pointer(30, 30));
+    expect(cursors.at(-1)).toBe("not-allowed");
+    expect(interaction.holderName("AH")).toBe("Sam");
+    expect(interaction.holderName("AS")).toBeNull();
+    interaction.pointerDown(pointer(30, 30, { button: 2 }));
+    interaction.pointerUp(pointer(30, 30, { button: 2 }));
+    expect(menus.map((menu) => menu.objectId)).toEqual(["AH"]);
+  });
+});

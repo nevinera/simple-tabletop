@@ -55,6 +55,16 @@ describe("connectGame", () => {
     expect(cable.performed).toEqual([["ping", undefined]]);
   });
 
+  it("passes the roster along from snapshots and joins", () => {
+    const store = fakeStore();
+    const onRoster = vi.fn();
+    connectGame("abc", store, { onRoster });
+    cable.received({ type: "snapshot", sequence: 0, roster: [{ id: "p1" }] });
+    cable.received({ type: "roster", roster: [{ id: "p1" }, { id: "p2" }] });
+    expect(onRoster.mock.calls).toEqual([[[{ id: "p1" }]], [[{ id: "p1" }, { id: "p2" }]]]);
+    expect(store.receive).toHaveBeenCalledTimes(1);
+  });
+
   it("disconnects when the game opens somewhere else", () => {
     const store = fakeStore();
     const onReplaced = vi.fn();

@@ -5,9 +5,10 @@ import { PieceInteraction } from "./interaction";
 // Mounts a TableScene, shows the manifest on it, re-renders pieces whenever
 // the store changes, and turns pointer events into piece actions. The scene
 // and the PieceInteraction go up to the parent through onScene and
-// onInteraction, for keys and menus.
+// onInteraction, for keys and menus. onLostRace hears when someone else got
+// to something first.
 export default function TableCanvas({
-  manifest, store, playerId, onScene, onInteraction, onContextMenu, onHover, onMagnify, onError,
+  manifest, store, playerId, onScene, onInteraction, onContextMenu, onHover, onMagnify, onLostRace, onError,
 }) {
   const containerRef = useRef(null);
   const [scene, setScene] = useState(null);
@@ -25,6 +26,10 @@ export default function TableCanvas({
   useEffect(() => {
     if (scene && manifest) scene.show(manifest).catch(onError);
   }, [scene, manifest, onError]);
+
+  useEffect(() => {
+    scene?.setPlayer(playerId);
+  }, [scene, playerId]);
 
   useEffect(() => {
     if (!scene || !store) return undefined;
@@ -48,8 +53,10 @@ export default function TableCanvas({
       onBlockedRotate: (id, degrees) => scene.wiggle(id, degrees),
       onHover: (id) => onHover(id),
       onMagnify: (id) => onMagnify(id),
+      onLostRace: (lost) => onLostRace(lost),
     });
     onInteraction(interaction);
+    const stopLost = store.onLost((lost) => interaction.lost(lost));
 
     // Capture phase, so a piece gesture can turn the camera off before
     // OrbitControls sees the same pointerdown.
@@ -67,6 +74,7 @@ export default function TableCanvas({
     canvas.addEventListener("pointercancel", onPointerCancel);
     canvas.addEventListener("pointerleave", onPointerLeave);
     return () => {
+      stopLost();
       onInteraction(null);
       canvas.removeEventListener("pointerdown", onPointerDown, { capture: true });
       canvas.removeEventListener("pointermove", onPointerMove);
@@ -74,7 +82,7 @@ export default function TableCanvas({
       canvas.removeEventListener("pointercancel", onPointerCancel);
       canvas.removeEventListener("pointerleave", onPointerLeave);
     };
-  }, [scene, store, manifest, playerId, onInteraction, onContextMenu, onHover, onMagnify]);
+  }, [scene, store, manifest, playerId, onInteraction, onContextMenu, onHover, onMagnify, onLostRace]);
 
   return <div className="table-canvas" ref={containerRef} />;
 }

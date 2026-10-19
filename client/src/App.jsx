@@ -9,7 +9,7 @@ import { useSelectedObject } from "./useSelectedObject";
 import { sameIds, useStoreValue } from "./useStoreValue";
 import { useMagnifyKey } from "./useMagnifyKey";
 import { TableSounds, soundFor } from "./sound/sounds";
-import { handId, openSeats, seatName, seatOf, seatView } from "./state/seats";
+import { handId, openSeats, playerColor, seatName, seatOf, seatView } from "./state/seats";
 import { pieceDef } from "./state/objects";
 import { initialState } from "./state/actions";
 import { fetchGameState, joinGame, startGame } from "./server/api";
@@ -23,6 +23,7 @@ import { ContextMenu } from "./ui/ContextMenu";
 import { Toolbar } from "./ui/Toolbar";
 import { HelpPanel } from "./ui/HelpPanel";
 import { ReorderPanel } from "./ui/ReorderPanel";
+import { RaceChip } from "./ui/RaceChip";
 import { ActionBar } from "./ui/ActionBar";
 import { Joysticks } from "./ui/Joysticks";
 
@@ -32,6 +33,7 @@ const SANDBOX_PLAYER_ID = "local";
 const HAND_STRIP_SETTING = "simple-tabletop:hand-strip";
 const TRAY_SCATTER_SETTING = "simple-tabletop:tray-roll-scatters";
 const SOUND_SETTING = "simple-tabletop:sound";
+const UNSEATED_COLOR = "#555555";
 
 // game is { token, name, player } for a game on the server, or null for the
 // sandbox, which keeps everything in this browser.
@@ -42,6 +44,10 @@ export default function App({ manifestUrl, game = null }) {
   const [serverState, setServerState] = useState(null);
   const [hosting, setHosting] = useState(false);
   const [replaced, setReplaced] = useState(false); // this player opened the game somewhere else
+  const [roster, setRoster] = useState([]); // [{ id, name, host }]
+  const rosterRef = useRef(roster);
+  rosterRef.current = roster;
+  const [raceChip, setRaceChip] = useState(null);
   const viewport = useViewportMode();
   const layout = viewport.isPortraitPhone ? "portrait" : viewport.isLandscapePhone ? "landscape" : "desktop";
 
@@ -90,11 +96,22 @@ export default function App({ manifestUrl, game = null }) {
     return createTableStore(manifest, { sequence, seating, players, pieces, containers }, { synced: true });
   }, [manifest, game, serverState]);
 
+  useEffect(() => {
+    if (serverState) setRoster(serverState.roster);
+  }, [serverState]);
+
   // Once this browser has a player in the game, it syncs with the server.
   useEffect(() => {
     if (!game || !player || !store || replaced) return undefined;
-    return connectGame(game.token, store, { onReplaced: () => setReplaced(true) });
+    return connectGame(game.token, store, { onRoster: setRoster, onReplaced: () => setReplaced(true) });
   }, [game, player, store, replaced]);
+
+  const nameOf = useCallback((id) => rosterRef.current.find((each) => each.id === id)?.name || null, []);
+  const showLostRace = useCallback(({ holder, clientX, clientY }) => {
+    const color = playerColor(manifest, store.getState(), holder) || UNSEATED_COLOR;
+    setRaceChip({ name: nameOf(holder) || "Someone else", color, x: clientX, y: clientY });
+  }, [manifest, store, nameOf]);
+  const hideRaceChip = useCallback(() => setRaceChip(null), []);
 
   const join = useCallback(async ({ name }) => setPlayer(await joinGame(game.token, name)), [game]);
   const host = useCallback(async ({ name, gameName }) => {
@@ -153,6 +170,12 @@ export default function App({ manifestUrl, game = null }) {
   useEffect(() => {
     if (interaction) interaction.magnifyMode = magnifyMode;
   }, [interaction, magnifyMode]);
+  useEffect(() => {
+    if (interaction) interaction.nameOf = nameOf;
+  }, [interaction, nameOf]);
+  useEffect(() => {
+    scene?.setRoster(roster);
+  }, [scene, roster]);
   useEffect(() => {
     if (interaction) interaction.relocateOnTrayRoll = trayRollScatters;
   }, [interaction, trayRollScatters]);
@@ -237,6 +260,7 @@ export default function App({ manifestUrl, game = null }) {
           onContextMenu={openContextMenu}
           onHover={setHovered}
           onMagnify={setMagnified}
+          onLostRace={showLostRace}
           onError={setError}
         />
         {joysticksVisible && <Joysticks scene={scene} onIdle={hideJoysticks} />}
@@ -258,6 +282,7 @@ export default function App({ manifestUrl, game = null }) {
         )}
         {magnifiedSide && <Magnifier side={magnifiedSide} onClose={magnified ? () => setMagnified(null) : null} />}
         {error && <div className="table-error" role="alert">{error.message}</div>}
+        {raceChip && <RaceChip chip={raceChip} onDone={hideRaceChip} />}
       </main>
       {contextMenu && interaction && (
         <ContextMenu

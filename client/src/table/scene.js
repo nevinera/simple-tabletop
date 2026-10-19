@@ -5,14 +5,17 @@ import {
   DICE_TRAY_FLOOR, HAND_TRAY_HEIGHT, fanSpots, findObject, handSlots, looseObjects, objectHeight, pieceDef,
 } from "../state/objects";
 import { fromTray } from "../state/trays";
+import { playerColor } from "../state/seats";
 import { tableRotationToThree, tableToThree, threeToTable } from "./coordinates";
 import { applyBagPlacement, buildBag } from "./bags";
 import { applyDeckPlacement, buildDeck, deckTopImage, setDeckTop } from "./decks";
 import { applyDiePlacement, buildDie, hideDie, setSwirling } from "./dice";
 import { buildDiceTray, placeDiceTray } from "./diceTrays";
+import { Easing } from "./easing";
 import { FELT_TILE_CM, feltTexture } from "./felt";
 import { buildTray, placeTray } from "./hands";
 import { buildLabel } from "./labels";
+import { buildNameTag, disposeNameTag, placeNameTag } from "./nameTags";
 import { HELD_LIFT, applyHandSlot, applyPlacement, buildPiece, stackRanks } from "./pieces";
 import { applyStackPlacement, buildStack, faceCamera, setStackTop } from "./stacks";
 import { applyStandeePlacement, buildStandee } from "./standees";
@@ -24,6 +27,7 @@ const TARGET_MARGIN = 0.1; // how far past the table edge the orbit target may g
 const WIGGLE_MS = 250;
 const WIGGLE_DEGREES = 8; // how far a blocked rotation turns before springing back
 const SWIRL_MS = 1000; // how long a rolled die shows as a swirl
+const UNSEATED_COLOR = "#555555"; // name tags for players without a seat
 
 // Owns the Three scene for one table. Camera views come in and go out in
 // table coordinates; see coordinates.js.
@@ -40,6 +44,10 @@ export class TableScene {
     this.swirls = new Map(); // die id -> start time
     this.viewerSeat = null; // whose hand shows face-up
     this.wiggles = new Map(); // object id -> { start, direction }
+    this.easing = new Easing();
+    this.tags = new Map(); // object id -> name tag, for what others hold
+    this.playerId = null; // whose holds are this browser's own
+    this.names = new Map(); // player id -> name
     this.raycaster = new THREE.Raycaster();
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -147,6 +155,21 @@ export class TableScene {
       if (!state.containers[id]) group.visible = group.userData.ghost.visible = group.userData.shadow.visible = false;
     }
     this.#renderHands(state);
+    this.#settle(state);
+    this.#renderTags(state);
+  }
+
+  // Sets whose holds are this browser's: others' get their seat color and a
+  // name tag.
+  setPlayer(playerId) {
+    this.playerId = playerId;
+    if (this.state) this.render(this.state);
+  }
+
+  // roster: [{ id, name }], for the name tags.
+  setRoster(roster) {
+    this.names = new Map(roster.map((player) => [player.id, player.name]));
+    if (this.state) this.render(this.state);
   }
 
   // Sets whose hand this browser sees face-up.
@@ -253,6 +276,8 @@ export class TableScene {
       applyMotion(this.camera.position, this.controls.target, sumMotions(this.motions.values()), dt, this.controls);
     }
     this.controls.update();
+    this.easing.step(dt);
+    for (const [id, tag] of this.tags) placeNameTag(tag, this.#object3d(id));
     this.#animateWiggles();
     this.#animateSwirls();
     for (const group of this.deckGroups.values()) {
@@ -299,16 +324,65 @@ export class TableScene {
   }
 
   // For a held object: whether it can land where it hovers, and how high it
-  // has to float to clear what's under it.
+  // has to float to clear what's under it. Someone else's hold shows their
+  // seat color instead of whether it can land.
   #hover(id, state) {
     const object = findObject(this.manifest, state, id);
-    if (!object.state.heldBy) return {};
+    const holder = object.state.heldBy;
+    if (!holder) return {};
     const { x, y } = object.state.drag || object.state;
     if (x == null) return {};
-    const target = landing(this.manifest, state, id, x, y, object.state.rotation, object.state.heldBy);
+    const target = landing(this.manifest, state, id, x, y, object.state.rotation, holder);
     const under = [...(target.blocked || []), target.into, target.onto].filter(Boolean);
     const floor = Math.max(0, ...under.map((other) => objectHeight(findObject(this.manifest, state, other))));
+    if (holder !== this.playerId) return { floor, color: playerColor(this.manifest, state, holder) || undefined };
     return { blocked: Boolean(target.blocked), floor };
+  }
+
+  #object3d(id) {
+    return this.pieceMeshes.get(id) || this.deckGroups.get(id) || this.diceTrays.get(id);
+  }
+
+  // Eases everything to where render() put it, except what you're moving: what
+  // you hold, and what sits in something you hold.
+  #settle(state) {
+    const mine = (object) => Boolean(object?.heldBy) && object.heldBy === this.playerId;
+    const direct = (id) => {
+      const object = state.pieces[id] || state.containers[id];
+      return mine(object) || mine(state.containers[object?.containerId]);
+    };
+    for (const [id, object3d] of [...this.pieceMeshes, ...this.deckGroups, ...this.diceTrays]) {
+      this.easing.settle(object3d, direct(id));
+    }
+  }
+
+  // A name tag over each thing someone else holds.
+  #renderTags(state) {
+    const held = new Map(); // object id -> holder
+    for (const objects of [state.pieces, state.containers]) {
+      for (const [id, object] of Object.entries(objects)) {
+        if (object.heldBy && object.heldBy !== this.playerId && this.#object3d(id)?.visible) held.set(id, object.heldBy);
+      }
+    }
+    for (const [id, tag] of this.tags) {
+      const holder = held.get(id);
+      if (holder && tag.userData.key === this.#tagLabel(state, holder).join("\n")) continue;
+      this.content.remove(tag);
+      disposeNameTag(tag);
+      this.tags.delete(id);
+    }
+    for (const [id, holder] of held) {
+      if (this.tags.has(id)) continue;
+      const tag = buildNameTag(...this.#tagLabel(state, holder));
+      this.tags.set(id, tag);
+      this.content.add(tag);
+      placeNameTag(tag, this.#object3d(id));
+    }
+  }
+
+  // [name, color] for a name tag.
+  #tagLabel(state, holder) {
+    return [this.names.get(holder) || "Someone", playerColor(this.manifest, state, holder) || UNSEATED_COLOR];
   }
 
   #placeLooseDie(mesh, def, state) {
@@ -538,6 +612,8 @@ export class TableScene {
       });
     });
     this.content.clear();
+    this.easing.clear();
+    this.tags.clear();
     this.pieceMeshes.clear();
     this.deckGroups.clear();
     this.trays.clear();

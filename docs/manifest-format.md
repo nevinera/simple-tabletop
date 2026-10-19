@@ -185,6 +185,7 @@ These dice are built in, with numbered faces, so they need no images:
 |--------|-------------------|
 | `d4`   | 1 to 4            |
 | `d6`   | 1 to 6            |
+| `d6pips` | 1 to 6, as pips |
 | `d8`   | 1 to 8            |
 | `d10`  | 1 to 10           |
 | `d10z` | 0 to 9            |

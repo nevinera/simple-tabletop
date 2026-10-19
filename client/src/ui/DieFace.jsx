@@ -1,6 +1,6 @@
 import { useId } from "react";
 import { topFace } from "../table/diceGeometry";
-import { labelSize } from "../state/dice";
+import { PIP_RADIUS, labelSize, pipSpots } from "../state/dice";
 
 const INK = "#2a2a2a";
 const DIM = 0x5c / 0xff; // how dark unlit regions are, as on the table
@@ -29,7 +29,9 @@ export function DieFace({ die, value, className = "magnifier-die" }) {
             <g clipPath={`url(#${clipId})`}>
               <polygon points={points} fill={die.color} />
               <g transform={`translate(${region.center.join(" ")}) rotate(${region.turn})`}>
-                {die.labels ? (
+                {die.pips ? (
+                  <Pips label={die.labels[region.label]} extent={region.extent} />
+                ) : die.labels ? (
                   <Label text={die.labels[region.label]} sides={die.sides} extent={region.extent} />
                 ) : (
                   <Art image={die.images[region.label]} extent={region.extent} />
@@ -64,6 +66,12 @@ function Label({ text, sides, extent }) {
       {underline && <rect x={-size * 0.28} y={size * 0.42} width={size * 0.56} height={size * 0.08} fill={INK} />}
     </>
   );
+}
+
+function Pips({ label, extent }) {
+  return pipSpots(label).map(([x, y], i) => (
+    <circle key={i} cx={x * extent} cy={y * extent} r={PIP_RADIUS * extent} fill={INK} />
+  ));
 }
 
 // A custom die's face image, cropped to its sheet cell.

@@ -1,0 +1,44 @@
+{
+  "formatVersion": 1,
+  "id": "pachisi",
+  "name": "Pachisi",
+  "version": "1.0.0",
+  "table": { "size": [80, 80], "color": "#2e6b3f" },
+  "layers": [{ "id": "board", "thickness": 0.3 }, { "id": "pieces", "thickness": 1 }],
+  "seats": [
+    { "id": "red", "name": "Red", "side": "south", "color": "#c0392b" },
+    { "id": "green", "name": "Green", "side": "east", "color": "#27ae60" },
+    { "id": "yellow", "name": "Yellow", "side": "north", "color": "#e1b12c" },
+    { "id": "blue", "name": "Blue", "side": "west", "color": "#2e6fb7" }
+  ],
+  "pieceTypes": {
+    "red": { "kind": "pawn", "shape": "simple", "color": "#c0392b", "size": [1.8] },
+    "green": { "kind": "pawn", "shape": "simple", "color": "#27ae60", "size": [1.8] },
+    "yellow": { "kind": "pawn", "shape": "simple", "color": "#e1b12c", "size": [1.8] },
+    "blue": { "kind": "pawn", "shape": "simple", "color": "#2e6fb7", "size": [1.8] }
+  },
+  "pieces": [
+    { "id": "board", "kind": "board", "size": [60.6, 60.6], "face": "assets/board.svg", "position": [40, 40], "fixed": true },
+    { "id": "red-1", "type": "red", "position": [55.3, 24.7] },
+    { "id": "red-2", "type": "red", "position": [60.5, 24.7] },
+    { "id": "red-3", "type": "red", "position": [55.3, 19.5] },
+    { "id": "red-4", "type": "red", "position": [60.5, 19.5] },
+    { "id": "green-1", "type": "green", "position": [55.3, 60.5] },
+    { "id": "green-2", "type": "green", "position": [60.5, 60.5] },
+    { "id": "green-3", "type": "green", "position": [55.3, 55.3] },
+    { "id": "green-4", "type": "green", "position": [60.5, 55.3] },
+    { "id": "yellow-1", "type": "yellow", "position": [19.5, 60.5] },
+    { "id": "yellow-2", "type": "yellow", "position": [24.7, 60.5] },
+    { "id": "yellow-3", "type": "yellow", "position": [19.5, 55.3] },
+    { "id": "yellow-4", "type": "yellow", "position": [24.7, 55.3] },
+    { "id": "blue-1", "type": "blue", "position": [19.5, 24.7] },
+    { "id": "blue-2", "type": "blue", "position": [24.7, 24.7] },
+    { "id": "blue-3", "type": "blue", "position": [19.5, 19.5] },
+    { "id": "blue-4", "type": "blue", "position": [24.7, 19.5] },
+    { "id": "die-1", "kind": "die", "die": "d6pips", "size": [2.4] },
+    { "id": "die-2", "kind": "die", "die": "d6pips", "size": [2.4] }
+  ],
+  "containers": [
+    { "id": "dice", "kind": "tray", "position": [40, 40], "size": [8.6, 8.6], "fixed": true, "members": ["die-1", "die-2"] }
+  ]
+}

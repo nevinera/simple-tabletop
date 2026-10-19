@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { tableRotationToThree, tableToThree } from "./coordinates";
 import { dieRegions, orientation, restHeight } from "./diceGeometry";
 import { HELD_LIFT, restingTurn } from "./pieces";
-import { D4_SCALE, labelSize } from "../state/dice";
+import { D4_SCALE, PIP_RADIUS, labelSize, pipSpots } from "../state/dice";
 
 const LABEL_PIXELS = 128;
 const INK = "#2a2a2a";
@@ -21,13 +21,13 @@ const labelTextures = new Map();
 // its numbers or images. setDieValue brightens the top and dims the rest.
 // Every mesh carries the piece id in userData.objectId.
 export function buildDie(def, textures) {
-  const { sides, labels, images, color } = def.die;
+  const { sides, labels, images, color, pips } = def.die;
   const regions = dieRegions(sides);
   const geometry = regionGeometry(regions);
   const materials = regions.map((region) => {
     const material = new THREE.MeshBasicMaterial({ color: DIM });
     if (labels) {
-      material.map = labelTexture(labels[region.label], color, sides);
+      material.map = labelTexture(labels[region.label], color, sides, pips);
     } else {
       textures.get(images[region.label]).then((texture) => {
         material.map = texture;
@@ -156,16 +156,25 @@ function regionGeometry(regions) {
   return geometry;
 }
 
-// A number on the die's color. 6 and 9 get underlined on dice where they
-// could be confused.
-function labelTexture(label, color, sides) {
-  const key = `${label}|${color}|${sides}`;
+// A number, or pips, on the die's color. 6 and 9 get underlined on dice
+// where they could be confused.
+function labelTexture(label, color, sides, pips = false) {
+  const key = `${label}|${color}|${sides}|${pips}`;
   if (labelTextures.has(key)) return labelTextures.get(key);
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = LABEL_PIXELS;
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = color;
   ctx.fillRect(0, 0, LABEL_PIXELS, LABEL_PIXELS);
+  if (pips) {
+    ctx.fillStyle = INK;
+    for (const [x, y] of pipSpots(label)) {
+      ctx.beginPath();
+      ctx.arc((0.5 + x) * LABEL_PIXELS, (0.5 + y) * LABEL_PIXELS, PIP_RADIUS * LABEL_PIXELS, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    return cacheTexture(key, canvas);
+  }
   const fontPx = labelSize(label, sides) * LABEL_PIXELS;
   ctx.font = `700 ${fontPx}px system-ui, sans-serif`;
   ctx.fillStyle = INK;
@@ -177,6 +186,10 @@ function labelTexture(label, color, sides) {
     const width = ctx.measureText(label).width;
     ctx.fillRect(middle - width / 2, middle + fontPx * 0.42, width, fontPx * 0.08);
   }
+  return cacheTexture(key, canvas);
+}
+
+function cacheTexture(key, canvas) {
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   labelTextures.set(key, texture);

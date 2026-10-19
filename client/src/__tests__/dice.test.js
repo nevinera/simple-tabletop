@@ -5,6 +5,7 @@ import { hasRoom, scatter, traySpot } from "../state/trays";
 import { createTableStore } from "../state/store";
 import { PieceInteraction } from "../table/interaction";
 import { visibleSide } from "../state/visibility";
+import { pipSpots } from "../state/dice";
 
 const raw = (overrides = {}) => ({
   formatVersion: 1,
@@ -35,6 +36,12 @@ describe("dice", () => {
       containers: [],
     }), "https://example.com/m.json");
     expect(custom.pieces[0].die.images[0].url).toBe("https://example.com/+.png");
+  });
+
+  it("lays out a pipped d6's pips the usual way", () => {
+    expect([1, 2, 3, 4, 5, 6].map((n) => pipSpots(String(n)).length)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(pipSpots("1")).toEqual([[0, 0]]);
+    expect(pipSpots("6").every(([x]) => x !== 0)).toBe(true);
   });
 
   it("grows a d4 by half, so it doesn't look small next to other dice", () => {

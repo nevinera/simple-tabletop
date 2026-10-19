@@ -38,3 +38,17 @@ describe("checkers", () => {
     expect(manifest.pieces.find((piece) => piece.id === "red-1").back.url).toMatch(/red-king\.svg$/);
   });
 });
+
+describe("pachisi", () => {
+  const raw = JSON.parse(readFileSync(join(BUILTINS, "pachisi", "manifest.json"), "utf8"));
+  const manifest = normalizeManifest(raw, "https://example.com/builtins/pachisi/manifest.json");
+
+  it("seats four colors with four pawns each, and puts two dice in a tray", () => {
+    const state = initialState(manifest);
+    for (const seat of ["red", "green", "yellow", "blue"]) {
+      expect(Object.keys(state.pieces).filter((id) => id.startsWith(`${seat}-`)), seat).toHaveLength(4);
+    }
+    expect(state.containers.dice.members).toEqual(["die-1", "die-2"]);
+    expect(manifest.pieces.find((piece) => piece.id === "die-1").die).toMatchObject({ name: "d6pips", pips: true });
+  });
+});

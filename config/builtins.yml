@@ -6,3 +6,7 @@
   name: Checkers
   description: Two players, twelve checkers each. Flip a checker over to crown it.
   thumbnail: thumbnail.svg
+- slug: pachisi
+  name: Pachisi
+  description: Two to four players race four pawns each around the board and home. Roll two dice.
+  thumbnail: thumbnail.svg

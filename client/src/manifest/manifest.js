@@ -5,6 +5,7 @@
 import { BUILT_IN_DICE, D4_SCALE, DIE_SIDES } from "../state/dice";
 import { HALF_SIDES, SEAT_ORDER, SIDES } from "../state/seats";
 import { DEFAULT_SPLAY, SPLAY_DIRECTIONS, canStack, stackKey } from "../state/objects";
+import { MEEPLE_DEPTH, PAWN_HEIGHTS, PAWN_SHAPES } from "../state/pawnShapes";
 
 export const DEFAULT_TABLE_COLOR = "#2e6b3f";
 const LAYER_IDS = ["board", "pieces"];
@@ -17,6 +18,7 @@ const KIND_SHAPES = {
   token: ["circle", "rect"],
   die: ["die"],
   standee: ["rect"],
+  pawn: PAWN_SHAPES,
 };
 const HOLDER_MARGIN = 0.2; // cm the clear holder sticks out past a standee on each side
 const HOLDER_DEPTH = 0.35; // of a standee's width, front to back
@@ -30,6 +32,8 @@ const RESERVED_ID_CHARACTER = "#"; // for pieces drawn from infinite bags; see s
 const DEFAULT_BAG_COLOR = "#7a5230";
 const MAX_BAG_TEXT = 16;
 const SOLID_THICKNESS = 0.2; // cm; tiles, chips, tokens, and standees, unless they say otherwise
+const DEFAULT_PAWN_COLOR = "#f4f1ea";
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 const SEAT_COLORS = ["#c0392b", "#2980b9", "#27ae60", "#8e44ad", "#d35400", "#16a085", "#c2185b", "#7f8c8d"];
 
 export class ManifestError extends Error {}
@@ -371,7 +375,7 @@ function normalizePiece(rawPiece, raw, layers, image, contained, dieTypes) {
   piece.shape ??= shapes[0];
   if (!shapes.includes(piece.shape)) throw new ManifestError(`${where} is a ${piece.kind}, so it can't be a ${piece.shape}.`);
   if (!Array.isArray(piece.size) || !(piece.size[0] > 0)) throw new ManifestError(`${where} needs a size.`);
-  if (!piece.face && piece.shape !== "die") throw new ManifestError(`${where} needs a face image.`);
+  if (!piece.face && piece.shape !== "die" && piece.kind !== "pawn") throw new ManifestError(`${where} needs a face image.`);
 
   const layer = findLayer(layers, piece.layer || (piece.kind === "board" ? "board" : "pieces"), where);
 
@@ -393,6 +397,31 @@ function normalizePiece(rawPiece, raw, layers, image, contained, dieTypes) {
       layer,
       die,
       value,
+      face: null,
+      back: null,
+      position: inContainer ? null : piece.position,
+      rotation: piece.rotation || 0,
+      faceUp: true,
+      fixed: piece.fixed || false,
+    };
+  }
+
+  if (piece.kind === "pawn") {
+    if (piece.color != null && !HEX_COLOR.test(piece.color)) throw new ManifestError(`${where} color must be a hex color like "#c0392b".`);
+    if (piece.size[1] != null && !(piece.size[1] > 0)) throw new ManifestError(`${where} height must be positive.`);
+    const width = piece.size[0];
+    const depth = piece.shape === "meeple" ? piece.thickness ?? width * MEEPLE_DEPTH : width;
+    return {
+      id: piece.id,
+      kind: "pawn",
+      shape: piece.shape,
+      // Footprint on the table; height is how tall it stands.
+      size: [width, depth],
+      height: piece.size[1] ?? width * PAWN_HEIGHTS[piece.shape],
+      color: piece.color || DEFAULT_PAWN_COLOR,
+      type: rawPiece.type || null,
+      categories: [...new Set([...(type.categories || []), ...(rawPiece.categories || [])])],
+      layer,
       face: null,
       back: null,
       position: inContainer ? null : piece.position,

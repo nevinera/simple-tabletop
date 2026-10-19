@@ -134,14 +134,15 @@ of them.
 |------------|----------|---------------------------------------------------------------|
 | `id`       | yes      | unique within the manifest                                    |
 | `type`     | no       | a key in `pieceTypes`                                         |
-| `kind`     | yes*     | `card`, `board`, `tile`, `chip`, `token`, `die`, or `standee`; see below |
+| `kind`     | yes*     | `card`, `board`, `tile`, `chip`, `token`, `die`, `standee`, or `pawn`; see below |
 | `layer`    | no       | defaults to `board` for boards and `pieces` for everything else |
-| `shape`    | boards, tokens | `rect` or `circle`; the other kinds have only one shape  |
-| `size`     | yes*     | `[width, depth]`, or for standees `[width, height]`; circles and dice use the first value only |
+| `shape`    | boards, tokens, pawns | `rect` or `circle`, or for pawns one of the [pawn shapes](#pawns) |
+| `size`     | yes*     | `[width, depth]`, or for standees `[width, height]`; circles and dice use the first value only, and pawns take `[width]` or `[width, height]` |
 | `thickness`| no       | in cm; tiles, chips, tokens, and standees default to 0.2, and cards and boards to their layer's thickness |
 | `categories`| no      | list of strings; combined with the type's categories          |
 | `die`      | dice     | a built-in die name, or a key in `dieTypes`                   |
-| `face`     | yes*     | image for the up side; not used by dice                       |
+| `face`     | yes*     | image for the up side; not used by dice or pawns              |
+| `color`    | no       | hex; tints built-in dice, and colors pawns                    |
 | `back`     | no       | image for the down side; defaults to `face`                   |
 | `position` | no*      | required unless a container lists the piece                   |
 | `rotation` | no       | defaults to 0                                                 |
@@ -164,6 +165,7 @@ A piece's kind decides what it does:
 | token | circle or rect | stacks       | no            | yes   |
 | die   | die            | trays        | no            | rolls |
 | standee | rect         |              | no            | no    |
+| pawn  | see [Pawns](#pawns) |       | no            | no    |
 
 A standee stands upright in a clear holder, its `face` toward the front and its `back` behind. Transparent
 parts of its images are cut out. Its holder is what takes up room on the table. Turn it to face another way.
@@ -223,6 +225,29 @@ To make a custom die, add an entry to `dieTypes`. Set the number of `sides` and 
 - A piece's optional `value` sets which face starts up, as an index into `faces`. It defaults to 0.
 - On a custom d4, each face image fills one corner of a face, so a d4's `faces` lists four images, one per
   corner number.
+
+## Pawns
+
+A pawn is a solid playing piece the app draws in the pawn's `color`, so it needs no images. Pick a
+`shape`:
+
+| shape     | looks like                                         | height |
+|-----------|----------------------------------------------------|--------|
+| `classic` | a chess-style pawn: a base, a collar, a round head | 1.6 × width |
+| `simple`  | a smooth bell with a round head, like Parcheesi    | 1.4 × width |
+| `meeple`  | a flat cut-out person                              | 1 × width |
+| `cone`    | a cone with a ball on top, like Sorry              | 1.5 × width |
+
+```json
+{ "id": "red-1", "kind": "pawn", "shape": "simple", "color": "#c0392b", "size": [1.8], "position": [20, 30] }
+```
+
+`size` is the pawn's width, and an optional second value sets its height instead of the shape's default.
+`color` defaults to an off-white. A meeple is 0.4 times its width thick, or set `thickness`. A pawn covers
+a circle its width across on the table, and a meeple covers its base.
+
+Pawns don't flip. Turn one to face another way. Bags take pawns, so a pawn type in an infinite bag makes
+a supply.
 
 ## Containers
 

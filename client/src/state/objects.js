@@ -231,7 +231,7 @@ const CONTAINER_TAKES = {
   tray: ["die"],
   deck: ["card"],
   hand: ["card", "tile"],
-  bag: ["card", "tile", "chip", "token", "die", "standee"],
+  bag: ["card", "tile", "chip", "token", "die", "standee", "pawn"],
 };
 
 export function accepts(containerDef, pieceDef) {
@@ -265,6 +265,7 @@ export function objectHeight(object) {
   if (object.kind === "piece") {
     if (object.def.kind === "die") return object.def.size[0] * DIE_HEIGHT;
     if (object.def.kind === "standee") return object.def.size[1];
+    if (object.def.kind === "pawn") return object.def.height;
     return object.def.thickness;
   }
   if (object.def.kind === "hand") return HAND_TRAY_HEIGHT;

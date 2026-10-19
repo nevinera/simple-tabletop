@@ -1,12 +1,13 @@
 import { imageStyle } from "./cardImage";
 import { DieFace } from "./DieFace";
+import { PawnIcon } from "./PawnIcon";
 
-// A card, a die's top face, or a bag's contents, shown large over the
+// A card, a die's top face, a pawn, or a bag's contents, shown large over the
 // table. side comes from visibleSide(). With onClose (touch), a tap anywhere
 // closes it; otherwise it lets pointer events through and goes away when Alt
 // comes up.
 export function Magnifier({ side, onClose }) {
-  const label = side.contents ? "Bag contents" : side.die ? "Magnified die" : "Magnified card";
+  const label = side.contents ? "Bag contents" : side.die ? "Magnified die" : side.pawn ? "Magnified pawn" : "Magnified card";
   return (
     <div
       className={`magnifier${onClose ? " magnifier-closable" : ""}`}
@@ -21,6 +22,7 @@ export function Magnifier({ side, onClose }) {
 
 function Side({ side, className }) {
   if (side.die) return <DieFace die={side.die} value={side.value} className={`${className}-die`} />;
+  if (side.pawn) return <PawnIcon pawn={side.pawn} className={`${className}-pawn`} />;
   return (
     <div
       className={`${className}-card`}

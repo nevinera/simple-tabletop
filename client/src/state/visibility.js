@@ -1,8 +1,8 @@
 // What a player at `viewerSeat` gets to see of an object: the image on its
 // visible side and its size, or null when there's nothing to show. Cards in
 // your own hand show their face, cards in anyone else's show their back, and
-// a deck shows its top. A die shows { die, value } instead of an image, and
-// a bag shows what's in it (see bagContents).
+// a deck shows its top. A die shows { die, value } instead of an image, a
+// pawn { pawn: { shape, color } }, and a bag what's in it (see bagContents).
 
 import { findObject, pieceDef } from "./objects";
 
@@ -30,6 +30,7 @@ export function visibleSide(manifest, state, id, viewerSeat) {
 
   const { def, state: piece } = object;
   if (def.shape === "die") return { die: def.die, value: piece.value };
+  if (def.kind === "pawn") return { pawn: { shape: def.shape, color: def.color } };
   if (piece.containerId) {
     const container = findObject(manifest, state, piece.containerId);
     if (container.def.kind === "stack") return { image: piece.faceUp ? def.face : def.back, size: def.size };
@@ -59,6 +60,9 @@ function bagContents(manifest, bag) {
 function describeKind(def) {
   if (def.shape === "die") {
     return { key: def.type || `die:${def.die.name}:${def.die.color}`, name: def.type || def.die.name, side: { die: def.die, value: def.value } };
+  }
+  if (def.kind === "pawn") {
+    return { key: def.type || `pawn:${def.shape}:${def.color}`, name: def.type, side: { pawn: { shape: def.shape, color: def.color } } };
   }
   return {
     key: def.type || `face:${def.face.url}#${def.face.index ?? ""}`,

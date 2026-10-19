@@ -89,7 +89,7 @@ export class PieceInteraction {
       count: container && !infinite ? object.state.members.length : null,
       infinite,
       canMakeDeck: !container && !object.state.containerId && object.def.kind === "card",
-      canFlip: container ? object.def.kind === "deck" : !["die", "board", "standee"].includes(object.def.kind),
+      canFlip: container ? object.def.kind === "deck" : !["die", "board", "standee", "pawn"].includes(object.def.kind),
       splay: object.def.kind === "deck" ? object.state.splay : null,
       splayDistance: object.def.kind === "deck" ? object.state.splayDistance ?? object.def.splayDistance ?? DEFAULT_SPLAY : null,
       inHand,

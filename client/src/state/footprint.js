@@ -12,7 +12,9 @@ const TOUCH_CM = 0.01; // overlaps shallower than this are just touching
 export function footprint(def, x, y, rotation) {
   // A standee covers only its holder.
   const [width, depth] = def.holder || def.size;
-  if (def.shape === "circle" || def.shape === "die") return { circle: { x, y, r: width / 2 } };
+  if (def.shape === "circle" || def.shape === "die" || (def.kind === "pawn" && def.shape !== "meeple")) {
+    return { circle: { x, y, r: width / 2 } };
+  }
 
   // Clockwise from above, with y running away from you.
   const radians = (rotation * Math.PI) / 180;

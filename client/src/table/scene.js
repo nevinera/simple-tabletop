@@ -18,7 +18,9 @@ import { buildLabel } from "./labels";
 import { buildNameTag, disposeNameTag, placeNameTag } from "./nameTags";
 import { HELD_LIFT, applyHandSlot, applyPlacement, buildPiece, stackRanks } from "./pieces";
 import { applyStackPlacement, buildStack, faceCamera, setStackTop } from "./stacks";
-import { applyStandeePlacement, buildStandee } from "./standees";
+import { buildPawn } from "./pawns";
+import { buildStandee } from "./standees";
+import { applyUprightPlacement } from "./upright";
 import { applyMotion, clampTarget, orbit, sumMotions } from "./rig";
 import { TextureCache } from "./textures";
 
@@ -125,7 +127,9 @@ export class TableScene {
         continue;
       }
       if (def.kind === "die") this.#placeLooseDie(mesh, def, state);
-      else if (def.kind === "standee") applyStandeePlacement(mesh, def, state.pieces[def.id], this.#hover(def.id, state));
+      else if (def.kind === "standee" || def.kind === "pawn") {
+        applyUprightPlacement(mesh, def, state.pieces[def.id], this.#hover(def.id, state));
+      }
       else applyPlacement(mesh, def, state.pieces[def.id], ranks.get(def.id) || 0, this.#hover(def.id, state));
     }
     // Pieces that went into an infinite bag are gone.
@@ -525,6 +529,7 @@ export class TableScene {
   #buildMesh(def) {
     if (def.kind === "die") return buildDie(def, this.textures);
     if (def.kind === "standee") return buildStandee(def, this.textures);
+    if (def.kind === "pawn") return buildPawn(def);
     return buildPiece(def, this.textures);
   }
 

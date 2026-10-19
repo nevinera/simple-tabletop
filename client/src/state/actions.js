@@ -225,6 +225,7 @@ const HANDLERS = {
     if (def.kind === "die") return reject(state, "Dice roll instead.");
     if (def.kind === "board") return reject(state, "Boards don't flip.");
     if (def.kind === "standee") return reject(state, "Turn a standee instead.");
+    if (def.kind === "pawn") return reject(state, "Pawns don't flip.");
     return save(state, object, { faceUp: !object.state.faceUp });
   },
 

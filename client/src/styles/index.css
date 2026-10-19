@@ -424,7 +424,8 @@ kbd {
 
 .magnifier-closable { pointer-events: auto; background: rgba(0, 0, 0, 0.35); }
 
-.magnifier-die {
+.magnifier-die,
+.magnifier-pawn {
   width: min(50vh, 420px, calc(100vw - 32px));
   filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.6));
 }
@@ -444,7 +445,7 @@ kbd {
 .bag-contents ul { margin: 0; padding: 0; list-style: none; }
 .bag-contents li { display: flex; align-items: center; gap: 12px; padding: 4px 0; }
 .bag-contents-card { height: 48px; flex: none; border-radius: 4px; }
-.bag-contents-die { width: 48px; flex: none; }
+.bag-contents-die, .bag-contents-pawn { width: 48px; flex: none; }
 .bag-contents-name { flex: 1; }
 .bag-contents-count { color: var(--muted); font-variant-numeric: tabular-nums; }
 

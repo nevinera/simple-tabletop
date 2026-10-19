@@ -36,6 +36,24 @@ class Game < ApplicationRecord
     Container.insert_all!(container_rows) if container_rows.any?
   end
 
+  # Saves one client's change if the game is still at base, the sequence the
+  # client ran its action against. rows holds each changed piece, container,
+  # and player in the client's shape, null for one that's gone, plus seating
+  # when it changed. Returns whether the change took.
+  def apply_change!(base:, rows:)
+    taken = transaction do
+      next false unless Game.where(id:, sequence: base).update_all("sequence = sequence + 1") == 1
+
+      write_rows!(Piece, rows["pieces"])
+      write_rows!(Container, rows["containers"])
+      rows["players"].to_h.each { |public_id, row| players.where(public_id:).update_all(seat_key: row&.dig("seatId")) }
+      update_columns(seating: rows["seating"]) if SEATINGS.include?(rows["seating"])
+      true
+    end
+    reload if taken
+    taken
+  end
+
   # Everything a client needs to show the table, in its own shape. players
   # lists who sits where, and roster everyone in the game.
   def snapshot
@@ -49,5 +67,14 @@ class Game < ApplicationRecord
       pieces: pieces.to_h { |piece| [ piece.key, piece.to_client ] },
       containers: containers.to_h { |container| [ container.key, container.to_client ] }
     }
+  end
+
+  private
+
+  def write_rows!(model, objects)
+    gone, kept = objects.to_h.partition { |_key, row| row.nil? }
+    model.where(game_id: id, key: gone.map(&:first)).delete_all if gone.any?
+    rows = kept.map { |key, row| model.attributes_from_client(row).merge(game_id: id, key:) }
+    model.upsert_all(rows, unique_by: %i[game_id key]) if rows.any?
   end
 end

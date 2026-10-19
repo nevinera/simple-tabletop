@@ -2,9 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import App from "../App";
 import { fetchGameState, joinGame, startGame } from "../server/api";
+import { connectGame } from "../server/sync";
 
 vi.mock("../table/TableCanvas", () => ({ default: () => <div data-testid="table-canvas" /> }));
 vi.mock("../server/api", () => ({ fetchGameState: vi.fn(), joinGame: vi.fn(), startGame: vi.fn() }));
+vi.mock("../server/sync", () => ({ connectGame: vi.fn(() => () => {}) }));
 vi.mock("../manifest/manifest", async (importActual) => {
   const actual = await importActual();
   const raw = {
@@ -48,6 +50,7 @@ describe("server games", () => {
     fireEvent.click(screen.getByRole("button", { name: "Join" }));
     expect(await screen.findByRole("dialog", { name: "Pick a seat" })).toBeTruthy();
     expect(joinGame).toHaveBeenCalledWith("abc", "Alex");
+    expect(connectGame).toHaveBeenCalledWith("abc", window.tableStore);
     expect(window.tableStore.getState().pieces.AS).toMatchObject({ x: 20, y: 30 });
     fireEvent.click(screen.getByRole("button", { name: "South" }));
     expect(window.tableStore.getState().players.p2).toEqual({ seatId: "south-left" });

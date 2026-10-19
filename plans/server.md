@@ -121,13 +121,14 @@ die, or wiggle. Clients apply `rows` directly and never re-run someone else's ac
 
 | message | contents                                                    |
 |---------|-------------------------------------------------------------|
-| `act`   | `actionId`, `base`, `action`, `rows`                        |
+| `act`   | `actionId`, `base`, `tableAction`, `rows`                   |
 | `drag`  | `id`, `x`, `y`                                              |
 | `ping`  | nothing; keeps `seen_at` fresh while a player sits still    |
 | `resync`| asks for a new `snapshot`                                   |
 | `host`  | the host's commands; see [The host](#the-host)              |
 
-`actionId` is random per action, so a client can match its own `change` when it comes back.
+`actionId` is random per action, so a client can match its own `change` when it comes back. The client sends
+the action as `tableAction`, because Action Cable uses `action` for the channel method.
 
 ### What the server does with `act`
 
@@ -150,8 +151,9 @@ their state. The client throttles drags to about 20 a second and sends them only
 
 ### Sequence gaps
 
-A client that gets a `change` whose `sequence` isn't one more than its own sends `resync` and drops its
-pending actions.
+A client that gets a `change` whose `sequence` isn't one more than its own sends `resync`. Every snapshot, from
+a resync or a reconnect, drops the action in flight, since it may or may not have taken. The client replays
+the rest of its queue on the snapshot and keeps sending.
 
 ## Client changes
 

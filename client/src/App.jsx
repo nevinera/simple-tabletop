@@ -13,6 +13,7 @@ import { handId, openSeats, seatName, seatOf, seatView } from "./state/seats";
 import { pieceDef } from "./state/objects";
 import { initialState } from "./state/actions";
 import { fetchGameState, joinGame, startGame } from "./server/api";
+import { connectGame } from "./server/sync";
 import { NameForm } from "./ui/NameForm";
 import { magnifiable, visibleSide } from "./state/visibility";
 import { SeatPicker } from "./ui/SeatPicker";
@@ -81,13 +82,18 @@ export default function App({ manifestUrl, game = null }) {
     return () => { cancelled = true; };
   }, [game]);
 
-  // Changes stay in this browser until the server syncs them.
   const store = useMemo(() => {
     if (!manifest || (game && !serverState)) return null;
     if (!serverState) return createTableStore(manifest);
     const { sequence, seating, players, pieces, containers } = serverState;
-    return createTableStore(manifest, { sequence, seating, players, pieces, containers });
+    return createTableStore(manifest, { sequence, seating, players, pieces, containers }, { synced: true });
   }, [manifest, game, serverState]);
+
+  // Once this browser has a player in the game, it syncs with the server.
+  useEffect(() => {
+    if (!game || !player || !store) return undefined;
+    return connectGame(game.token, store);
+  }, [game, player, store]);
 
   const join = useCallback(async ({ name }) => setPlayer(await joinGame(game.token, name)), [game]);
   const host = useCallback(async ({ name, gameName }) => {
@@ -293,7 +299,7 @@ function useTableSounds(manifest, store) {
   }, []);
   useEffect(() => {
     if (!sounds || !store) return undefined;
-    return store.subscribe((state, action) => sounds.play(soundFor(manifest, state, action)));
+    return store.subscribe((state, action) => action && sounds.play(soundFor(manifest, state, action)));
   }, [sounds, manifest, store]);
   return sounds;
 }

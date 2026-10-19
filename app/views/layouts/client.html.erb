@@ -7,6 +7,9 @@
     <%= csp_meta_tag %>
     <link rel="icon" href="/icon.png" type="image/png">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+    <%= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+    <meta name="theme-color" content="#1b1b1f">
     <%= vite_stylesheet_tags("src/main.jsx") %>
   </head>
   <body>

@@ -19,7 +19,7 @@ class CreateGames < ActiveRecord::Migration[8.1]
       t.boolean :host, null: false, default: false
       t.datetime :seen_at
       t.timestamps
-      t.index [:game_id, :public_id], unique: true
+      t.index [ :game_id, :public_id ], unique: true
     end
 
     create_table :pieces do |t|
@@ -34,7 +34,7 @@ class CreateGames < ActiveRecord::Migration[8.1]
       t.string :held_by, index: true
       t.boolean :locked, null: false, default: false
       t.json :extras, null: false, default: {}
-      t.index [:game_id, :key], unique: true
+      t.index [ :game_id, :key ], unique: true
     end
 
     create_table :containers do |t|
@@ -48,7 +48,7 @@ class CreateGames < ActiveRecord::Migration[8.1]
       t.string :held_by, index: true
       t.boolean :locked, null: false, default: false
       t.json :extras, null: false, default: {}
-      t.index [:game_id, :key], unique: true
+      t.index [ :game_id, :key ], unique: true
     end
   end
 end

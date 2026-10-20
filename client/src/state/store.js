@@ -159,12 +159,22 @@ export function createTableStore(manifest, start = null, { synced = false } = {}
       return () => lostListeners.delete(listener);
     },
 
+    // Starts sending, including anything queued while disconnected.
     connect(next) {
       transport = next;
+      send();
     },
 
+    // Stops sending. The action in flight may or may not have taken, so it
+    // goes, as when a snapshot comes; the snapshot on reconnecting shows
+    // which.
     disconnect() {
       transport = null;
+      if (sent) {
+        queue = queue.filter((entry) => entry !== sent);
+        rebuild();
+        notify(null);
+      }
       sent = null;
     },
 

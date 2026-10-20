@@ -30,16 +30,9 @@ export function connectGame(token, store, { onRoster = () => {}, onReplaced = ()
     }, PING_INTERVAL - Math.random() * PING_JITTER);
   };
 
-  const subscription = consumer.subscriptions.create({ channel: "GameChannel", game: token }, {
-    received(message) {
-      if (message.roster) onRoster(message.roster);
-      if (message.type === "roster") return;
-      if (message.type !== "replaced") return store.receive(message);
-      stop();
-      onReplaced();
-    },
-  });
-  store.connect({
+  // The store sends nothing until the server has confirmed the subscription:
+  // an action sent before then is lost, and the store would wait on it.
+  const transport = {
     // A drag still waiting to go out would land after the action.
     act: (message) => {
       drags.cancel();
@@ -47,6 +40,21 @@ export function connectGame(token, store, { onRoster = () => {}, onReplaced = ()
     },
     drag: drags.send,
     resync: () => subscription.perform("resync"),
+  };
+  const subscription = consumer.subscriptions.create({ channel: "GameChannel", game: token }, {
+    connected() {
+      store.connect(transport);
+    },
+    disconnected() {
+      store.disconnect();
+    },
+    received(message) {
+      if (message.roster) onRoster(message.roster);
+      if (message.type === "roster") return;
+      if (message.type !== "replaced") return store.receive(message);
+      stop();
+      onReplaced();
+    },
   });
   ping();
   return stop;

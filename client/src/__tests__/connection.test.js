@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { connectGame } from "../server/sync";
 
-const cable = vi.hoisted(() => ({ performed: [], received: null, disconnected: false }));
+const cable = vi.hoisted(() => ({ performed: [], callbacks: null, received: null, disconnected: false }));
 vi.mock("@rails/actioncable", () => ({
   createConsumer: () => ({
     subscriptions: {
-      create: (_params, { received }) => {
-        cable.received = received;
+      create: (_params, callbacks) => {
+        cable.callbacks = callbacks;
+        cable.received = callbacks.received;
         return { perform: (action, data) => cable.performed.push([action, data]) };
       },
     },
@@ -18,7 +19,7 @@ const fakeStore = () => ({ connect: vi.fn(), disconnect: vi.fn(), receive: vi.fn
 
 beforeEach(() => {
   vi.useFakeTimers();
-  Object.assign(cable, { performed: [], received: null, disconnected: false });
+  Object.assign(cable, { performed: [], callbacks: null, received: null, disconnected: false });
 });
 afterEach(() => vi.useRealTimers());
 
@@ -26,6 +27,7 @@ describe("connectGame", () => {
   it("sends about 20 drags a second, always the newest", () => {
     const store = fakeStore();
     connectGame("abc", store);
+    cable.callbacks.connected();
     const { drag } = store.connect.mock.calls[0][0];
     drag({ id: "a", x: 1, y: 0 });
     drag({ id: "a", x: 2, y: 0 });
@@ -38,12 +40,23 @@ describe("connectGame", () => {
   it("drops a waiting drag when an action goes out", () => {
     const store = fakeStore();
     connectGame("abc", store);
+    cable.callbacks.connected();
     const { act, drag } = store.connect.mock.calls[0][0];
     drag({ id: "a", x: 1, y: 0 });
     drag({ id: "a", x: 2, y: 0 });
     act({ actionId: "x" });
     vi.advanceTimersByTime(100);
     expect(cable.performed.map(([action]) => action)).toEqual(["drag", "act"]);
+  });
+
+  it("hands the store its connection only once the subscription is confirmed, and takes it back on a drop", () => {
+    const store = fakeStore();
+    connectGame("abc", store);
+    expect(store.connect).not.toHaveBeenCalled();
+    cable.callbacks.connected();
+    expect(store.connect).toHaveBeenCalledTimes(1);
+    cable.callbacks.disconnected();
+    expect(store.disconnect).toHaveBeenCalledTimes(1);
   });
 
   it("pings every 8 to 10 seconds", () => {

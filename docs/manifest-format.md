@@ -136,7 +136,7 @@ of them.
 |------------|----------|---------------------------------------------------------------|
 | `id`       | yes      | unique within the manifest                                    |
 | `type`     | no       | a key in `pieceTypes`                                         |
-| `kind`     | yes*     | `card`, `board`, `tile`, `chip`, `token`, `die`, `standee`, or `pawn`; see below |
+| `kind`     | yes*     | `card`, `board`, `tile`, `chip`, `token`, `die`, `standee`, `pawn`, or `counter`; see below |
 | `layer`    | no       | defaults to `board` for boards and `pieces` for everything else |
 | `shape`    | boards, tokens, pawns | `rect` or `circle`, or for pawns one of the [pawn shapes](#pawns) |
 | `size`     | yes*     | `[width, depth]`, or for standees `[width, height]`; circles and dice use the first value only, and pawns take `[width]` or `[width, height]` |
@@ -174,6 +174,7 @@ A piece's kind decides what it does:
 | die   | die            | trays        | no            | rolls |
 | standee | rect         |              | no            | no    |
 | pawn  | see [Pawns](#pawns) |       | no            | no    |
+| counter | rect         |              | no            | no    |
 
 A standee stands upright in a clear holder, its `face` toward the front and its `back` behind. Transparent
 parts of its images are cut out. Its holder is what takes up room on the table. Turn it to face another way.
@@ -277,6 +278,20 @@ a circle its width across on the table, and a meeple covers its base.
 
 Pawns don't flip. Turn one to face another way. Bags take pawns, so a pawn type in an infinite bag makes
 a supply.
+
+## Counters
+
+A counter keeps a labeled number, like a score or a pile of gold: a plaque in its `color` with its `label`
+above its number. Players change it from its menu: add or take away 1, 5, 20, or 100, or type a new number or
+label. A locked counter stays put but still counts.
+
+```json
+"score": { "kind": "counter", "size": [7, 3.5], "label": "Score", "color": "#f4efe0" }
+```
+
+- `label` is up to 12 characters, and defaults to none. `value` is a whole number, and defaults to 0.
+- `color` defaults to an off-white. The writing comes out dark or light to suit it.
+- An infinite bag of counters hands out as many score keepers as players need.
 
 ## Containers
 

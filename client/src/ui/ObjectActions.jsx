@@ -141,6 +141,11 @@ export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onS
           </div>
         </>
       )}
+      {object.canStackUp && (
+        <button type="button" className="menu-item" onClick={act(() => interaction.stackUp())}>
+          Stack up <kbd>K</kbd>
+        </button>
+      )}
       {object.canMakeDeck && (
         <button type="button" className="menu-item" onClick={act(() => interaction.makeDeck(objectId))}>
           Make a deck

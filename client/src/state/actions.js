@@ -39,7 +39,7 @@
 // deck's own.
 
 import { carried, elevation, landing, riders, setDown, settle, stackUp } from "./footprint";
-import { SPLAY_DIRECTIONS, accepts, fanSpots, findObject, handIndex, handSlots, pieceDef, spawnedId } from "./objects";
+import { SPLAY_DIRECTIONS, accepts, fanSpots, findObject, handIndex, handSlots, pieceDef, pilesWith, spawnedId } from "./objects";
 import { nearestFree, scatter, seededRandom, toTray } from "./trays";
 import { handId, openSeats, seatOf } from "./seats";
 
@@ -128,6 +128,7 @@ export function initialState(manifest) {
 //   splay:    { direction }, a SPLAY_DIRECTIONS key or null to close the
 //             deck up, plus { distance } in cm to change its spacing
 //   changeState: { index }, which of a card's states to put it in
+//   stackUp:  { others }, the pieces to pile on top of this one, bottom first
 export function applyAction(manifest, state, action) {
   if (SEAT_HANDLERS[action.type]) return SEAT_HANDLERS[action.type]({ manifest, state, action });
   const handler = HANDLERS[action.type];
@@ -337,6 +338,32 @@ const HANDLERS = {
     if (def.kind !== "deck") return reject(state, "Only decks can be reordered.");
     if (!sameMembers(object.state.members, action.order)) return reject(state, "The deck changed since you opened it.");
     return save(state, object, { members: [...action.order] });
+  },
+
+  // Piles loose pieces up where this one lies: cards that pile together
+  // become a deck, and alike tiles, chips, or tokens a stack, with the others
+  // on top, the last one highest. The player lets go of all of them.
+  stackUp({ manifest, state, action, kind, def, object }) {
+    const others = action.others || [];
+    if (kind !== "piece" || !others.length) return reject(state, "stackUp needs pieces to pile up.");
+    const pile = [object, ...others.map((id) => findObject(manifest, state, id))];
+    if (new Set(pile.map((p) => p?.id)).size !== pile.length) return reject(state, "stackUp got a piece twice.");
+    for (const piece of pile) {
+      if (piece?.kind !== "piece" || piece.state.containerId || piece.state.x == null) return reject(state, "Only loose pieces stack up.");
+      if (piece.state.heldBy && piece.state.heldBy !== action.playerId) return reject(state, "Someone else is holding one of those.");
+    }
+    if (!pile.every((piece) => pilesWith(def, piece.def))) return reject(state, "Those don't stack together.");
+    const card = def.kind === "card";
+    const containerId = `#${card ? "deck" : "stack"}-${state.sequence}`;
+    const { x, y, z, rotation, faceUp } = object.state;
+    const container = { x, y, z: z || 0, rotation, faceUp: card ? faceUp : true, members: pile.map((p) => p.id).reverse(),
+      heldBy: null, drag: null, locked: false, spec: card ? deckSpec(def) : { kind: "stack" } };
+    if (card) Object.assign(container, { splay: null, splayDistance: null });
+    let next = { ...state, containers: { ...state.containers, [containerId]: container } };
+    for (const piece of pile) {
+      next = withObject(next, piece, { ...letGoOf(piece), containerId, x: null, y: null, ...(card ? { faceUp } : {}) });
+    }
+    return { ok: true, state: { ...next, sequence: state.sequence + 1 } };
   },
 
   makeDeck({ manifest, state, action, kind, def, object }) {

@@ -27,7 +27,7 @@
 // runs without WebGL in tests.
 
 import { rollValues } from "../state/dice";
-import { DEFAULT_SPLAY, fanSpots, findObject, pieceDef, spawnedId } from "../state/objects";
+import { DEFAULT_SPLAY, fanSpots, findObject, pieceDef, pilesWith, spawnedId } from "../state/objects";
 import { scatter } from "../state/trays";
 import { handId, seatOf } from "../state/seats";
 
@@ -132,6 +132,7 @@ export class PieceInteraction {
       infinite,
       canMakeDeck: !container && !object.state.containerId && object.def.kind === "card",
       searchable: ["deck", "bag"].includes(object.def.kind) && !infinite && object.state.members.length > 0,
+      canStackUp: this.#stackable(id),
       canFlip: container ? object.def.kind === "deck" : !["die", "board", "standee", "pawn"].includes(object.def.kind),
       splay: object.def.kind === "deck" ? object.state.splay : null,
       splayDistance: object.def.kind === "deck" ? object.state.splayDistance ?? object.def.splayDistance ?? DEFAULT_SPLAY : null,
@@ -289,6 +290,27 @@ export class PieceInteraction {
     const extra = { direction };
     if (distance !== undefined) extra.distance = distance;
     if (this.#dispatch("splay", deckId, extra).blocked) this.onBlockedRotate(deckId, 1); // any turn wiggles
+  }
+
+  // Piles up the loose pieces you hold, where the first one lies, if they
+  // all pile together (see pilesWith).
+  stackUp() {
+    const pile = this.#pileToStack();
+    if (pile) this.#dispatch("stackUp", pile[0], { others: pile.slice(1) });
+  }
+
+  // The loose pieces you hold, if there are several and they all pile
+  // together, or null.
+  #pileToStack() {
+    const pile = this.selectedIds().map((id) => this.#object(id))
+      .filter((object) => object.kind === "piece" && !object.state.containerId);
+    if (pile.length < 2 || pile.length !== this.selectedIds().length) return null;
+    return pile.every((object) => pilesWith(pile[0].def, object.def)) ? pile.map((object) => object.id) : null;
+  }
+
+  // Whether a menu for this object offers to stack up what you hold.
+  #stackable(id) {
+    return Boolean(this.#pileToStack()?.includes(id));
   }
 
   makeDeck(id) {

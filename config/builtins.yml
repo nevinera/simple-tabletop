@@ -10,3 +10,7 @@
   name: Pachisi
   description: Two to four players race four pawns each around the board and home. Roll two dice.
   thumbnail: thumbnail.svg
+- slug: cards
+  name: Cards
+  description: A standard 52-card deck with two jokers, and a bank of poker chips. Deal, play, and bet any card game.
+  thumbnail: thumbnail.svg

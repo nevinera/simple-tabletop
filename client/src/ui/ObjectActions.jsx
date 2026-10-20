@@ -30,7 +30,7 @@ export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onS
       Magnify <kbd>Alt</kbd>
     </button>
   );
-  const states = object.states && !object.locked && (
+  const states = object.states && (
     <>
       <p className="menu-label">State <kbd>U</kbd></p>
       <div className="piece-actions-row">

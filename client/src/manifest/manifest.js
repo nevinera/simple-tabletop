@@ -428,12 +428,13 @@ function normalizeEdge(edge, where) {
   return edge;
 }
 
-// A card's states, like normal and upgraded, as [{ name, face, back }], or
+// A card's or board's states, like normal and upgraded, or a map's
+// regions, as [{ name, face, back }], or
 // null for a card without them. A state without a face or back uses the
 // card's own, and a card's face defaults to its first state's.
 function normalizeStates(piece, where, image) {
   if (piece.states == null) return null;
-  if (piece.kind !== "card") throw new ManifestError(`${where} isn't a card, so it can't have states.`);
+  if (!["card", "board"].includes(piece.kind)) throw new ManifestError(`${where} isn't a card or board, so it can't have states.`);
   if (!Array.isArray(piece.states) || piece.states.length < 2) throw new ManifestError(`${where} needs at least two states.`);
   const face = piece.face && image(piece.face, `${where} face`);
   const back = piece.back && image(piece.back, `${where} back`);

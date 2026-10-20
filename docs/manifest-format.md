@@ -148,7 +148,7 @@ of them.
 | `color`    | no       | hex; tints built-in dice, and colors pawns                    |
 | `edge`     | no       | hex; the color of a flat piece's sides, and its band in a stack |
 | `back`     | no       | image for the down side; defaults to `face`                   |
-| `states`   | no       | cards only: the looks a card can switch between; see [Card states](#card-states) |
+| `states`   | no       | cards and boards: the looks it can switch between; see [Card states](#card-states) |
 | `position` | no*      | required unless a container lists the piece                   |
 | `rotation` | no       | defaults to 0                                                 |
 | `faceUp`   | no       | defaults to true                                              |
@@ -201,6 +201,8 @@ each with a `name` and the images it changes:
 - Every card starts in its first state. Players pick a state from the card's menu, or press U for the next one.
 - A card keeps its state wherever it goes, including into decks and hands. Players can change cards that are
   loose, in their own hand, or in a splayed deck.
+- Boards can have states too, like one map board with a state per region. Locked cards and boards still
+  change state; locking only keeps them in place.
 
 ## Dice
 

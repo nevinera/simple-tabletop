@@ -180,6 +180,7 @@ rides on it, draws as moving with it.
 | `makeDeck` | turn a loose card into a new deck holding just that card        |
 | `splay`    | fan a deck's cards out in a `direction`, or close it with null, and set its `distance` |
 | `changeState` | put a card in one of its states, by `index`               |
+| `stackUp`  | pile loose pieces (`others`) on this one: a deck for cards of a type, a stack for alike tiles, chips, or tokens |
 | `release`  | let go without changing anything                               |
 
 `flip`, `rotate`, and `lock` also work on things nobody holds, so players can act on what they're pointing at.

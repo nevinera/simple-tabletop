@@ -8,7 +8,7 @@ const FINE_ROTATE_STEP = 22.5;
 // jump to or (with Shift) save camera points, F/R/T flip and rotate the
 // selected or hovered object, G draws from the hovered deck (Shift+G into
 // your hand), X rolls a die (Shift+X its whole tray), L locks and unlocks,
-// U moves a card to its next state,
+// U moves a card to its next state, K stacks up what you hold,
 // Esc calls onEscape, and ? calls onHelp.
 export function useTableKeys({ scene, cameraPoints, interaction, onEscape, onHelp }) {
   useEffect(() => {
@@ -54,6 +54,9 @@ export function useTableKeys({ scene, cameraPoints, interaction, onEscape, onHel
           return;
         case "KeyL":
           if (!event.repeat) interaction?.lock();
+          return;
+        case "KeyK":
+          if (!event.repeat) interaction?.stackUp();
           return;
         case "KeyU":
           if (!event.repeat) interaction?.nextState();

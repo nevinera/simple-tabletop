@@ -4,6 +4,8 @@ import { normalizeManifest } from "../manifest/manifest";
 import { landing } from "../state/footprint";
 import { findObject, objectHeight } from "../state/objects";
 import { visibleSide } from "../state/visibility";
+import { createTableStore } from "../state/store";
+import { PieceInteraction } from "../table/interaction";
 
 const BASE = "https://example.com/m.json";
 const raw = (overrides = {}) => ({
@@ -92,5 +94,63 @@ describe("stacks", () => {
     ].filter((piece) => members.includes(piece.id));
     const containers = [...raw().containers, { id: "bad", kind: "stack", position: [0, 0], members }];
     expect(() => normalizeManifest(raw({ pieces: [...raw().pieces, ...extras], containers }), BASE)).toThrow(message);
+  });
+});
+
+describe("stacking up a selection", () => {
+  const cards = normalizeManifest(raw({
+    pieceTypes: {
+      gold: { kind: "chip", size: [2], face: "gold.svg" },
+      silver: { kind: "chip", size: [2], face: "silver.svg" },
+      spade: { kind: "card", size: [6, 9], face: "s.svg", back: "b.svg" },
+    },
+    pieces: [
+      { id: "g1", type: "gold", position: [10, 10] },
+      { id: "g2", type: "gold", position: [20, 10] },
+      { id: "g3", type: "gold", position: [30, 10] },
+      { id: "s1", type: "silver", position: [40, 10] },
+      { id: "c1", type: "spade", position: [10, 40] },
+      { id: "c2", type: "spade", position: [30, 40], faceUp: false },
+    ],
+    containers: [],
+  }), BASE);
+  const act = (state, action) => applyAction(cards, state, { playerId: "me", ...action });
+
+  it("piles alike chips into a stack where the first lies, the last on top", () => {
+    const state = act(initialState(cards), { type: "stackUp", id: "g1", others: ["g2", "g3"] }).state;
+    const [stackId] = Object.keys(state.containers);
+    expect(state.containers[stackId]).toMatchObject({ x: 10, y: 10, members: ["g3", "g2", "g1"], spec: { kind: "stack" } });
+    expect(state.pieces.g2).toMatchObject({ containerId: stackId, x: null, heldBy: null });
+  });
+
+  it("piles cards of a type into a deck facing the way the first one does", () => {
+    const state = act(initialState(cards), { type: "stackUp", id: "c1", others: ["c2"] }).state;
+    const deck = Object.values(state.containers)[0];
+    expect(deck).toMatchObject({ x: 10, y: 40, faceUp: true, members: ["c2", "c1"], spec: { kind: "deck" } });
+    expect(state.pieces.c2.faceUp).toBe(true);
+  });
+
+  it("refuses pieces that don't pile together, or a pile of one", () => {
+    expect(act(initialState(cards), { type: "stackUp", id: "g1", others: ["s1"] }).reason).toMatch(/don't stack/);
+    expect(act(initialState(cards), { type: "stackUp", id: "g1", others: [] }).ok).toBe(false);
+    expect(act(initialState(cards), { type: "stackUp", id: "g1", others: ["g1"] }).ok).toBe(false);
+  });
+
+  it("stacks up what you hold from the interaction, when it all piles together", () => {
+    const store = createTableStore(cards);
+    const interaction = new PieceInteraction({
+      store, manifest: cards, playerId: "me", pick: () => null, tablePoint: () => null, clampToTable: (p) => p,
+      setCameraEnabled: () => {}, setCursor: () => {},
+    });
+    interaction.toggleSelect("g1");
+    expect(interaction.describe("g1").canStackUp).toBe(false);
+    interaction.toggleSelect("g2");
+    expect(interaction.describe("g1").canStackUp).toBe(true);
+    interaction.toggleSelect("s1");
+    expect(interaction.describe("g1").canStackUp).toBe(false);
+    interaction.toggleSelect("s1");
+    interaction.stackUp();
+    expect(store.getState().pieces.g1.containerId).toMatch(/^#stack-/);
+    expect(interaction.selectedIds()).toEqual([]);
   });
 });

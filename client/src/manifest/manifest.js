@@ -419,6 +419,20 @@ function normalizeCounter(piece, rawPiece, type, layer, where, inContainer) {
   };
 }
 
+// A tile's or board's shape when it isn't a plain rectangle, like a cluster
+// of hexes: convex polygons, each a list of [x, y] in cm from the piece's
+// middle, x to its right and y toward its far edge. Null for a rectangle.
+function normalizeOutline(piece, where) {
+  if (piece.outline == null) return null;
+  if (!["tile", "board"].includes(piece.kind)) throw new ManifestError(`${where} isn't a tile or board, so it can't have an outline.`);
+  const spot = (value) => Array.isArray(value) && value.length === 2 && value.every(Number.isFinite);
+  if (!Array.isArray(piece.outline) || !piece.outline.length ||
+      !piece.outline.every((part) => Array.isArray(part) && part.length >= 3 && part.every(spot))) {
+    throw new ManifestError(`${where} outline must be a list of polygons, each three or more [x, y] points.`);
+  }
+  return piece.outline;
+}
+
 // The color of a flat piece's sides, or null for the usual off-white.
 function normalizeEdge(edge, where) {
   if (edge == null) return null;
@@ -578,6 +592,7 @@ function normalizePiece(rawPiece, raw, layers, image, contained, dieTypes) {
     back,
     states,
     edge: normalizeEdge(piece.edge, where),
+    outline: normalizeOutline(piece, where),
     position: inContainer ? null : piece.position,
     rotation: piece.rotation || 0,
     faceUp: piece.faceUp ?? true,

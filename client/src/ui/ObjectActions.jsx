@@ -144,13 +144,13 @@ export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onS
             </button>
           </div>
           <div className="piece-actions-row">
-            <button type="button" className="menu-item" aria-label="Rotate left 22.5°"
-              onClick={act(() => interaction.rotate(-22.5, objectId))}>
-              ↺ 22.5°
+            <button type="button" className="menu-item" aria-label="Rotate left 15°"
+              onClick={act(() => interaction.rotate(-15, objectId))}>
+              ↺ 15°
             </button>
-            <button type="button" className="menu-item" aria-label="Rotate right 22.5°"
-              onClick={act(() => interaction.rotate(22.5, objectId))}>
-              ↻ 22.5°
+            <button type="button" className="menu-item" aria-label="Rotate right 15°"
+              onClick={act(() => interaction.rotate(15, objectId))}>
+              ↻ 15°
             </button>
           </div>
         </>

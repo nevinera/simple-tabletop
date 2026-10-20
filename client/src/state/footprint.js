@@ -33,15 +33,38 @@ export function footprint(def, x, y, rotation) {
   const radians = (rotation * Math.PI) / 180;
   const cos = Math.cos(radians);
   const sin = Math.sin(radians);
-  const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sy]) => {
-    const lx = (sx * width) / 2;
-    const ly = (sy * depth) / 2;
-    return [x + lx * cos + ly * sin, y - lx * sin + ly * cos];
-  });
+  const place = ([lx, ly]) => [x + lx * cos + ly * sin, y - lx * sin + ly * cos];
+  // A shaped piece covers its outline's convex parts, like a hex tile's hexes.
+  if (def.outline) return { parts: def.outline.map((part) => part.map(place)) };
+  const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sy]) => place([(sx * width) / 2, (sy * depth) / 2]));
   return { polygon: corners };
 }
 
+// A footprint as simple shapes, each { circle } or { polygon }.
+function shapesOf(footprint) {
+  return footprint.parts ? footprint.parts.map((polygon) => ({ polygon })) : [footprint];
+}
+
+function boundsOf(shape) {
+  if (shape.circle) {
+    const { x, y, r } = shape.circle;
+    return [x - r, y - r, x + r, y + r];
+  }
+  const xs = shape.polygon.map(([px]) => px);
+  const ys = shape.polygon.map(([, py]) => py);
+  return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+}
+
+function boundsMeet([ax0, ay0, ax1, ay1], [bx0, by0, bx1, by1]) {
+  return ax0 < bx1 - TOUCH_CM && bx0 < ax1 - TOUCH_CM && ay0 < by1 - TOUCH_CM && by0 < ay1 - TOUCH_CM;
+}
+
 export function overlaps(a, b) {
+  if (a.parts || b.parts) {
+    const shapesA = shapesOf(a).map((shape) => ({ shape, bounds: boundsOf(shape) }));
+    const shapesB = shapesOf(b).map((shape) => ({ shape, bounds: boundsOf(shape) }));
+    return shapesA.some((one) => shapesB.some((other) => boundsMeet(one.bounds, other.bounds) && overlaps(one.shape, other.shape)));
+  }
   if (a.circle && b.circle) {
     const distance = Math.hypot(a.circle.x - b.circle.x, a.circle.y - b.circle.y);
     return distance < a.circle.r + b.circle.r - TOUCH_CM;
@@ -343,6 +366,7 @@ function circleOverlapsPolygon(circle, polygon) {
 
 // Whether (x, y) is inside a footprint.
 function inside(outline, x, y) {
+  if (outline.parts) return outline.parts.some((polygon) => contains(polygon, x, y));
   if (outline.circle) return Math.hypot(x - outline.circle.x, y - outline.circle.y) < outline.circle.r;
   return contains(outline.polygon, x, y);
 }

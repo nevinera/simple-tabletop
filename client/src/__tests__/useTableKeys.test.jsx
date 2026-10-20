@@ -26,12 +26,12 @@ describe("useTableKeys", () => {
     expect(interaction.flip).toHaveBeenCalledOnce();
   });
 
-  it("rotates 45° with R and T, and 22.5° with Shift", () => {
+  it("rotates 45° with R and T, and 15° with Shift", () => {
     key("KeyR");
     key("KeyT");
     key("KeyR", { shiftKey: true });
     key("KeyT", { shiftKey: true });
-    expect(interaction.rotate.mock.calls).toEqual([[-45], [45], [-22.5], [22.5]]);
+    expect(interaction.rotate.mock.calls).toEqual([[-45], [45], [-15], [15]]);
   });
 
   it("draws with G, into your hand with Shift+G, and locks with L", () => {

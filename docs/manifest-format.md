@@ -146,6 +146,7 @@ of them.
 | `die`      | dice     | a built-in die name, or a key in `dieTypes`                   |
 | `face`     | yes*     | image for the up side; not used by dice or pawns              |
 | `color`    | no       | hex; tints built-in dice, and colors pawns                    |
+| `outline`  | no       | tiles and boards: their shape, when it isn't a rectangle; see below |
 | `edge`     | no       | hex; the color of a flat piece's sides, and its band in a stack |
 | `back`     | no       | image for the down side; defaults to `face`                   |
 | `states`   | no       | cards and boards: the looks it can switch between; see [Card states](#card-states) |
@@ -181,6 +182,22 @@ A standee stands upright in a clear holder, its `face` toward the front and its 
 parts of its images are cut out. Its holder is what takes up room on the table. Turn it to face another way.
 
 Bags take every kind but boards. A board usually also sets `"fixed": true`.
+
+## Shaped tiles
+
+A tile or board that isn't a rectangle, like a cluster of hexes, lists its shape in `outline`: convex
+polygons, each a list of `[x, y]` points in cm from the piece's middle, x to its right and y toward its far
+edge. A hex tile's outline is just its hexes:
+
+```json
+{ "id": "3-hex", "kind": "tile", "size": [10.4, 9.1], "face": "assets/3-hex.png",
+  "outline": [[[-5.2, -1.5], [-3.5, -4.5], [0, -4.5], [1.7, -1.5], [0, 1.5], [-3.5, 1.5]], "..."] }
+```
+
+- The piece covers only its parts, so shaped tiles fit together edge to edge, and what's on top under a point
+  follows the parts too.
+- `size` still sets the image's box, and transparent parts of the images show the shape. A shaped piece's
+  sides don't draw, since they'd be the box's.
 
 ## Card states
 

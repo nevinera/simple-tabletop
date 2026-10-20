@@ -53,7 +53,7 @@ const KEYS = [
   ["Save camera point", "Shift + 0-9"],
   ["Flip", "F"],
   ["Rotate 45°", "R / T"],
-  ["Rotate 22.5°", "Shift + R / T"],
+  ["Rotate 15°", "Shift + R / T"],
   ["Draw from the deck, bag, or stack under the mouse", "G"],
   ["Draw it into your hand", "Shift + G"],
   ["Draw a deck's top card face down, unseen", "Shift + drag the deck"],

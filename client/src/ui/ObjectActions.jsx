@@ -75,6 +75,11 @@ export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onS
         <CountAction label="Draw several into your hand" verb="Draw" name="draw" fallback={5} most={object.count}
           onAct={(count) => act(() => interaction.draw(objectId, { count }))()} />
       )}
+      {deck && object.dealHands > 0 && object.count > 0 && (
+        <CountAction label="Deal to each player" verb="Deal" name="deal" fallback={5}
+          most={Math.max(1, Math.floor(object.count / object.dealHands))}
+          onAct={(count) => act(() => interaction.deal(objectId, count))()} />
+      )}
       {deck && object.count > 1 && (
         <button type="button" className="menu-item" onClick={act(() => interaction.shuffle(objectId))}>
           Shuffle

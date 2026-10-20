@@ -22,3 +22,7 @@
   name: Go
   description: Two players take turns placing black and white stones on a 19 by 19 board to surround territory.
   thumbnail: thumbnail.svg
+- slug: global-domination
+  name: Global Domination
+  description: Two to six players conquer a map of 42 territories. Place armies, roll to attack, and trade in card sets for more.
+  thumbnail: thumbnail.svg

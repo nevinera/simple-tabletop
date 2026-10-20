@@ -1,0 +1,1098 @@
+{
+  "formatVersion": 1,
+  "id": "global-domination",
+  "name": "Global Domination",
+  "version": "1.0.0",
+  "table": {
+    "size": [
+      200,
+      140
+    ],
+    "color": "#2e6b3f"
+  },
+  "layers": [
+    {
+      "id": "board",
+      "thickness": 0.1
+    },
+    {
+      "id": "pieces",
+      "thickness": 0.03
+    }
+  ],
+  "hands": true,
+  "maxStackShown": 10,
+  "seats": [
+    {
+      "id": "red",
+      "name": "Red",
+      "side": "south-left",
+      "color": "#c0392b"
+    },
+    {
+      "id": "blue",
+      "name": "Blue",
+      "side": "south-right",
+      "color": "#2e64b0"
+    },
+    {
+      "id": "green",
+      "name": "Green",
+      "side": "east",
+      "color": "#2f8a3e"
+    },
+    {
+      "id": "yellow",
+      "name": "Yellow",
+      "side": "north-left",
+      "color": "#e0b52a"
+    },
+    {
+      "id": "black",
+      "name": "Black",
+      "side": "north-right",
+      "color": "#2b2b2b"
+    },
+    {
+      "id": "purple",
+      "name": "Purple",
+      "side": "west",
+      "color": "#7d3c98"
+    }
+  ],
+  "snaps": [
+    {
+      "radius": 3,
+      "accepts": [
+        {
+          "kind": "token"
+        }
+      ],
+      "points": [
+        [
+          34.59,
+          92.74
+        ],
+        [
+          44.44,
+          92.09
+        ],
+        [
+          79.62,
+          98.54
+        ],
+        [
+          48.02,
+          85.94
+        ],
+        [
+          55.6,
+          85.93
+        ],
+        [
+          67.1,
+          85.33
+        ],
+        [
+          51.63,
+          78.77
+        ],
+        [
+          59.69,
+          77.44
+        ],
+        [
+          54.86,
+          71.19
+        ],
+        [
+          66.47,
+          63.51
+        ],
+        [
+          69.63,
+          54.81
+        ],
+        [
+          75.98,
+          56.49
+        ],
+        [
+          69.82,
+          49.35
+        ],
+        [
+          87.99,
+          91.87
+        ],
+        [
+          95.02,
+          84.82
+        ],
+        [
+          100.92,
+          89.95
+        ],
+        [
+          102.71,
+          83.75
+        ],
+        [
+          93.92,
+          78.52
+        ],
+        [
+          105.35,
+          80.67
+        ],
+        [
+          111.7,
+          87.01
+        ],
+        [
+          94.78,
+          69.27
+        ],
+        [
+          104.96,
+          72.56
+        ],
+        [
+          108.28,
+          66.73
+        ],
+        [
+          103.68,
+          61.3
+        ],
+        [
+          105.25,
+          51.12
+        ],
+        [
+          114.29,
+          54.14
+        ],
+        [
+          126.68,
+          89.7
+        ],
+        [
+          133.1,
+          91.72
+        ],
+        [
+          142.74,
+          93.37
+        ],
+        [
+          155.34,
+          92.58
+        ],
+        [
+          139.21,
+          86.2
+        ],
+        [
+          144.89,
+          81.42
+        ],
+        [
+          151.38,
+          76.92
+        ],
+        [
+          121.8,
+          80.35
+        ],
+        [
+          139.05,
+          75.16
+        ],
+        [
+          112.82,
+          75.94
+        ],
+        [
+          127.49,
+          71.23
+        ],
+        [
+          136.39,
+          68.53
+        ],
+        [
+          141.21,
+          61.67
+        ],
+        [
+          152.18,
+          59.32
+        ],
+        [
+          146.41,
+          51.53
+        ],
+        [
+          153.56,
+          49.72
+        ]
+      ]
+    }
+  ],
+  "sheets": {
+    "cards": {
+      "image": "assets/cards.svg",
+      "columns": 11,
+      "rows": 4
+    }
+  },
+  "pieceTypes": {
+    "card": {
+      "kind": "card",
+      "size": [
+        6.3,
+        8.8
+      ],
+      "back": "assets/back.svg"
+    },
+    "red-army": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        2
+      ],
+      "thickness": 0.35,
+      "face": "assets/red.svg",
+      "edge": "#c0392b"
+    },
+    "blue-army": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        2
+      ],
+      "thickness": 0.35,
+      "face": "assets/blue.svg",
+      "edge": "#2e64b0"
+    },
+    "green-army": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        2
+      ],
+      "thickness": 0.35,
+      "face": "assets/green.svg",
+      "edge": "#2f8a3e"
+    },
+    "yellow-army": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        2
+      ],
+      "thickness": 0.35,
+      "face": "assets/yellow.svg",
+      "edge": "#e0b52a"
+    },
+    "black-army": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        2
+      ],
+      "thickness": 0.35,
+      "face": "assets/black.svg",
+      "edge": "#2b2b2b"
+    },
+    "purple-army": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        2
+      ],
+      "thickness": 0.35,
+      "face": "assets/purple.svg",
+      "edge": "#7d3c98"
+    }
+  },
+  "pieces": [
+    {
+      "id": "board",
+      "kind": "board",
+      "size": [
+        150,
+        73.1
+      ],
+      "face": "assets/board.svg",
+      "position": [
+        100,
+        70
+      ],
+      "fixed": true
+    },
+    {
+      "id": "card-alaska",
+      "type": "card",
+      "categories": [
+        "infantry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 0
+      }
+    },
+    {
+      "id": "card-northwest-territory",
+      "type": "card",
+      "categories": [
+        "cavalry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 1
+      }
+    },
+    {
+      "id": "card-greenland",
+      "type": "card",
+      "categories": [
+        "artillery"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 2
+      }
+    },
+    {
+      "id": "card-alberta",
+      "type": "card",
+      "categories": [
+        "infantry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 3
+      }
+    },
+    {
+      "id": "card-ontario",
+      "type": "card",
+      "categories": [
+        "cavalry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 4
+      }
+    },
+    {
+      "id": "card-quebec",
+      "type": "card",
+      "categories": [
+        "artillery"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 5
+      }
+    },
+    {
+      "id": "card-western-united-states",
+      "type": "card",
+      "categories": [
+        "infantry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 6
+      }
+    },
+    {
+      "id": "card-eastern-united-states",
+      "type": "card",
+      "categories": [
+        "cavalry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 7
+      }
+    },
+    {
+      "id": "card-central-america",
+      "type": "card",
+      "categories": [
+        "artillery"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 8
+      }
+    },
+    {
+      "id": "card-venezuela",
+      "type": "card",
+      "categories": [
+        "infantry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 9
+      }
+    },
+    {
+      "id": "card-peru",
+      "type": "card",
+      "categories": [
+        "cavalry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 10
+      }
+    },
+    {
+      "id": "card-brazil",
+      "type": "card",
+      "categories": [
+        "artillery"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 11
+      }
+    },
+    {
+      "id": "card-argentina",
+      "type": "card",
+      "categories": [
+        "infantry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 12
+      }
+    },
+    {
+      "id": "card-iceland",
+      "type": "card",
+      "categories": [
+        "cavalry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 13
+      }
+    },
+    {
+      "id": "card-great-britain",
+      "type": "card",
+      "categories": [
+        "artillery"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 14
+      }
+    },
+    {
+      "id": "card-scandinavia",
+      "type": "card",
+      "categories": [
+        "infantry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 15
+      }
+    },
+    {
+      "id": "card-northern-europe",
+      "type": "card",
+      "categories": [
+        "cavalry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 16
+      }
+    },
+    {
+      "id": "card-western-europe",
+      "type": "card",
+      "categories": [
+        "artillery"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 17
+      }
+    },
+    {
+      "id": "card-southern-europe",
+      "type": "card",
+      "categories": [
+        "infantry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 18
+      }
+    },
+    {
+      "id": "card-ukraine",
+      "type": "card",
+      "categories": [
+        "cavalry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 19
+      }
+    },
+    {
+      "id": "card-north-africa",
+      "type": "card",
+      "categories": [
+        "artillery"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 20
+      }
+    },
+    {
+      "id": "card-egypt",
+      "type": "card",
+      "categories": [
+        "infantry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 21
+      }
+    },
+    {
+      "id": "card-east-africa",
+      "type": "card",
+      "categories": [
+        "cavalry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 22
+      }
+    },
+    {
+      "id": "card-congo",
+      "type": "card",
+      "categories": [
+        "artillery"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 23
+      }
+    },
+    {
+      "id": "card-south-africa",
+      "type": "card",
+      "categories": [
+        "infantry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 24
+      }
+    },
+    {
+      "id": "card-madagascar",
+      "type": "card",
+      "categories": [
+        "cavalry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 25
+      }
+    },
+    {
+      "id": "card-ural",
+      "type": "card",
+      "categories": [
+        "artillery"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 26
+      }
+    },
+    {
+      "id": "card-siberia",
+      "type": "card",
+      "categories": [
+        "infantry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 27
+      }
+    },
+    {
+      "id": "card-yakutsk",
+      "type": "card",
+      "categories": [
+        "cavalry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 28
+      }
+    },
+    {
+      "id": "card-kamchatka",
+      "type": "card",
+      "categories": [
+        "artillery"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 29
+      }
+    },
+    {
+      "id": "card-irkutsk",
+      "type": "card",
+      "categories": [
+        "infantry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 30
+      }
+    },
+    {
+      "id": "card-mongolia",
+      "type": "card",
+      "categories": [
+        "cavalry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 31
+      }
+    },
+    {
+      "id": "card-japan",
+      "type": "card",
+      "categories": [
+        "artillery"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 32
+      }
+    },
+    {
+      "id": "card-afghanistan",
+      "type": "card",
+      "categories": [
+        "infantry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 33
+      }
+    },
+    {
+      "id": "card-china",
+      "type": "card",
+      "categories": [
+        "cavalry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 34
+      }
+    },
+    {
+      "id": "card-middle-east",
+      "type": "card",
+      "categories": [
+        "artillery"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 35
+      }
+    },
+    {
+      "id": "card-india",
+      "type": "card",
+      "categories": [
+        "infantry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 36
+      }
+    },
+    {
+      "id": "card-siam",
+      "type": "card",
+      "categories": [
+        "cavalry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 37
+      }
+    },
+    {
+      "id": "card-indonesia",
+      "type": "card",
+      "categories": [
+        "artillery"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 38
+      }
+    },
+    {
+      "id": "card-new-guinea",
+      "type": "card",
+      "categories": [
+        "infantry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 39
+      }
+    },
+    {
+      "id": "card-western-australia",
+      "type": "card",
+      "categories": [
+        "cavalry"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 40
+      }
+    },
+    {
+      "id": "card-eastern-australia",
+      "type": "card",
+      "categories": [
+        "artillery"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 41
+      }
+    },
+    {
+      "id": "card-wild-1",
+      "type": "card",
+      "categories": [
+        "wild"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 42
+      }
+    },
+    {
+      "id": "card-wild-2",
+      "type": "card",
+      "categories": [
+        "wild"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 43
+      }
+    },
+    {
+      "id": "attack-1",
+      "kind": "die",
+      "die": "d6pips",
+      "size": [
+        1.8
+      ],
+      "color": "#c0392b"
+    },
+    {
+      "id": "attack-2",
+      "kind": "die",
+      "die": "d6pips",
+      "size": [
+        1.8
+      ],
+      "color": "#c0392b"
+    },
+    {
+      "id": "attack-3",
+      "kind": "die",
+      "die": "d6pips",
+      "size": [
+        1.8
+      ],
+      "color": "#c0392b"
+    },
+    {
+      "id": "defense-1",
+      "kind": "die",
+      "die": "d6pips",
+      "size": [
+        1.8
+      ],
+      "color": "#f2efe8"
+    },
+    {
+      "id": "defense-2",
+      "kind": "die",
+      "die": "d6pips",
+      "size": [
+        1.8
+      ],
+      "color": "#f2efe8"
+    }
+  ],
+  "containers": [
+    {
+      "id": "deck",
+      "kind": "deck",
+      "position": [
+        95,
+        126
+      ],
+      "rotation": 180,
+      "size": [
+        6.3,
+        8.8
+      ],
+      "members": [
+        "card-alaska",
+        "card-northwest-territory",
+        "card-greenland",
+        "card-alberta",
+        "card-ontario",
+        "card-quebec",
+        "card-western-united-states",
+        "card-eastern-united-states",
+        "card-central-america",
+        "card-venezuela",
+        "card-peru",
+        "card-brazil",
+        "card-argentina",
+        "card-iceland",
+        "card-great-britain",
+        "card-scandinavia",
+        "card-northern-europe",
+        "card-western-europe",
+        "card-southern-europe",
+        "card-ukraine",
+        "card-north-africa",
+        "card-egypt",
+        "card-east-africa",
+        "card-congo",
+        "card-south-africa",
+        "card-madagascar",
+        "card-ural",
+        "card-siberia",
+        "card-yakutsk",
+        "card-kamchatka",
+        "card-irkutsk",
+        "card-mongolia",
+        "card-japan",
+        "card-afghanistan",
+        "card-china",
+        "card-middle-east",
+        "card-india",
+        "card-siam",
+        "card-indonesia",
+        "card-new-guinea",
+        "card-western-australia",
+        "card-eastern-australia",
+        "card-wild-1",
+        "card-wild-2"
+      ]
+    },
+    {
+      "id": "discard",
+      "kind": "deck",
+      "position": [
+        105,
+        126
+      ],
+      "rotation": 180,
+      "size": [
+        6.3,
+        8.8
+      ],
+      "faceUp": true,
+      "members": []
+    },
+    {
+      "id": "attack",
+      "kind": "tray",
+      "position": [
+        92,
+        14
+      ],
+      "size": [
+        12,
+        12
+      ],
+      "fixed": true,
+      "members": [
+        "attack-1",
+        "attack-2",
+        "attack-3"
+      ]
+    },
+    {
+      "id": "defense",
+      "kind": "tray",
+      "position": [
+        108,
+        14
+      ],
+      "size": [
+        12,
+        12
+      ],
+      "fixed": true,
+      "members": [
+        "defense-1",
+        "defense-2"
+      ]
+    },
+    {
+      "id": "red-armies",
+      "kind": "bag",
+      "size": [
+        8,
+        8
+      ],
+      "position": [
+        45,
+        14
+      ],
+      "rotation": 0,
+      "infinite": "red-army",
+      "text": "Red",
+      "color": "#c0392b",
+      "fixed": true
+    },
+    {
+      "id": "blue-armies",
+      "kind": "bag",
+      "size": [
+        8,
+        8
+      ],
+      "position": [
+        155,
+        14
+      ],
+      "rotation": 0,
+      "infinite": "blue-army",
+      "text": "Blue",
+      "color": "#2e64b0",
+      "fixed": true
+    },
+    {
+      "id": "green-armies",
+      "kind": "bag",
+      "size": [
+        8,
+        8
+      ],
+      "position": [
+        188,
+        70
+      ],
+      "rotation": 270,
+      "infinite": "green-army",
+      "text": "Green",
+      "color": "#2f8a3e",
+      "fixed": true
+    },
+    {
+      "id": "yellow-armies",
+      "kind": "bag",
+      "size": [
+        8,
+        8
+      ],
+      "position": [
+        155,
+        126
+      ],
+      "rotation": 180,
+      "infinite": "yellow-army",
+      "text": "Yellow",
+      "color": "#e0b52a",
+      "fixed": true
+    },
+    {
+      "id": "black-armies",
+      "kind": "bag",
+      "size": [
+        8,
+        8
+      ],
+      "position": [
+        45,
+        126
+      ],
+      "rotation": 180,
+      "infinite": "black-army",
+      "text": "Black",
+      "color": "#2b2b2b",
+      "fixed": true
+    },
+    {
+      "id": "purple-armies",
+      "kind": "bag",
+      "size": [
+        8,
+        8
+      ],
+      "position": [
+        12,
+        70
+      ],
+      "rotation": 90,
+      "infinite": "purple-army",
+      "text": "Purple",
+      "color": "#7d3c98",
+      "fixed": true
+    }
+  ],
+  "labels": [
+    {
+      "text": "Attack",
+      "position": [
+        92,
+        5.5
+      ],
+      "fontSize": 1.1,
+      "color": "#e9f0e2"
+    },
+    {
+      "text": "Defense",
+      "position": [
+        108,
+        5.5
+      ],
+      "fontSize": 1.1,
+      "color": "#e9f0e2"
+    }
+  ]
+}

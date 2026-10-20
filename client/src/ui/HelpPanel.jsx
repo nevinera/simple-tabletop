@@ -55,7 +55,7 @@ const KEYS = [
   ["Select several, or take one back out", "Shift + click"],
   ["Select everything in a box", "Shift + drag the table"],
   ["Switch a card to its next state, like upgraded", "U"],
-  ["Roll the die under the mouse", "X"],
+  ["Roll the die under the mouse, or every die you hold", "X"],
   ["Roll every die in a tray", "Shift + X"],
   ["Put back what you selected", "Esc"],
   ["Open or close help", "?"],

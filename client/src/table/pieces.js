@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { tableRotationToThree, tableToThree } from "./coordinates";
+import { deferImages, lazyMaterial, setImages } from "./lazyImages";
 
 const EDGE_COLOR = 0xe8e4da;
 export const HELD_LIFT = 0.3; // cm a held piece floats above its resting height
@@ -16,15 +17,15 @@ const POLYGON_OFFSET_PER_RANK = -4;
 
 // A piece is a slab its own thickness: the face image on top, the back
 // image underneath, and plain edges. Flipping turns the whole slab over, so
-// placement() decides which side shows.
-export async function buildPiece(piece, textures) {
+// placement() decides which side shows. Its images load once it shows (see
+// lazyImages.js).
+export function buildPiece(piece) {
   const [width, depth] = piece.size;
   const thickness = piece.thickness;
-  const [faceTexture, backTexture] = await Promise.all([textures.get(piece.face), textures.get(piece.back)]);
 
   const edge = new THREE.MeshStandardMaterial({ color: EDGE_COLOR, roughness: 0.9 });
-  const top = sideMaterial(faceTexture);
-  const bottom = sideMaterial(backTexture);
+  const top = lazyMaterial(sideMaterial(), "face");
+  const bottom = lazyMaterial(sideMaterial(), "back");
 
   const mesh = piece.shape === "circle"
     // Cylinder material groups: edge, top cap, bottom cap.
@@ -37,24 +38,17 @@ export async function buildPiece(piece, textures) {
   mesh.userData.shadow = buildShadow(piece);
   mesh.userData.ghost = buildGhost(mesh);
   mesh.userData.stateIndex = 0;
+  deferImages(mesh, { face: piece.face, back: piece.back }, mesh.userData.ghost);
   return mesh;
 }
 
-// Shows the images of a card's current state, once they've loaded. Cards
-// are boxes, so their top and bottom are materials 2 and 3.
-export function applyCardState(mesh, def, piece, textures) {
+// Switches a card to the images of its current state, which load the next
+// time it shows.
+export function applyCardState(mesh, def, piece) {
   const index = piece.stateIndex || 0;
   if (!def.states || mesh.userData.stateIndex === index) return;
   mesh.userData.stateIndex = index;
-  const { face, back } = def.states[index];
-  Promise.all([textures.get(face), textures.get(back)]).then(([faceTexture, backTexture]) => {
-    if (mesh.userData.stateIndex !== index) return;
-    for (const { material } of [mesh, mesh.userData.ghost]) {
-      material[2].map = faceTexture;
-      material[3].map = backTexture;
-      material[2].needsUpdate = material[3].needsUpdate = true;
-    }
-  });
+  setImages(mesh, def.states[index]);
 }
 
 // Three maps a cylinder's cap images turned a quarter clockwise, so turn the
@@ -182,8 +176,8 @@ export function stackRanks(defs, pieces) {
   return ranks;
 }
 
-function sideMaterial(texture) {
+function sideMaterial() {
   // Unlit, so faces stay readable from any camera angle. alphaTest cuts out
   // transparent corners on rounded cards.
-  return new THREE.MeshBasicMaterial({ map: texture, alphaTest: 0.5 });
+  return new THREE.MeshBasicMaterial({ alphaTest: 0.5 });
 }

@@ -253,6 +253,9 @@ you're allowed to see.
 - Slots live in localStorage, keyed by game. The manifest can ship starting slots per seat.
 - Layers draw in order: board, then pieces.
 - A deck or other stacked container draws as one mesh, not one per card.
+- A piece's images load the first time it shows: loose, in a hand or fan, or in a tray. Pieces in bags and
+  closed decks show a plain placeholder until then, so a big module opens quickly and spends GPU memory only
+  on what players can see.
 - Loose pieces that share a texture use instanced meshes, so a table with hundreds of loose pieces stays fast.
 
 ## Stack

@@ -23,6 +23,7 @@ import { buildStandee } from "./standees";
 import { applyUprightPlacement } from "./upright";
 import { applyMotion, clampTarget, orbit, sumMotions } from "./rig";
 import { TextureCache } from "./textures";
+import { showImages } from "./lazyImages";
 
 const BACKGROUND = 0x1b1b1f;
 const TARGET_MARGIN = 0.1; // how far past the table edge the orbit target may go, as a fraction of its size
@@ -128,7 +129,7 @@ export class TableScene {
         this.#buildSpawned(def);
         continue;
       }
-      applyCardState(mesh, def, state.pieces[def.id], this.textures);
+      applyCardState(mesh, def, state.pieces[def.id]);
       if (def.kind === "die") this.#placeLooseDie(mesh, def, state);
       else if (def.kind === "standee" || def.kind === "pawn") {
         applyUprightPlacement(mesh, def, state.pieces[def.id], this.#hover(def.id));
@@ -162,6 +163,7 @@ export class TableScene {
       if (!state.containers[id]) group.visible = group.userData.ghost.visible = group.userData.shadow.visible = false;
     }
     this.#renderHands(state);
+    for (const mesh of this.pieceMeshes.values()) showImages(mesh, this.textures);
     this.#settle(real);
     this.#renderTags(state);
   }
@@ -570,10 +572,10 @@ export class TableScene {
   }
 
   #buildMesh(def) {
-    if (def.kind === "die") return buildDie(def, this.textures);
-    if (def.kind === "standee") return buildStandee(def, this.textures);
+    if (def.kind === "die") return buildDie(def);
+    if (def.kind === "standee") return buildStandee(def);
     if (def.kind === "pawn") return buildPawn(def);
-    return buildPiece(def, this.textures);
+    return buildPiece(def);
   }
 
   #addPieceMesh(mesh) {

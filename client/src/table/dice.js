@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { tableRotationToThree, tableToThree } from "./coordinates";
 import { dieRegions, orientation, restHeight } from "./diceGeometry";
+import { deferImages, lazyMaterial } from "./lazyImages";
 import { HELD_LIFT, restingTurn } from "./pieces";
 import { D4_SCALE, PIP_RADIUS, labelSize, pipSpots } from "../state/dice";
 
@@ -19,21 +20,16 @@ const labelTextures = new Map();
 
 // A die: a solid whose face (or for a d4, corner section) materials carry
 // its numbers or images. setDieValue brightens the top and dims the rest.
-// Every mesh carries the piece id in userData.objectId.
-export function buildDie(def, textures) {
+// Every mesh carries the piece id in userData.objectId. A custom die's images
+// load once it shows (see lazyImages.js).
+export function buildDie(def) {
   const { sides, labels, images, color, pips } = def.die;
   const regions = dieRegions(sides);
   const geometry = regionGeometry(regions);
   const materials = regions.map((region) => {
     const material = new THREE.MeshBasicMaterial({ color: DIM });
-    if (labels) {
-      material.map = labelTexture(labels[region.label], color, sides, pips);
-    } else {
-      textures.get(images[region.label]).then((texture) => {
-        material.map = texture;
-        material.needsUpdate = true;
-      });
-    }
+    if (labels) material.map = labelTexture(labels[region.label], color, sides, pips);
+    else lazyMaterial(material, region.label, { tint: false });
     return material;
   });
 
@@ -69,6 +65,7 @@ export function buildDie(def, textures) {
   swirl.userData.radius = swirlWidth / 2;
 
   group.userData = { regions, materials, ghost, shadow, swirl, value: null };
+  if (images) deferImages(group, images);
   return group;
 }
 

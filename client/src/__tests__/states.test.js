@@ -44,10 +44,10 @@ describe("card states", () => {
     expect(def.face.url).toBe("https://example.com/strike.svg");
   });
 
-  it("refuses states that aren't on a card, too few, or unnamed", () => {
+  it("refuses states that aren't on a card or board, too few, or unnamed", () => {
     const withStates = (piece) => () => normalizeManifest(raw({ pieces: [piece] }), BASE);
     expect(withStates({ id: "t", kind: "token", size: [2], position: [5, 5], states: [{ name: "a", face: "a.svg" }, { name: "b", face: "b.svg" }] }))
-      .toThrow(/isn't a card/);
+      .toThrow(/isn't a card or board/);
     expect(withStates({ id: "c", kind: "card", size: [6, 9], position: [5, 5], states: [{ name: "a", face: "a.svg" }] }))
       .toThrow(ManifestError);
     expect(withStates({ id: "c", kind: "card", size: [6, 9], position: [5, 5], states: [{ face: "a.svg" }, { name: "b", face: "b.svg" }] }))
@@ -77,11 +77,11 @@ describe("card states", () => {
     expect(act(state, { type: "changeState", id: "s3", index: 1 }).ok).toBe(false);
   });
 
-  it("refuses bad indexes, locked cards, and pieces without states", () => {
+  it("refuses bad indexes and pieces without states, but changes locked ones", () => {
     const state = initialState(manifest);
     expect(act(state, { type: "changeState", id: "s1", index: 2 }).ok).toBe(false);
     expect(act(state, { type: "changeState", id: "s1" }).ok).toBe(false);
-    expect(act(act(state, { type: "lock", id: "s1" }).state, { type: "changeState", id: "s1", index: 1 }).reason).toMatch(/locked/);
+    expect(act(act(state, { type: "lock", id: "s1" }).state, { type: "changeState", id: "s1", index: 1 }).state.pieces.s1.stateIndex).toBe(1);
     expect(act(state, { type: "changeState", id: "draw", index: 1 }).reason).toMatch(/no states/);
   });
 
@@ -98,5 +98,22 @@ describe("card states", () => {
     interaction.nextState("s1");
     expect(store.getState().pieces.s1.stateIndex).toBe(0);
     expect(interaction.describe("draw").states).toBeNull();
+  });
+});
+
+describe("board states", () => {
+  const maps = normalizeManifest(raw({
+    layers: [{ id: "board", thickness: 0.2 }, { id: "pieces", thickness: 0.03 }],
+    pieces: [{
+      id: "map", kind: "board", size: [40, 40], position: [45, 30], fixed: true,
+      states: [{ name: "Skyrim", face: "skyrim.jpg" }, { name: "Cyrodiil", face: "cyrodiil.jpg" }],
+    }],
+    containers: [],
+  }), BASE);
+
+  it("switches a fixed board between its states, like regions of a map", () => {
+    const state = applyAction(maps, initialState(maps), { type: "changeState", id: "map", index: 1, playerId: "me" }).state;
+    expect(state.pieces.map).toMatchObject({ stateIndex: 1, locked: true });
+    expect(visibleSide(maps, state, "map", "south").image.url).toBe("https://example.com/cyrodiil.jpg");
   });
 });

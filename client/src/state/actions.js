@@ -418,11 +418,11 @@ const HANDLERS = {
     return save(state, object, changes);
   },
 
-  // Puts a card in one of its states, like upgraded. It keeps that state
-  // wherever it goes.
+  // Puts a card or board in one of its states, like upgraded. It keeps that
+  // state wherever it goes. Locked things change state too, since locking
+  // only keeps them in place.
   changeState({ state, action, def, object }) {
     if (!def.states) return reject(state, "That has no states.");
-    if (object.state.locked) return reject(state, "That's locked.");
     if (!Number.isInteger(action.index) || action.index < 0 || action.index >= def.states.length) {
       return reject(state, "changeState needs one of the card's states.");
     }

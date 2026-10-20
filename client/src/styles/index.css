@@ -214,6 +214,18 @@ body,
 .reorder-name { flex: 1; }
 .reorder-row .menu-item { min-height: 32px; padding: 0 8px; }
 .reorder .piece-actions-row { margin-top: 10px; }
+.search-input {
+  width: 100%;
+  min-height: 36px;
+  margin-bottom: 8px;
+  padding: 0 10px;
+  border: 1px solid var(--bar-border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font: inherit;
+}
+.search-blank { width: 40px; background: rgba(255, 255, 255, 0.08); }
 
 .camera-points-grid {
   display: grid;

@@ -24,6 +24,7 @@ import { ContextMenu } from "./ui/ContextMenu";
 import { Toolbar } from "./ui/Toolbar";
 import { HelpPanel } from "./ui/HelpPanel";
 import { ReorderPanel } from "./ui/ReorderPanel";
+import { ContainerSearch } from "./ui/SearchPanel";
 import { RaceChip } from "./ui/RaceChip";
 import { ActionBar } from "./ui/ActionBar";
 
@@ -59,6 +60,7 @@ export default function App({ manifestUrl, game = null }) {
   const [openMenu, setOpenMenu] = useState(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [reordering, setReordering] = useState(null); // { deckId, count }, count null for the whole deck
+  const [searching, setSearching] = useState(null); // a deck or bag id
   const [desktopActionBar, setDesktopActionBar] = useStoredFlag(ACTION_BAR_SETTING, false);
   const [handStripVisible, setHandStripVisible] = useStoredFlag(HAND_STRIP_SETTING, true);
   const [trayRollScatters, setTrayRollScatters] = useStoredFlag(TRAY_SCATTER_SETTING, true);
@@ -196,18 +198,24 @@ export default function App({ manifestUrl, game = null }) {
   }, []);
   const closeHelp = useCallback(() => setHelpOpen(false), []);
   const onEscape = useCallback(() => {
-    if (reordering) setReordering(null);
+    if (searching) setSearching(null);
+    else if (reordering) setReordering(null);
     else if (helpOpen) setHelpOpen(false);
     else if (openMenu) setOpenMenu(null);
     else if (contextMenu) setContextMenu(null);
     else if (magnified) setMagnified(null);
     else interaction?.cancelSelection();
-  }, [reordering, helpOpen, openMenu, contextMenu, magnified, interaction]);
+  }, [searching, reordering, helpOpen, openMenu, contextMenu, magnified, interaction]);
   const startReorder = useCallback((deckId, count = null) => {
     setOpenMenu(null);
     setReordering({ deckId, count });
   }, []);
   const closeReorder = useCallback(() => setReordering(null), []);
+  const startSearch = useCallback((containerId) => {
+    setOpenMenu(null);
+    setSearching(containerId);
+  }, []);
+  const closeSearch = useCallback(() => setSearching(null), []);
   const tableInteraction = seated ? interaction : null;
   useTableKeys({ scene, cameraPoints, interaction: tableInteraction, onEscape, onHelp: toggleHelp });
 
@@ -296,6 +304,7 @@ export default function App({ manifestUrl, game = null }) {
           popover={contextMenu.pointerType === "touch" || layout !== "desktop"}
           onMagnify={setMagnified}
           onReorder={startReorder}
+          onSearch={startSearch}
           onClose={closeContextMenu}
         />
       )}
@@ -313,6 +322,9 @@ export default function App({ manifestUrl, game = null }) {
           onClose={closeReorder}
         />
       )}
+      {searching && interaction && (
+        <ContainerSearch store={store} manifest={manifest} interaction={interaction} containerId={searching} onClose={closeSearch} />
+      )}
       {showActionBar && (
         <ActionBar
           scene={scene}
@@ -325,6 +337,7 @@ export default function App({ manifestUrl, game = null }) {
           cameraPoints={cameraPoints}
           menus={menus}
           onReorder={startReorder}
+          onSearch={startSearch}
         />
       )}
     </div>

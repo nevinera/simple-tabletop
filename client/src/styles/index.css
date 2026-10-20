@@ -508,3 +508,11 @@ kbd {
 .home-builtin > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .home-builtin-thumbnail { width: 88px; aspect-ratio: 4 / 3; flex: none; border-radius: 6px; object-fit: cover; }
 .home-builtin-description { color: var(--muted); font-size: 12px; }
+
+.select-box {
+  position: fixed;
+  z-index: 5;
+  border: 1px dashed var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  pointer-events: none;
+}

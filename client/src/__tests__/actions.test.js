@@ -377,3 +377,38 @@ describe("dropping a deck on a deck", () => {
     expect(state.containers.odd.z).toBeGreaterThan(0);
   });
 });
+
+describe("holding a group", () => {
+  const grab = (state, ...ids) => ids.reduce((current, id) => act(current, { type: "grab", id }).state, state);
+
+  it("moves everything you hold along with the one you drop, and lets go of it all", () => {
+    // AS at (10, 20), AH at (30, 20).
+    const state = act(grab(initialState(manifest), "AS", "AH"), { type: "drop", id: "AS", x: 15, y: 70 }).state;
+    expect(state.pieces.AS).toMatchObject({ x: 15, y: 70, heldBy: null });
+    expect(state.pieces.AH).toMatchObject({ x: 35, y: 70, heldBy: null });
+  });
+
+  it("refuses the whole move if one would land on something that can't hold it up", () => {
+    // AH would land on the pawn at (80, 40).
+    const result = act(grab(initialState(manifest), "AS", "AH"), { type: "drop", id: "AS", x: 60, y: 40 });
+    expect(result).toMatchObject({ ok: false, blocked: true });
+  });
+
+  it("puts the whole group in a container that takes them all", () => {
+    const state = act(grab(initialState(manifest), "AS", "AH"), { type: "drop", id: "AS", x: 60, y: 60 }).state;
+    expect(state.containers.deck.members).toEqual(["AS", "AH", "KS"]);
+    expect(state.pieces.AH).toMatchObject({ containerId: "deck", heldBy: null });
+  });
+
+  it("won't put a group in a container that doesn't take every piece", () => {
+    const result = act(grab(initialState(manifest), "AS", "coin"), { type: "drop", id: "AS", x: 60, y: 60 });
+    expect(result).toMatchObject({ ok: false, blocked: true });
+  });
+
+  it("swings the group around the one you turn", () => {
+    const state = act(grab(initialState(manifest), "AS", "AH"), { type: "rotate", id: "AS", degrees: 90 }).state;
+    // AH sits 20 right of AS; a quarter turn clockwise puts it 20 toward you.
+    expect(state.pieces.AH.x).toBeCloseTo(10);
+    expect(state.pieces.AH.y).toBeCloseTo(0);
+  });
+});

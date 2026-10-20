@@ -36,6 +36,8 @@ pointer, selecting a different piece puts the first one back.
 | double-click or double-tap a deck              | draw the top card into your hand                           |
 | drop onto a container that accepts the piece   | add it                                                     |
 | drop a deck onto a deck that takes its cards   | put all its cards on top                                   |
+| shift-click a movable object                   | add it to what you hold, or take it back out               |
+| shift-drag empty table                         | add everything in the box to what you hold                 |
 
 A right-click that moves more than a few pixels counts as a pan, not a menu.
 

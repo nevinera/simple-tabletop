@@ -6,6 +6,9 @@
 // - Drag a locked deck, bag, or stack to draw from it.
 // - With something selected, a mouse click on open table places it there,
 //   and on touch a tap-and-hold does. A plain tap on open table cancels.
+// - Shift-click a movable object to add it to what you hold, or take it back
+//   out, and shift-drag over the table to add everything in a box. What you
+//   hold moves as a group with whichever piece of it you drag or place.
 // - Right-click an object, or tap and hold it on touch, for its context menu.
 // - In magnify mode (touch), a tap magnifies what it hits instead.
 // - Anything else (empty table, locked pieces) goes to the camera.
@@ -43,13 +46,15 @@ export class PieceInteraction {
     onHover = () => {}, // (id or null): whatever is under the mouse, movable or not
     onMagnify = () => {}, // (id or null): a magnify-mode tap
     onLostRace = () => {}, // ({ id, holder, clientX, clientY }): someone else got it first
+    pickBox = () => [], // (left, top, right, bottom) in client pixels -> ids of loose objects inside
+    onSelectBox = () => {}, // ({ left, top, right, bottom } or null): the box being drawn
     schedule = setTimeout,
     unschedule = clearTimeout,
     random = Math.random,
   }) {
     Object.assign(this, {
       store, manifest, playerId, pick, tablePoint, clampToTable, setCameraEnabled, setCursor, onContextMenu,
-      onBlockedRotate, onHover, onMagnify, onLostRace, random,
+      onBlockedRotate, onHover, onMagnify, onLostRace, pickBox, onSelectBox, random,
     });
     this.nameOf = () => null; // player id -> name
     this.magnifyMode = false;
@@ -68,10 +73,44 @@ export class PieceInteraction {
     return mine(pieces) || mine(containers) || null;
   }
 
-  // What flip, rotate, and lock act on: the selected object, or else the one
-  // under the mouse.
+  // Everything you hold, pieces first.
+  selectedIds() {
+    const { pieces, containers } = this.store.getState();
+    const mine = (group) => Object.keys(group).filter((id) => group[id].heldBy === this.playerId);
+    return [...mine(pieces), ...mine(containers)];
+  }
+
+  // What rotate acts on: the selected object, or else the one under the
+  // mouse. Turning one of a group swings the rest around it.
   actionTarget() {
     return this.selectedId() || this.hoveredId;
+  }
+
+  // What flip and lock act on without an id given: everything you hold, or
+  // else the object under the mouse.
+  #actionTargets(id) {
+    if (id !== undefined) return id ? [id] : [];
+    const selected = this.selectedIds();
+    if (selected.length) return selected;
+    return this.hoveredId ? [this.hoveredId] : [];
+  }
+
+  // Adds an object to what you hold, or takes it back out. Cards in your hand
+  // and things on the table don't mix: adding one kind lets go of the other.
+  toggleSelect(id) {
+    const object = this.#object(id);
+    if (!object || !this.#canMove(id)) return false;
+    if (object.state.heldBy === this.playerId) return this.#dispatch("release", id).ok;
+    // Where something is, for grouping: on the table, in your hand, or
+    // somewhere else that doesn't group at all.
+    const place = (other) => {
+      const containerId = this.#object(other).state.containerId;
+      return !containerId ? "table" : containerId === this.#ownHand() ? "hand" : other;
+    };
+    for (const other of this.selectedIds()) {
+      if (place(other) !== place(id)) this.#dispatch("release", other);
+    }
+    return this.#dispatch("grab", id).ok;
   }
 
   // What the context menu offers for an object, or null if it can't have one.
@@ -121,8 +160,8 @@ export class PieceInteraction {
     else if (holder) this.onLostRace({ id: action.id, holder, clientX: this.pointer.x, clientY: this.pointer.y });
   }
 
-  flip(id = this.actionTarget()) {
-    if (id) this.#dispatch("flip", id);
+  flip(id) {
+    for (const target of this.#actionTargets(id)) this.#dispatch("flip", target);
   }
 
   // Puts a card in one of its states.
@@ -160,8 +199,8 @@ export class PieceInteraction {
     this.#dispatch("roll", trayId, { values: rollValues(dice, this.random), spots });
   }
 
-  lock(id = this.actionTarget()) {
-    if (id) this.#dispatch("lock", id);
+  lock(id) {
+    for (const target of this.#actionTargets(id)) this.#dispatch("lock", target);
   }
 
   // Draws from a deck, bag, or stack into your grip, putting back whatever
@@ -183,8 +222,7 @@ export class PieceInteraction {
       extra.pick = pieceId;
     }
     if (toHand) return this.#dispatch("draw", containerId, { ...extra, toHand }).ok ? pieceId : null;
-    const previous = this.selectedId();
-    if (previous) this.#dispatch("release", previous);
+    this.#releaseAll();
     return this.#dispatch("draw", containerId, extra).ok ? pieceId : null;
   }
 
@@ -271,9 +309,16 @@ export class PieceInteraction {
       return false;
     }
 
+    if (event.shiftKey && !(hit && this.#canMove(hit))) {
+      // Shift-drag over the table draws a box to select what's inside.
+      this.setCameraEnabled(false);
+      this.gesture = { ...base, kind: "box" };
+      return true;
+    }
+
     if (hit && this.#canMove(hit)) {
       this.setCameraEnabled(false);
-      const gesture = { ...base, kind: "object", objectId: hit };
+      const gesture = { ...base, kind: "object", objectId: hit, toggle: event.shiftKey };
       this.gesture = gesture;
       if (pointerType === "touch") gesture.timer = this.#later(gesture, () => this.#openMenu(hit, start, pointerType));
       return true;
@@ -334,6 +379,11 @@ export class PieceInteraction {
       if (gesture.kind === "object" && !this.#startDrag(gesture)) return this.#end();
     }
 
+    if (gesture.kind === "box") {
+      this.onSelectBox(boxBetween(gesture.start, { x: event.clientX, y: event.clientY }));
+      return;
+    }
+
     if (gesture.kind === "object") {
       const point = this.tablePoint(event.clientX, event.clientY, gesture.objectId);
       if (!point) return;
@@ -355,6 +405,11 @@ export class PieceInteraction {
         const hit = this.pick(event.clientX, event.clientY);
         if (hit && this.#hasMenu(hit)) this.#openMenu(hit, { x: event.clientX, y: event.clientY }, event.pointerType);
       }
+    } else if (gesture.kind === "box") {
+      this.onSelectBox(null);
+      if (gesture.moved) this.#selectBox(boxBetween(gesture.start, { x: event.clientX, y: event.clientY }));
+    } else if (gesture.kind === "object" && gesture.toggle && !gesture.moved) {
+      this.toggleSelect(gesture.objectId);
     } else if (gesture.kind === "object") {
       const object = this.#object(gesture.objectId);
       // Dropping where you let go, or clicking the selected object, sets it
@@ -373,7 +428,7 @@ export class PieceInteraction {
       // a plain tap cancels and only a tap-and-hold places.
       const selected = this.selectedId();
       if (selected && event.pointerType === "touch") {
-        if (gesture.kind === "table") this.#dispatch("release", selected);
+        if (gesture.kind === "table") this.#releaseAll();
       } else if (selected) {
         this.#place(selected, event.clientX, event.clientY);
       }
@@ -386,7 +441,8 @@ export class PieceInteraction {
   pointerCancel(event) {
     const gesture = this.gesture;
     if (!gesture || event.pointerId !== gesture.pointerId) return;
-    if (gesture.kind === "object" && gesture.moved) this.#dispatch("release", gesture.objectId);
+    if (gesture.kind === "object" && gesture.moved) this.#releaseAll();
+    if (gesture.kind === "box") this.onSelectBox(null);
     this.#end();
   }
 
@@ -395,10 +451,25 @@ export class PieceInteraction {
     this.onHover(null);
   }
 
-  // Esc: put the selected object back where it was.
+  // Esc: put everything you hold back where it was.
   cancelSelection() {
-    const selected = this.selectedId();
-    if (selected) this.#dispatch("release", selected);
+    this.#releaseAll();
+  }
+
+  #releaseAll() {
+    for (const id of this.selectedIds()) this.#dispatch("release", id);
+  }
+
+  // Adds the loose things you can move inside a box to what you hold. Cards
+  // from your hand don't mix with them, so those go back.
+  #selectBox({ left, top, right, bottom }) {
+    const ids = this.pickBox(left, top, right, bottom)
+      .filter((id) => this.#canMove(id) && !this.#object(id).state.containerId && !this.#object(id).state.heldBy);
+    if (!ids.length) return;
+    for (const other of this.selectedIds()) {
+      if (this.#object(other).state.containerId) this.#dispatch("release", other);
+    }
+    for (const id of ids) this.#dispatch("grab", id);
   }
 
   #object(id) {
@@ -496,11 +567,11 @@ export class PieceInteraction {
     return fanSpots(deck)[deck.state.members.indexOf(id)];
   }
 
-  // Selecting an object puts back whatever you had selected before.
+  // Selecting an object puts back whatever you had selected before, unless
+  // it's already one of the things you hold.
   #select(id) {
-    const previous = this.selectedId();
-    if (previous === id) return true;
-    if (previous) this.#dispatch("release", previous);
+    if (this.#object(id)?.state.heldBy === this.playerId) return true;
+    this.#releaseAll();
     return this.#dispatch("grab", id).ok;
   }
 
@@ -521,4 +592,9 @@ export class PieceInteraction {
     this.setCameraEnabled(true);
     this.setCursor("");
   }
+}
+
+// The box between two client points, as { left, top, right, bottom }.
+function boxBetween(a, b) {
+  return { left: Math.min(a.x, b.x), top: Math.min(a.y, b.y), right: Math.max(a.x, b.x), bottom: Math.max(a.y, b.y) };
 }

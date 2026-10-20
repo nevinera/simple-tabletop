@@ -6,12 +6,13 @@ import { PieceInteraction } from "./interaction";
 // the store changes, and turns pointer events into piece actions. The scene
 // and the PieceInteraction go up to the parent through onScene and
 // onInteraction, for keys and menus. onLostRace hears when someone else got
-// to something first.
+// to something first. A shift-drag shows its selection box over the canvas.
 export default function TableCanvas({
   manifest, store, playerId, onScene, onInteraction, onContextMenu, onHover, onMagnify, onLostRace, onError,
 }) {
   const containerRef = useRef(null);
   const [scene, setScene] = useState(null);
+  const [box, setBox] = useState(null); // { left, top, right, bottom } in client pixels
 
   useEffect(() => {
     const created = new TableScene(containerRef.current);
@@ -54,6 +55,8 @@ export default function TableCanvas({
       onHover: (id) => onHover(id),
       onMagnify: (id) => onMagnify(id),
       onLostRace: (lost) => onLostRace(lost),
+      pickBox: (left, top, right, bottom) => scene.pickBox(left, top, right, bottom),
+      onSelectBox: setBox,
     });
     onInteraction(interaction);
     const stopLost = store.onLost((lost) => interaction.lost(lost));
@@ -84,5 +87,13 @@ export default function TableCanvas({
     };
   }, [scene, store, manifest, playerId, onInteraction, onContextMenu, onHover, onMagnify, onLostRace]);
 
-  return <div className="table-canvas" ref={containerRef} />;
+  return (
+    <>
+      <div className="table-canvas" ref={containerRef} />
+      {box && (
+        <div className="select-box" aria-hidden="true"
+          style={{ left: box.left, top: box.top, width: box.right - box.left, height: box.bottom - box.top }} />
+      )}
+    </>
+  );
 }

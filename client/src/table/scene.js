@@ -203,6 +203,21 @@ export class TableScene {
     return deck?.splay && deck.members[0] === id ? deckId : id;
   }
 
+  // The loose objects whose middles show inside a box of client pixels,
+  // except hands.
+  pickBox(left, top, right, bottom) {
+    if (!this.manifest || !this.state) return [];
+    const rect = this.canvas.getBoundingClientRect();
+    return looseObjects(this.manifest, this.state).filter((object) => {
+      if (object.def.kind === "hand" || object.state.x == null) return false;
+      const height = object.def.layer.base + (object.state.z || 0);
+      const point = new THREE.Vector3(...tableToThree([object.state.x, height, object.state.y])).project(this.camera);
+      const x = rect.left + ((point.x + 1) / 2) * rect.width;
+      const y = rect.top + ((1 - point.y) / 2) * rect.height;
+      return point.z < 1 && x >= left && x <= right && y >= top && y <= bottom;
+    }).map((object) => object.id);
+  }
+
   // Where a screen point meets the plane an object rests on, as table [x, y].
   tablePoint(clientX, clientY, id) {
     const object = this.manifest && this.state && findObject(this.manifest, this.state, id);

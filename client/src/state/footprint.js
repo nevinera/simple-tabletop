@@ -120,16 +120,54 @@ export function topOf(object) {
   return elevation(object) + (empty ? 0 : objectHeight(object));
 }
 
-// What moves along with object `id`: for a held object, what rode on it when
-// it was picked up (its carrying list), and otherwise what rides on it now.
-// A piece drawn from a deck or bag carries nothing.
+// What moves along with object `id`, lowest first: for a held object, what
+// rode on it when it was picked up (its carrying list), plus the other loose
+// things its holder holds and what rode on them, since a player's holds move
+// as a group. Otherwise, what rides on it now. A piece drawn from a deck or
+// bag carries nothing.
 export function carried(manifest, state, id) {
   const object = findObject(manifest, state, id);
-  if (!object?.state.heldBy) return riders(manifest, state, id);
-  return (object.state.carrying || []).filter((riderId) => {
-    const rider = state.pieces[riderId] || state.containers[riderId];
-    return rider && !rider.containerId && !rider.locked && !rider.heldBy;
-  });
+  const holder = object?.state.heldBy;
+  if (!holder) return riders(manifest, state, id);
+  const group = [];
+  for (const kind of ["pieces", "containers"]) {
+    for (const [otherId, other] of Object.entries(state[kind])) {
+      if (otherId !== id && other.heldBy === holder && !other.containerId && other.x != null) group.push(otherId);
+    }
+  }
+  const ids = [...(object.state.carrying || []), ...group.flatMap((otherId) => [otherId, ...(objectState(state, otherId).carrying || [])])];
+  const fits = (riderId) => {
+    const rider = objectState(state, riderId);
+    return rider && riderId !== id && !rider.containerId && !rider.locked && (!rider.heldBy || rider.heldBy === holder);
+  };
+  return [...new Set(ids)].filter(fits).sort((a, b) => (objectState(state, a).z || 0) - (objectState(state, b).z || 0));
+}
+
+// Sets down things that moved together, lowest first: each rests on the
+// tallest support under it, among what stayed put and what's already set
+// down. Returns the new state, or null if one would land off the table or
+// over something that can't hold it up.
+export function setDown(manifest, state, ids, playerId) {
+  const pending = new Set(ids);
+  const [width, depth] = manifest.table.size;
+  let next = state;
+  for (const id of [...ids].sort((a, b) => (objectState(state, a).z || 0) - (objectState(state, b).z || 0))) {
+    pending.delete(id);
+    const object = findObject(manifest, next, id);
+    const { x, y, rotation } = object.state;
+    if (x < 0 || y < 0 || x > width || y > depth) return null;
+    const mine = outline(object, x, y, rotation);
+    const touching = layerMates(manifest, next, object)
+      .filter((other) => !pending.has(other.id) && overlaps(mine, other.outline));
+    if (!canRest(object) && touching.length) return null;
+    if (touching.some((other) => !holdsUp(other, playerId))) return null;
+    next = withZ(next, object, Math.max(0, ...touching.map(topOf)));
+  }
+  return next;
+}
+
+function objectState(state, id) {
+  return state.pieces[id] || state.containers[id];
 }
 
 // What rides on object `id`: loose things on its layer, above it, that

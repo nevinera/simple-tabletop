@@ -4,16 +4,18 @@ import { imageStyle } from "./cardImage";
 const DRAG_THRESHOLD_PX = 6;
 
 // Your hand along the bottom of the screen. Tap a card to select it, then
-// place it on the table as usual. Drag a card along the strip to reorder it,
-// onto the table to play it, or anywhere else to put it back.
-export function HandStrip({ cards, selectedId, interaction, canvas }) {
+// place it on the table as usual, or shift-click to select several. Drag a
+// card along the strip to reorder it, onto the table to play it (with the
+// rest of what you selected), or anywhere else to put it back.
+export function HandStrip({ cards, selectedIds, interaction, canvas }) {
+  const selected = new Set(selectedIds);
   const stripRef = useRef(null);
   const drag = useRef(null);
 
   const onPointerDown = (event, id) => {
     if (event.button !== 0) return;
     event.currentTarget.setPointerCapture(event.pointerId);
-    drag.current = { id, startX: event.clientX, startY: event.clientY, moved: false };
+    drag.current = { id, startX: event.clientX, startY: event.clientY, moved: false, shift: event.shiftKey };
   };
 
   const onPointerMove = (event) => {
@@ -37,7 +39,8 @@ export function HandStrip({ cards, selectedId, interaction, canvas }) {
     drag.current = null;
     if (!current) return;
     if (!current.moved) {
-      if (selectedId === current.id) interaction.cancelSelection();
+      if (current.shift) interaction.toggleSelect(current.id);
+      else if (selected.has(current.id)) interaction.cancelSelection();
       else interaction.handGrab(current.id);
       return;
     }
@@ -70,10 +73,10 @@ export function HandStrip({ cards, selectedId, interaction, canvas }) {
         <div key={id} className="hand-strip-slot">
           <button
             type="button"
-            className={`hand-strip-card${selectedId === id ? " selected" : ""}`}
+            className={`hand-strip-card${selected.has(id) ? " selected" : ""}`}
             data-card-id={id}
             aria-label={id}
-            aria-pressed={selectedId === id}
+            aria-pressed={selected.has(id)}
             style={{ ...imageStyle(side.image), aspectRatio: `${side.size[0]} / ${side.size[1]}` }}
             onPointerDown={(event) => onPointerDown(event, id)}
             onPointerMove={onPointerMove}

@@ -6,7 +6,7 @@ import { rememberModule } from "./browserMemory";
 import { createTableStore } from "./state/store";
 import { useViewportMode } from "./useViewportMode";
 import { useTableKeys } from "./useTableKeys";
-import { useSelectedObject } from "./useSelectedObject";
+import { useSelectedObject, useSelectedObjects } from "./useSelectedObject";
 import { sameIds, useStoreValue } from "./useStoreValue";
 import { useMagnifyKey } from "./useMagnifyKey";
 import { TableSounds, soundFor } from "./sound/sounds";
@@ -183,6 +183,7 @@ export default function App({ manifestUrl, game = null }) {
     if (interaction) interaction.relocateOnTrayRoll = trayRollScatters;
   }, [interaction, trayRollScatters]);
   const selectedObject = useSelectedObject(store, playerId);
+  const selectedObjects = useSelectedObjects(store, playerId);
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
   const openContextMenu = useCallback((menu) => {
     setOpenMenu(null);
@@ -266,7 +267,7 @@ export default function App({ manifestUrl, game = null }) {
           onError={setError}
         />
         {showHandStrip && interaction && (
-          <HandStrip cards={handCards} selectedId={selectedObject} interaction={interaction} canvas={scene?.canvas} />
+          <HandStrip cards={handCards} selectedIds={selectedObjects} interaction={interaction} canvas={scene?.canvas} />
         )}
         {store && player && !seated && !replaced && <SeatPicker seats={seats || []} onPick={sit} />}
         {replaced && (

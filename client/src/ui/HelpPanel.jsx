@@ -51,6 +51,8 @@ const KEYS = [
   ["Draw it into your hand", "Shift + G"],
   ["See a card or die up close, or what's in a bag", "Hold Alt"],
   ["Lock or unlock", "L"],
+  ["Select several, or take one back out", "Shift + click"],
+  ["Select everything in a box", "Shift + drag the table"],
   ["Switch a card to its next state, like upgraded", "U"],
   ["Roll the die under the mouse", "X"],
   ["Roll every die in a tray", "Shift + X"],

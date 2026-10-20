@@ -186,3 +186,35 @@ describe("drawing several into a hand", () => {
     expect(draw(initialState(several), { count: 2 }).reason).toMatch(/hand/);
   });
 });
+
+describe("playing several cards from a hand", () => {
+  const four = normalizeManifest(raw({
+    pieces: ["c1", "c2", "c3", "c4"].map((id) => ({ id, type: "card", face: `${id}.svg` })),
+    containers: [{ id: "deck", kind: "deck", position: [60, 30], size: [6, 9], members: ["c1", "c2", "c3", "c4"] }],
+  }), "https://example.com/m.json");
+  const step = (state, action) => {
+    const result = applyAction(four, state, { playerId: "me", ...action });
+    if (!result.ok) throw new Error(`${action.type}: ${result.reason}`);
+    return result.state;
+  };
+  const dealt = () => step(step(initialState(four), join("me", "south-left")), { type: "draw", id: "deck", toHand: true, count: 3 });
+
+  it("discards held cards from your hand into a deck together", () => {
+    let state = ["c1", "c2", "c3"].reduce((current, id) => step(current, { type: "grab", id }), dealt());
+    state = step(state, { type: "drag", id: "c2", x: 60, y: 30 });
+    state = step(state, { type: "drop", id: "c2", x: 60, y: 30 });
+    expect(hand(state, "south-left")).toEqual([]);
+    // The one you dropped ends up on top.
+    expect(state.containers.deck.members).toEqual(["c2", "c3", "c1", "c4"]);
+    expect(state.pieces.c1).toMatchObject({ containerId: "deck", heldBy: null });
+  });
+
+  it("lays held cards out in a row when you play them on the table", () => {
+    let state = step(step(dealt(), { type: "grab", id: "c1" }), { type: "grab", id: "c3" });
+    state = step(state, { type: "drop", id: "c1", x: 20, y: 30 });
+    expect(state.pieces.c1).toMatchObject({ x: 20, y: 30, containerId: null });
+    expect(state.pieces.c3).toMatchObject({ y: 30, containerId: null, heldBy: null });
+    expect(state.pieces.c3.x).toBeCloseTo(26.5);
+    expect(hand(state, "south-left")).toEqual(["c2"]);
+  });
+});

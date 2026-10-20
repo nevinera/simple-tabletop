@@ -427,3 +427,80 @@ describe("reorderTop", () => {
     expect(store.getState().containers.deck.members).toEqual(["QS", "KS"]);
   });
 });
+
+describe("group selection", () => {
+  let boxes;
+  let store;
+  let interaction;
+  const piece = (id) => store.getState().pieces[id];
+  const pointer = (x, y, extra = {}) => ({
+    clientX: x, clientY: y, pointerId: 1, button: 0, isPrimary: true, pointerType: "mouse", ...extra,
+  });
+  const click = (x, y, extra) => {
+    interaction.pointerDown(pointer(x, y, extra));
+    interaction.pointerUp(pointer(x, y, extra));
+  };
+  const drag = (from, to, extra) => {
+    interaction.pointerDown(pointer(...from, extra));
+    interaction.pointerMove(pointer(from[0] + DRAG_THRESHOLD_PX, from[1], extra));
+    interaction.pointerMove(pointer(...to, extra));
+    interaction.pointerUp(pointer(...to, extra));
+  };
+
+  beforeEach(() => {
+    boxes = [];
+    store = createTableStore(manifest);
+    interaction = new PieceInteraction({
+      store, manifest, playerId: "me",
+      pick: (x, y) => Object.keys(HITS).find((id) => HITS[id][0] === x && HITS[id][1] === y) || null,
+      tablePoint: (x, y) => [x, y],
+      clampToTable: (point) => point,
+      setCameraEnabled: () => {}, setCursor: () => {},
+      // Everything with its middle in the box.
+      pickBox: (left, top, right, bottom) => Object.keys(HITS).filter((id) => {
+        const [x, y] = HITS[id];
+        return x >= left && x <= right && y >= top && y <= bottom;
+      }),
+      onSelectBox: (box) => boxes.push(box),
+    });
+  });
+
+  it("adds and takes out pieces with shift-click", () => {
+    click(10, 10);
+    click(30, 30, { shiftKey: true });
+    expect(interaction.selectedIds()).toEqual(["AS", "AH"]);
+    click(10, 10, { shiftKey: true });
+    expect(interaction.selectedIds()).toEqual(["AH"]);
+  });
+
+  it("selects what's inside a shift-drawn box, showing the box as it goes", () => {
+    drag([0, 0], [35, 35], { shiftKey: true });
+    expect(boxes).toContainEqual({ left: 0, top: 0, right: 35, bottom: 35 });
+    expect(boxes.at(-1)).toBeNull();
+    // The locked mat and anything outside the box stay out.
+    expect(interaction.selectedIds()).toEqual(["AS", "AH"]);
+  });
+
+  it("moves the group with the one you drag", () => {
+    click(10, 10);
+    click(30, 30, { shiftKey: true });
+    drag([10, 10], [15, 70]);
+    expect(piece("AS")).toMatchObject({ x: 15, y: 70, heldBy: null });
+    expect(piece("AH")).toMatchObject({ x: 35, y: 90, heldBy: null });
+  });
+
+  it("puts the whole group back with Esc", () => {
+    click(10, 10);
+    click(30, 30, { shiftKey: true });
+    interaction.cancelSelection();
+    expect(interaction.selectedIds()).toEqual([]);
+    expect(piece("AH")).toMatchObject({ x: 30, y: 30 });
+  });
+
+  it("flips everything it holds", () => {
+    click(10, 10);
+    click(30, 30, { shiftKey: true });
+    interaction.flip();
+    expect([piece("AS").faceUp, piece("AH").faceUp]).toEqual([false, false]);
+  });
+});

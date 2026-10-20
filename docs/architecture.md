@@ -147,7 +147,13 @@ A piece or container can only move while one player holds it.
 - **Containers:** holding a container holds everything in it. Nobody else can take, add, shuffle, or roll its
   members until it's released.
 
-There's no free-form multi-select. To move or roll several things together, put them in a container.
+A player can hold several things at once, as a group: shift-click adds or removes one, and shift-drag over the
+table adds everything in a box. Cards in their hand group only with other cards in their hand. Dropping one
+thing in the group moves the rest with it, keeping their places around it, and lets go of it all. Over a
+container, the whole group goes in if the container takes every piece, or the drop is refused. Cards from a
+hand played on the table lay out in a row beside the one dropped. Turning one swings the rest around it, and
+flip and lock keys act on each. While a player drags one thing they hold, everything else they hold, and what
+rides on it, draws as moving with it.
 
 ## Sync
 

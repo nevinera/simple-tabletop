@@ -38,10 +38,12 @@
 // or null, and splayDistance, a player's spacing for the fan or null for the
 // deck's own.
 
-import { carried, elevation, landing, riders, settle, stackUp } from "./footprint";
+import { carried, elevation, landing, riders, setDown, settle, stackUp } from "./footprint";
 import { SPLAY_DIRECTIONS, accepts, fanSpots, findObject, handIndex, handSlots, pieceDef, spawnedId } from "./objects";
 import { nearestFree, scatter, seededRandom, toTray } from "./trays";
 import { handId, openSeats, seatOf } from "./seats";
+
+const LAID_OUT_GAP = 0.5; // cm between cards laid out from a hand
 
 export function initialState(manifest) {
   const containerOf = new Map();
@@ -196,37 +198,13 @@ const HANDLERS = {
     return unsaved(state, object, { drag: { x: action.x, y: action.y } });
   },
 
+  // Everything else the player holds goes with it as a group (see
+  // dropGroup), and they let go of all of it.
   drop({ manifest, state, action, object }) {
     if (object.state.heldBy !== action.playerId) return reject(state, "Grab it first.");
-    const letGo = letGoOf(object);
-    if (action.into) {
-      if (action.into !== ownHand(state, action.playerId)) return reject(state, "That isn't your hand.");
-      return addToContainer(manifest, state, object, action.into, letGo, action.index);
-    }
-    const target = landing(manifest, state, object.id, action.x, action.y, object.state.rotation, action.playerId);
-    if (target.blocked) return blocked(state);
-    if (target.into && object.kind === "container") return mergeDeck(manifest, state, object, target.into, letGo);
-    if (target.onto && object.def.kind === "card") return formDeck(manifest, state, object, target.onto, letGo);
-    if (target.onto) return formStack(state, object, target.onto, letGo);
-    if (target.into && state.containers[target.into].spots) {
-      return addToTray(manifest, state, object, target.into, letGo, [action.x, action.y]);
-    }
-    if (target.into) return addToContainer(manifest, state, object, target.into, letGo, null, [action.x, action.y]);
-    const changes = { ...letGo, x: action.x, y: action.y, z: target.z };
-    if (object.kind === "piece") changes.stackOrder = topOfLayer(manifest, state, object.def.layer.id);
-    if (object.state.containerId) {
-      // Played from a hand, a card lands facing the way the hand does, and
-      // pulled from a deck's fan, the way the deck does.
-      const from = findObject(manifest, state, object.state.containerId);
-      changes.containerId = null;
-      if (from.def.kind === "hand") changes.rotation = from.def.rotation;
-      if (from.def.kind === "deck") Object.assign(changes, { rotation: from.state.rotation, faceUp: from.state.faceUp });
-      return save(withoutMember(state, object), object, changes);
-    }
-    const from = object.state;
-    return carryAlong(manifest, state, save(state, object, changes), object.id, action.playerId, {
-      dx: action.x - from.x, dy: action.y - from.y, dz: target.z - elevation(object),
-    });
+    const result = dropGroup(manifest, state, action, object);
+    if (!result.ok) return result;
+    return { ...result, state: letGoAll(result.state, action.playerId) };
   },
 
   release({ state, action, object }) {
@@ -411,6 +389,100 @@ const HANDLERS = {
   },
 };
 
+// Drops a held object, with the rest of what its player holds:
+// - into a container, the others go in too, if it takes them all;
+// - on open table, loose ones keep their places around it, and cards from
+//   the player's hand lay out in a row beside it, as the hand runs;
+// - into a hand, onto a pile, or into a tray, only it goes, and the rest is
+//   let go where it was.
+function dropGroup(manifest, state, action, object) {
+  const letGo = letGoOf(object);
+  const group = heldBy(state, action.playerId).filter((id) => id !== object.id);
+  if (action.into) {
+    if (action.into !== ownHand(state, action.playerId)) return reject(state, "That isn't your hand.");
+    return addToContainer(manifest, state, object, action.into, letGo, action.index);
+  }
+  const target = landing(manifest, state, object.id, action.x, action.y, object.state.rotation, action.playerId);
+  if (target.blocked) return blocked(state);
+  if (target.into && object.kind === "container") return mergeDeck(manifest, state, object, target.into, letGo);
+  if (target.onto && object.def.kind === "card") return formDeck(manifest, state, object, target.onto, letGo);
+  if (target.onto) return formStack(state, object, target.onto, letGo);
+  if (target.into && state.containers[target.into].spots) {
+    return addToTray(manifest, state, object, target.into, letGo, [action.x, action.y]);
+  }
+  if (target.into) return addAllToContainer(manifest, state, [...group, object.id], target.into, [action.x, action.y]);
+  const changes = { ...letGo, x: action.x, y: action.y, z: target.z };
+  if (object.kind === "piece") changes.stackOrder = topOfLayer(manifest, state, object.def.layer.id);
+  if (object.state.containerId) {
+    // Played from a hand, a card lands facing the way the hand does, and
+    // pulled from a deck's fan, the way the deck does.
+    const from = findObject(manifest, state, object.state.containerId);
+    changes.containerId = null;
+    if (from.def.kind === "hand") changes.rotation = from.def.rotation;
+    if (from.def.kind === "deck") Object.assign(changes, { rotation: from.state.rotation, faceUp: from.state.faceUp });
+    const result = save(withoutMember(state, object), object, changes);
+    if (from.def.kind !== "hand") return result;
+    return layOutFromHand(manifest, state, result, from, object, group, action.playerId);
+  }
+  const from = object.state;
+  return carryAlong(manifest, state, save(state, object, changes), object.id, action.playerId, {
+    dx: action.x - from.x, dy: action.y - from.y, dz: target.z - elevation(object),
+  });
+}
+
+// Puts several pieces in a container at once, the first one deepest, or
+// refuses if it won't take them all.
+function addAllToContainer(manifest, state, ids, containerId, point) {
+  const container = findObject(manifest, state, containerId);
+  if (!ids.every((id) => state.pieces[id] && accepts(container.def, pieceDef(manifest, id)))) return blocked(state);
+  let next = state;
+  for (const id of ids) {
+    const piece = findObject(manifest, next, id);
+    next = addToContainer(manifest, next, piece, containerId, letGoOf(piece), null, point).state;
+  }
+  return { ok: true, state: { ...next, sequence: state.sequence + 1 } };
+}
+
+// After a card from a hand lands: the other held cards from that hand lay
+// out in a row after it, along the hand, and rest where they land. Refused
+// if one won't fit.
+function layOutFromHand(manifest, before, result, hand, lead, group, playerId) {
+  const cards = before.containers[hand.id].members.filter((id) => group.includes(id));
+  if (!cards.length) return result;
+  const radians = (hand.def.rotation * Math.PI) / 180;
+  const [axisX, axisY] = [Math.cos(radians), -Math.sin(radians)];
+  const { x, y } = result.state.pieces[lead.id];
+  let next = result.state;
+  let along = 0;
+  let width = lead.def.size[0];
+  for (const id of cards) {
+    const card = findObject(manifest, next, id);
+    along += (width + card.def.size[0]) / 2 + LAID_OUT_GAP;
+    width = card.def.size[0];
+    next = withObject(withoutMember(next, card), card, {
+      ...letGoOf(card), containerId: null, x: x + axisX * along, y: y + axisY * along, z: 0,
+      rotation: hand.def.rotation, stackOrder: topOfLayer(manifest, next, card.def.layer.id),
+    });
+  }
+  const placed = setDown(manifest, next, cards, playerId);
+  return placed ? { ...result, state: placed } : blocked(before);
+}
+
+// Everything a player holds, pieces and containers.
+function heldBy(state, playerId) {
+  return ["pieces", "containers"].flatMap((key) => Object.keys(state[key]).filter((id) => state[key][id].heldBy === playerId));
+}
+
+// Lets go of everything a player holds.
+function letGoAll(state, playerId) {
+  let next = state;
+  for (const id of heldBy(state, playerId)) {
+    const kind = state.pieces[id] ? "piece" : "container";
+    next = withObject(next, { kind, id }, letGoOf({ state: objectState(next, id) }));
+  }
+  return next;
+}
+
 // After an object moved or turned: moves what was riding on it along, shifted
 // by (dx, dy), raised by dz, and turned `degrees` clockwise about the object's
 // center. Refused if anything carried would land somewhere it can't go.
@@ -432,11 +504,8 @@ function carryAlong(manifest, before, result, id, playerId, { dx = 0, dy = 0, dz
       rotation: normalizeDegrees(rider.state.rotation + degrees),
     });
   }
-  for (const riderId of ids) {
-    const { x, y, rotation } = objectState(next, riderId);
-    if (landing(manifest, next, riderId, x, y, rotation, playerId).blocked) return blocked(before);
-  }
-  return { ...result, state: next };
+  const placed = setDown(manifest, next, ids, playerId);
+  return placed ? { ...result, state: placed } : blocked(before);
 }
 
 // What changes when a player lets go of something.

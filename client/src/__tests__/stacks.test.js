@@ -14,7 +14,8 @@ const raw = (overrides = {}) => ({
   layers: [{ id: "board", thickness: 0.4 }, { id: "pieces", thickness: 0.03 }],
   pieceTypes: {
     gold: { kind: "chip", size: [2], face: "gold.svg" },
-    silver: { kind: "chip", size: [2], face: "silver.svg" },
+    silver: { kind: "token", shape: "circle", size: [2], face: "silver.svg" },
+    ruby: { kind: "chip", size: [2], face: "ruby.svg", edge: "#c0392b" },
   },
   pieces: [
     { id: "g1", type: "gold", position: [10, 10] },
@@ -57,6 +58,16 @@ describe("stacks", () => {
     expect(landing(manifest, state, "s1", 10, 40, 0, "me").z).toBeCloseTo(objectHeight(findObject(manifest, state, "pile")));
   });
 
+  it("piles chips of the same size together, whatever is on them", () => {
+    const withRuby = normalizeManifest(raw({ pieces: [...raw().pieces, { id: "r1", type: "ruby", position: [70, 10] }] }), BASE);
+    const play = (state, action) => applyAction(withRuby, state, { playerId: "me", ...action });
+    let state = play(initialState(withRuby), { type: "grab", id: "r1" }).state;
+    expect(landing(withRuby, state, "r1", 10, 40, 0, "me")).toEqual({ into: "pile" });
+    state = play(state, { type: "drop", id: "r1", x: 10, y: 40 }).state;
+    expect(state.containers.pile.members[0]).toBe("r1");
+    expect(findObject(withRuby, state, "r1").def.edge).toBe("#c0392b");
+  });
+
   it("grows a piece taller per piece, up to five", () => {
     const height = (count) => objectHeight({ kind: "container", def: findObject(manifest, initialState(manifest), "pile").def, state: { members: Array(count) } });
     expect(height(2)).toBeCloseTo(0.4);
@@ -92,5 +103,17 @@ describe("stacks", () => {
     ].filter((piece) => members.includes(piece.id));
     const containers = [...raw().containers, { id: "bad", kind: "stack", position: [0, 0], members }];
     expect(() => normalizeManifest(raw({ pieces: [...raw().pieces, ...extras], containers }), BASE)).toThrow(message);
+  });
+});
+
+describe("how tall a stack shows", () => {
+  it("defaults to five pieces, and takes a module's maxStackShown from 2 to 20", () => {
+    const height = (m, count) => objectHeight({ kind: "container", def: findObject(m, initialState(m), "pile").def, state: { members: Array(count) } });
+    expect(height(manifest, 9)).toBeCloseTo(1);
+    const tall = normalizeManifest(raw({ maxStackShown: 12 }), BASE);
+    expect(height(tall, 9)).toBeCloseTo(1.8);
+    expect(height(tall, 15)).toBeCloseTo(2.4);
+    expect(() => normalizeManifest(raw({ maxStackShown: 1 }), BASE)).toThrow(/2 to 20/);
+    expect(() => normalizeManifest(raw({ maxStackShown: 21 }), BASE)).toThrow(/2 to 20/);
   });
 });

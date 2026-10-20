@@ -1,10 +1,10 @@
 import * as THREE from "three";
-import { STACK_SHOWN, stackHeight } from "../state/objects";
+import { stackHeight } from "../state/objects";
 import { tableRotationToThree, tableToThree } from "./coordinates";
-import { HELD_LIFT, restingTurn } from "./pieces";
+import { EDGE_COLOR, HELD_LIFT, restingTurn } from "./pieces";
 
-const EDGE_COLOR = "#e8e4da"; // matches a single piece's edge
-const LINE_COLOR = "#8d887d";
+const LINE_COLOR = "rgba(0, 0, 0, 0.35)";
+const BAND_PIXELS = 16; // texture rows per piece in the pile
 const BOTTOM_COLOR = 0xd8d4ca;
 const COUNTER_SIZE = 0.55; // of the stack's shorter side
 const COUNTER_LIFT = 0.01; // keeps the counter off the top, so it never z-fights
@@ -14,13 +14,13 @@ const SHADOW_LIFT = 0.003;
 const BLOCKED_SHADOW_COLOR = 0xd0302a;
 const GHOST_OPACITY = 0.35;
 
-// A stack looks like its pieces piled up: their shape, a line between each
-// one, and the top piece's up side on top. Past STACK_SHOWN pieces it stops
+// A stack looks like its pieces piled up: their shape, each one's own edge
+// color with a line between them, and the top piece's up side on top. Past its module's maxStackShown pieces it stops
 // growing and shows a count on top instead. Every pickable mesh carries the
 // stack's id in userData.objectId.
 export function buildStack(id, def) {
   const [width, depth] = def.size;
-  const sides = new THREE.MeshStandardMaterial({ map: sideTexture(), roughness: 0.9 });
+  const sides = new THREE.MeshStandardMaterial({ roughness: 0.9 });
   const top = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const bottom = new THREE.MeshStandardMaterial({ color: BOTTOM_COLOR, roughness: 0.9 });
   // Built one unit tall, then scaled to the stack's height. Three maps a
@@ -68,9 +68,10 @@ export function buildStack(id, def) {
   return group;
 }
 
-// Places the stack for its state. floor lifts a held stack over whatever is
+// Places the stack for its state. edges are the edge colors of its pieces,
+// top first, null for the usual. floor lifts a held stack over whatever is
 // under it; blocked tints its shadow red, and color tints it otherwise.
-export function applyStackPlacement(group, def, state, { blocked = false, floor = 0, color = 0x000000 } = {}) {
+export function applyStackPlacement(group, def, state, edges, { blocked = false, floor = 0, color = 0x000000 } = {}) {
   const { body, counter, ghost, shadow } = group.userData;
   const rest = restingTurn(group, state);
   const count = state.members.length;
@@ -81,8 +82,8 @@ export function applyStackPlacement(group, def, state, { blocked = false, floor 
 
   body.scale.y = height;
   body.position.y = height / 2;
-  body.material[0].map.repeat.set(1, Math.min(count, STACK_SHOWN));
-  showCount(group, count);
+  showSides(group, edges.slice(0, def.shown).map((edge) => edge || EDGE_COLOR));
+  showCount(group, count, def.shown);
   counter.position.y = height + COUNTER_LIFT;
 
   const lift = held ? floor + HELD_LIFT : state.z || 0;
@@ -123,9 +124,9 @@ export function setStackTop(group, texture) {
 }
 
 // "x6" in white with a black outline, once there are more pieces than show.
-function showCount(group, count) {
+function showCount(group, count, shown) {
   const { counter } = group.userData;
-  counter.visible = count > STACK_SHOWN;
+  counter.visible = count > shown;
   if (!counter.visible || group.userData.count === count) return;
   group.userData.count = count;
   const canvas = document.createElement("canvas");
@@ -148,19 +149,34 @@ function showCount(group, count) {
   counter.material.needsUpdate = true;
 }
 
-// One piece's edge with a line along its bottom, repeated once per piece.
-function sideTexture() {
+// Paints the stack's sides with a band per shown piece, top first, each its
+// edge color with a line along its bottom.
+function showSides(group, colors) {
+  const key = colors.join(",");
+  if (group.userData.sidesKey === key) return;
+  group.userData.sidesKey = key;
+  const texture = sideTexture(colors);
+  const { body, ghost } = group.userData;
+  for (const material of [body.material[0], ghost.material[0]]) {
+    material.map?.dispose();
+    material.map = texture;
+    material.needsUpdate = true;
+  }
+}
+
+function sideTexture(colors) {
   const canvas = document.createElement("canvas");
   canvas.width = 4;
-  canvas.height = 16;
+  canvas.height = BAND_PIXELS * colors.length;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = EDGE_COLOR;
-  ctx.fillRect(0, 0, 4, 16);
-  ctx.fillStyle = LINE_COLOR;
-  ctx.fillRect(0, 15, 4, 1);
+  colors.forEach((color, i) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(0, i * BAND_PIXELS, 4, BAND_PIXELS);
+    ctx.fillStyle = LINE_COLOR;
+    ctx.fillRect(0, (i + 1) * BAND_PIXELS - 1, 4, 1);
+  });
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.magFilter = THREE.NearestFilter;
   return texture;
 }

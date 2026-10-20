@@ -311,7 +311,8 @@ Without `accepts`, decks take pieces of their members' type, trays take dice, an
 ### Kinds
 
 - **deck:** an ordered stack. Players draw from the top, one at a time or several into their hand, and can
-  shuffle it. It starts 0.8cm tall and grows toward
+  shuffle it. They can also look at the top few cards, or the whole deck, by themselves, and put them back in
+  a new order. It starts 0.8cm tall and grows toward
   4.8cm as cards go in, showing its `image` or else the top card. An empty deck stays on the table
   as an outlined placeholder. Dropping a card on a loose card of the same type and size makes a new deck.
   Dropping a deck on a deck that takes its cards stacks them all on top, like shuffling a discard pile back in.

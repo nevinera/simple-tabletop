@@ -3,8 +3,9 @@ import { imageStyle } from "./cardImage";
 
 // A deck's cards in a popover, top first and face-up, for putting in order.
 // Drag a row, or use its arrows, then save. onSave(order) returns whether
-// the new order took.
-export function ReorderPanel({ cards, onSave, onClose }) {
+// the new order took. partial means cards are only the deck's top few, which
+// you're looking at and can put back in a new order.
+export function ReorderPanel({ cards, partial = false, onSave, onClose }) {
   const [order, setOrder] = useState(() => cards.map((card) => card.id));
   const [dragging, setDragging] = useState(null);
   const [failed, setFailed] = useState(false);
@@ -44,9 +45,9 @@ export function ReorderPanel({ cards, onSave, onClose }) {
 
   return (
     <div className="help-backdrop" onPointerDown={(event) => event.target === event.currentTarget && onClose()}>
-      <div className="help reorder" role="dialog" aria-label="Reorder deck">
+      <div className="help reorder" role="dialog" aria-label={partial ? "Top of the deck" : "Reorder deck"}>
         <div className="help-header">
-          <h2>Reorder</h2>
+          <h2>{partial ? `Top ${cards.length}` : "Reorder"}</h2>
           <button type="button" className="help-close" aria-label="Close reorder" onClick={onClose}>×</button>
         </div>
         <div className="help-body">
@@ -77,11 +78,11 @@ export function ReorderPanel({ cards, onSave, onClose }) {
               </li>
             ))}
           </ol>
-          <p className="menu-title">Bottom</p>
+          <p className="menu-title">{partial ? "Then the rest of the deck" : "Bottom"}</p>
           {failed && <p className="menu-note" role="alert">The deck changed since you opened this. Close it and try again.</p>}
           <div className="piece-actions-row">
-            <button type="button" className="menu-item" onClick={onClose}>Cancel</button>
-            <button type="button" className="menu-item" onClick={save}>Save</button>
+            <button type="button" className="menu-item" onClick={onClose}>{partial ? "Leave as is" : "Cancel"}</button>
+            <button type="button" className="menu-item" onClick={save}>{partial ? "Put back in this order" : "Save"}</button>
           </div>
         </div>
       </div>

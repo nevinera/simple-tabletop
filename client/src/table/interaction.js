@@ -224,6 +224,15 @@ export class PieceInteraction {
     return this.#dispatch("reorder", deckId, { order }).ok;
   }
 
+  // Puts the top cards of a deck back in a new order, leaving the rest. False
+  // if the top cards aren't the ones in order anymore.
+  reorderTop(deckId, order) {
+    const members = this.#object(deckId)?.state.members || [];
+    const top = members.slice(0, order.length);
+    if ([...top].sort().join("\n") !== [...order].sort().join("\n")) return false;
+    return this.reorder(deckId, [...order, ...members.slice(order.length)]);
+  }
+
   // Fans a deck out toward `direction`, or closes it with null, and with
   // distance, changes its spacing. A fan that would run into something wiggles.
   splay(deckId, { direction, distance } = {}) {

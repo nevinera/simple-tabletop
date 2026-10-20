@@ -58,7 +58,7 @@ export default function App({ manifestUrl, game = null }) {
   const [contextMenu, setContextMenu] = useState(null);
   const [openMenu, setOpenMenu] = useState(null);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [reordering, setReordering] = useState(null); // deck id
+  const [reordering, setReordering] = useState(null); // { deckId, count }, count null for the whole deck
   const [desktopActionBar, setDesktopActionBar] = useStoredFlag(ACTION_BAR_SETTING, false);
   const [handStripVisible, setHandStripVisible] = useStoredFlag(HAND_STRIP_SETTING, true);
   const [trayRollScatters, setTrayRollScatters] = useStoredFlag(TRAY_SCATTER_SETTING, true);
@@ -201,9 +201,9 @@ export default function App({ manifestUrl, game = null }) {
     else if (magnified) setMagnified(null);
     else interaction?.cancelSelection();
   }, [reordering, helpOpen, openMenu, contextMenu, magnified, interaction]);
-  const startReorder = useCallback((deckId) => {
+  const startReorder = useCallback((deckId, count = null) => {
     setOpenMenu(null);
-    setReordering(deckId);
+    setReordering({ deckId, count });
   }, []);
   const closeReorder = useCallback(() => setReordering(null), []);
   const tableInteraction = seated ? interaction : null;
@@ -296,13 +296,16 @@ export default function App({ manifestUrl, game = null }) {
         />
       )}
       {helpOpen && <HelpPanel touch={layout !== "desktop"} onClose={closeHelp} />}
-      {reordering && interaction && store.getState().containers[reordering] && (
+      {reordering && interaction && store.getState().containers[reordering.deckId] && (
         <ReorderPanel
-          cards={store.getState().containers[reordering].members.map((id) => {
+          cards={store.getState().containers[reordering.deckId].members.slice(0, reordering.count ?? undefined).map((id) => {
             const def = pieceDef(manifest, id);
             return { id, label: def.id, side: { image: faceOf(def, store.getState().pieces[id]), size: def.size } };
           })}
-          onSave={(order) => interaction.reorder(reordering, order)}
+          partial={reordering.count != null}
+          onSave={(order) => (reordering.count == null
+            ? interaction.reorder(reordering.deckId, order)
+            : interaction.reorderTop(reordering.deckId, order))}
           onClose={closeReorder}
         />
       )}

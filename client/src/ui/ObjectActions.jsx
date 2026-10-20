@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { rememberDrawCount, rememberedDrawCount } from "../browserMemory";
+import { rememberCount, rememberedCount } from "../browserMemory";
 
 // Buttons for one object, shared by the action bar's Selected menu and the
 // context menu. What shows depends on the object: decks draw, shuffle, and
@@ -67,7 +67,8 @@ export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onD
         </button>
       )}
       {(deck || stack) && object.hasHand && object.count > 1 && (
-        <DrawToHand most={object.count} onDraw={(count) => act(() => interaction.draw(objectId, { count }))()} />
+        <CountAction label="Draw several into your hand" verb="Draw" name="draw" fallback={5} most={object.count}
+          onAct={(count) => act(() => interaction.draw(objectId, { count }))()} />
       )}
       {deck && object.count > 1 && (
         <button type="button" className="menu-item" onClick={act(() => interaction.shuffle(objectId))}>
@@ -98,9 +99,13 @@ export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onD
         </>
       )}
       {deck && onReorder && object.count > 1 && (
-        <button type="button" className="menu-item" onClick={act(() => onReorder(objectId))}>
-          Reorder…
-        </button>
+        <>
+          <CountAction label="Look at the top cards" verb="Look at" name="peek" fallback={3} most={object.count - 1}
+            onAct={(count) => act(() => onReorder(objectId, count))()} />
+          <button type="button" className="menu-item" onClick={act(() => onReorder(objectId))}>
+            Reorder…
+          </button>
+        </>
       )}
       {object.canFlip && movable && (
         <button type="button" className="menu-item" onClick={act(() => interaction.flip(objectId))}>
@@ -143,23 +148,24 @@ export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onD
   );
 }
 
-// Draws several into your hand at once: a count to step up and down, kept
-// for next time, and a button. most is how many there are to draw.
-function DrawToHand({ most, onDraw }) {
-  const [count, setCount] = useState(rememberedDrawCount);
-  const shown = Math.min(count, most);
+// Does something to several cards at once: a count to step up and down,
+// remembered under `name` for next time, and a button saying `verb` and the
+// count. most is the highest count it goes to.
+function CountAction({ label, verb, name, fallback, most, onAct }) {
+  const [count, setCount] = useState(() => rememberedCount(name, fallback));
+  const shown = Math.max(1, Math.min(count, most));
   const step = (by) => setCount(Math.max(1, Math.min(most, shown + by)));
-  const draw = () => {
-    rememberDrawCount(shown);
-    onDraw(shown);
+  const run = () => {
+    rememberCount(name, shown);
+    onAct(shown);
   };
   return (
     <>
-      <p className="menu-label">Draw several into your hand</p>
+      <p className="menu-label">{label}</p>
       <div className="piece-actions-row">
-        <button type="button" className="menu-item" aria-label="Draw fewer" disabled={shown <= 1} onClick={() => step(-1)}>−</button>
-        <button type="button" className="menu-item" onClick={draw}>Draw {shown}</button>
-        <button type="button" className="menu-item" aria-label="Draw more" disabled={shown >= most} onClick={() => step(1)}>+</button>
+        <button type="button" className="menu-item" aria-label={`${verb} fewer`} disabled={shown <= 1} onClick={() => step(-1)}>−</button>
+        <button type="button" className="menu-item" onClick={run}>{verb} {shown}</button>
+        <button type="button" className="menu-item" aria-label={`${verb} more`} disabled={shown >= most} onClick={() => step(1)}>+</button>
       </div>
     </>
   );

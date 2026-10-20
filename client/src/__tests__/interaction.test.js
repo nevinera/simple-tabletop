@@ -412,3 +412,18 @@ describe("losing a race", () => {
     expect(menus.map((menu) => menu.objectId)).toEqual(["AH"]);
   });
 });
+
+describe("reorderTop", () => {
+  it("reorders only the top cards, and refuses ones that aren't on top", () => {
+    const store = createTableStore(manifest);
+    const interaction = new PieceInteraction({
+      store, manifest, playerId: "me",
+      pick: () => null, tablePoint: () => null, clampToTable: (p) => p,
+      setCameraEnabled: () => {}, setCursor: () => {},
+    });
+    expect(interaction.reorderTop("deck", ["QS"])).toBe(false);
+    expect(interaction.reorderTop("deck", ["KS"])).toBe(true);
+    expect(interaction.reorderTop("deck", ["QS", "KS"])).toBe(true);
+    expect(store.getState().containers.deck.members).toEqual(["QS", "KS"]);
+  });
+});

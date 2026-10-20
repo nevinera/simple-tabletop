@@ -59,3 +59,26 @@ describe("ReorderPanel", () => {
     expect(onReorder).toHaveBeenCalledWith("deck");
   });
 });
+
+describe("looking at the top cards", () => {
+  it("shows only the top cards, and puts them back in a new order", () => {
+    const onSave = vi.fn(() => true);
+    const top = ["c1", "c2"].map((id) => ({ id, label: id, side: { image: null, size: [6, 9] } }));
+    render(<ReorderPanel cards={top} partial onSave={onSave} onClose={() => {}} />);
+    expect(screen.getByRole("heading", { name: "Top 2" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Move c2 up" }));
+    fireEvent.click(screen.getByRole("button", { name: "Put back in this order" }));
+    expect(onSave).toHaveBeenCalledWith(["c2", "c1"]);
+  });
+
+  it("offers it in a deck's menu, with a count", () => {
+    localStorage.clear();
+    const onReorder = vi.fn();
+    const interaction = { describe: () => ({ kind: "deck", locked: false, count: 3 }), draw: vi.fn(), shuffle: vi.fn() };
+    render(<ContextMenu menu={{ objectId: "deck", clientX: 0, clientY: 0, pointerType: "mouse" }}
+      interaction={interaction} popover={false} onReorder={onReorder} onClose={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "Look at fewer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Look at 1" }));
+    expect(onReorder).toHaveBeenCalledWith("deck", 1);
+  });
+});

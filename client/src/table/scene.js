@@ -24,6 +24,7 @@ import { applyUprightPlacement } from "./upright";
 import { applyMotion, clampTarget, orbit, sumMotions } from "./rig";
 import { TextureCache } from "./textures";
 import { showImages } from "./lazyImages";
+import { buildCounter, showCount } from "./counters";
 
 const BACKGROUND = 0x1b1b1f;
 const TARGET_MARGIN = 0.1; // how far past the table edge the orbit target may go, as a fraction of its size
@@ -135,6 +136,7 @@ export class TableScene {
         applyUprightPlacement(mesh, def, state.pieces[def.id], this.#hover(def.id));
       }
       else applyPlacement(mesh, def, state.pieces[def.id], ranks.get(def.id) || 0, this.#hover(def.id));
+      if (def.kind === "counter") showCount(mesh, def, state.pieces[def.id]);
     }
     // Pieces that went into an infinite bag are gone.
     for (const [id, mesh] of this.pieceMeshes) {
@@ -576,6 +578,7 @@ export class TableScene {
     if (def.kind === "die") return buildDie(def);
     if (def.kind === "standee") return buildStandee(def);
     if (def.kind === "pawn") return buildPawn(def);
+    if (def.kind === "counter") return buildCounter(def);
     return buildPiece(def);
   }
 

@@ -7,7 +7,8 @@
 //   seating:    "four" or "eight"; see state/seats.js
 //   players:    { [playerId]: { seatId } }
 //   pieces:     { [id]: { x, y, z, rotation, faceUp, stackOrder, containerId, heldBy, drag, locked } },
-//               plus { value, rolls } for dice, and { stateIndex } for cards
+//               plus { value, rolls } for dice, { value, label } for counters,
+//               and { stateIndex } for cards
 //               with states, which state they're in, 0 or missing for the first
 //   containers: { [id]: { x, y, z, rotation, faceUp, members, heldBy, drag, locked, spec } },
 //               plus { spots } for trays (see state/trays.js), and { spawned }
@@ -39,7 +40,10 @@
 // deck's own.
 
 import { carried, elevation, landing, riders, setDown, settle, stackUp } from "./footprint";
-import { SPLAY_DIRECTIONS, accepts, fanSpots, findObject, handIndex, handSlots, pieceDef, pilesWith, spawnedId } from "./objects";
+import {
+  MAX_COUNTER_LABEL, MAX_COUNTER_VALUE, SPLAY_DIRECTIONS, accepts, fanSpots, findObject, handIndex, handSlots, pieceDef, pilesWith,
+  spawnedId,
+} from "./objects";
 import { nearestFree, scatter, seededRandom, toTray } from "./trays";
 import { handId, openSeats, seatOf } from "./seats";
 
@@ -130,6 +134,7 @@ export function initialState(manifest) {
 //             deck up, plus { distance } in cm to change its spacing
 //   changeState: { index }, which of a card's states to put it in
 //   deal:     { count }, how many cards each seated player gets from a deck
+//   setCounter: { value } and/or { label } for a counter
 //   stackUp:  { others }, the pieces to pile on top of this one, bottom first
 export function applyAction(manifest, state, action) {
   if (SEAT_HANDLERS[action.type]) return SEAT_HANDLERS[action.type]({ manifest, state, action });
@@ -229,6 +234,7 @@ const HANDLERS = {
     if (def.kind === "board") return reject(state, "Boards don't flip.");
     if (def.kind === "standee") return reject(state, "Turn a standee instead.");
     if (def.kind === "pawn") return reject(state, "Pawns don't flip.");
+    if (def.kind === "counter") return reject(state, "Counters don't flip.");
     return save(state, object, { faceUp: !object.state.faceUp });
   },
 
@@ -390,6 +396,25 @@ const HANDLERS = {
     };
     const withDeck = { ...state, containers: { ...state.containers, [action.deckId]: deck } };
     return addToContainer(manifest, withDeck, object, action.deckId, { heldBy: null, drag: null, locked: false });
+  },
+
+  // Changes a counter's number or label. Locked counters still count; locking
+  // only keeps them in place.
+  setCounter({ state, action, def, object }) {
+    if (def.kind !== "counter") return reject(state, "Only counters keep a count.");
+    const changes = {};
+    if (action.value !== undefined) {
+      if (!Number.isInteger(action.value) || Math.abs(action.value) > MAX_COUNTER_VALUE) return reject(state, "A counter's value must be a whole number.");
+      changes.value = action.value;
+    }
+    if (action.label !== undefined) {
+      if (typeof action.label !== "string" || action.label.length > MAX_COUNTER_LABEL) {
+        return reject(state, `A counter's label is at most ${MAX_COUNTER_LABEL} characters.`);
+      }
+      changes.label = action.label;
+    }
+    if (!Object.keys(changes).length) return reject(state, "setCounter needs a value or a label.");
+    return save(state, object, changes);
   },
 
   // Puts a card in one of its states, like upgraded. It keeps that state
@@ -754,6 +779,7 @@ function newPiece(def) {
     locked: def.fixed,
   };
   if (def.shape === "die") Object.assign(piece, { value: def.value, rolls: 0 });
+  if (def.kind === "counter") Object.assign(piece, { value: def.value, label: def.label });
   return piece;
 }
 

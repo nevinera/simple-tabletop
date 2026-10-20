@@ -32,6 +32,7 @@ export function visibleSide(manifest, state, id, viewerSeat) {
   const { def, state: piece } = object;
   if (def.shape === "die") return { die: def.die, value: piece.value };
   if (def.kind === "pawn") return { pawn: { shape: def.shape, color: def.color } };
+  if (def.kind === "counter") return { counter: { label: piece.label, value: piece.value, color: def.color } };
   if (piece.containerId) {
     const container = findObject(manifest, state, piece.containerId);
     if (container.def.kind === "stack") return { image: piece.faceUp ? faceOf(def, piece) : backOf(def, piece), size: def.size };
@@ -64,6 +65,9 @@ function describeKind(def) {
   }
   if (def.kind === "pawn") {
     return { key: def.type || `pawn:${def.shape}:${def.color}`, name: def.type, side: { pawn: { shape: def.shape, color: def.color } } };
+  }
+  if (def.kind === "counter") {
+    return { key: def.type || `counter:${def.label}`, name: def.type || def.label, side: { counter: { label: def.label, value: def.value, color: def.color } } };
   }
   return {
     key: def.type || `face:${def.face.url}#${def.face.index ?? ""}`,

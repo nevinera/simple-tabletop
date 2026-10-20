@@ -528,3 +528,33 @@ kbd {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   pointer-events: none;
 }
+
+.counter-controls { display: flex; flex-direction: column; gap: 4px; }
+.counter-controls .menu-item { min-height: 34px; padding: 0 4px; font-variant-numeric: tabular-nums; }
+.counter-fields { display: flex; gap: 4px; }
+.counter-fields input {
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--bar-border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font: inherit;
+}
+.counter-label { flex: 3; }
+.counter-value { flex: 2; text-align: right; font-variant-numeric: tabular-nums; }
+.counter-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 2 / 1;
+  border-radius: 8px;
+  color: #1f1f1f;
+  font-family: system-ui, sans-serif;
+}
+.counter-face-label { font-weight: 600; opacity: 0.75; }
+.counter-face-value { font-size: 2.4em; font-weight: 800; }
+.magnifier-counter { width: min(60vw, 320px); font-size: 24px; }
+.bag-contents-counter { width: 48px; font-size: 9px; }

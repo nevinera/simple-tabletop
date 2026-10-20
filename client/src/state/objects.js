@@ -21,6 +21,8 @@ export const DEFAULT_SPLAY = 2; // cm between cards in a splayed deck, unless th
 export const SPLAY_DIRECTIONS = { left: [-1, 0], right: [1, 0], away: [0, 1], toward: [0, -1] };
 export const STACK_SHOWN = 5; // how many pieces tall a stack grows, then shows a count instead, unless the module says
 const STACKABLE = ["tile", "chip", "token"];
+export const MAX_COUNTER_LABEL = 12; // characters
+export const MAX_COUNTER_VALUE = 999999;
 
 const pieceIndexes = new WeakMap();
 
@@ -249,7 +251,7 @@ const CONTAINER_TAKES = {
   tray: ["die"],
   deck: ["card"],
   hand: ["card", "tile"],
-  bag: ["card", "tile", "chip", "token", "die", "standee", "pawn"],
+  bag: ["card", "tile", "chip", "token", "die", "standee", "pawn", "counter"],
 };
 
 export function accepts(containerDef, pieceDef) {

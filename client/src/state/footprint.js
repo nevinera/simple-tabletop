@@ -300,6 +300,31 @@ export function reachBounds(manifest, state) {
   return bounds;
 }
 
+// Where an object dropped at (x, y) lands so that it, and everything it
+// carries along, stays on the table: nudged in from any edge it hangs over,
+// or centered on a table too small for it.
+export function keepOnTable(manifest, state, object, x, y) {
+  const [width, depth] = manifest.table.size;
+  const [dx, dy] = [x - object.state.x, y - object.state.y];
+  const shapes = [outline(object, x, y, object.state.rotation)];
+  // A card from a hand has no place on the table yet to carry things from.
+  const along = object.state.x == null ? [] : carried(manifest, state, object.id);
+  for (const id of along) {
+    const rider = findObject(manifest, state, id);
+    shapes.push(outline(rider, rider.state.x + dx, rider.state.y + dy, rider.state.rotation));
+  }
+  const bounds = shapes.flatMap(shapesOf).map(boundsOf);
+  const [minX, minY] = [Math.min(...bounds.map((b) => b[0])), Math.min(...bounds.map((b) => b[1]))];
+  const [maxX, maxY] = [Math.max(...bounds.map((b) => b[2])), Math.max(...bounds.map((b) => b[3]))];
+  const shift = (low, high, size) => {
+    if (high - low > size) return size / 2 - (low + high) / 2;
+    if (low < 0) return -low;
+    if (high > size) return size - high;
+    return 0;
+  };
+  return [x + shift(minX, maxX, width), y + shift(minY, maxY, depth)];
+}
+
 // An object's footprint at (x, y), turned to `rotation`. A splayed deck
 // covers its whole fan.
 export function outline(object, x, y, rotation) {

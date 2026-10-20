@@ -215,6 +215,9 @@ Otherwise it rests on top. A deck dropped with its center over a deck that takes
 top of it, in order, facing that deck's way. A deck made during play is then gone, and a module's deck stays
 behind, empty, where it was.
 
+Nothing is let go of off the table except into a hand. A drop with its center off the table is refused, and
+one that would hang over an edge, along with whatever it carries, is nudged in to lie wholly on the table.
+
 Moving or turning an object carries what rests on it, swinging it around the object's center for a turn.
 Picking something up records what's riding on it in its `carrying`, so a card drawn out from under a token
 leaves the token behind. After every saved change, anything whose support moved, shrank, or grew settles

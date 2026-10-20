@@ -23,7 +23,9 @@ export function buildPiece(piece) {
   const [width, depth] = piece.size;
   const thickness = piece.thickness;
 
-  const edge = new THREE.MeshStandardMaterial({ color: piece.edge || EDGE_COLOR, roughness: 0.9 });
+  // A shaped piece's slab is still a box, so its square sides would show
+  // past its outline; its images carry the shape instead.
+  const edge = new THREE.MeshStandardMaterial({ color: piece.edge || EDGE_COLOR, roughness: 0.9, visible: !piece.outline });
   const top = lazyMaterial(sideMaterial(), "face");
   const bottom = lazyMaterial(sideMaterial(), "back");
 

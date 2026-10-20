@@ -20,9 +20,9 @@ describe("ContextMenu", () => {
     const { interaction, onClose } = renderMenu();
     fireEvent.click(screen.getByRole("button", { name: /Flip/ }));
     fireEvent.click(screen.getByRole("button", { name: "Rotate left 45°" }));
-    fireEvent.click(screen.getByRole("button", { name: "Rotate right 22.5°" }));
+    fireEvent.click(screen.getByRole("button", { name: "Rotate right 15°" }));
     expect(interaction.flip).toHaveBeenCalledWith("AS");
-    expect(interaction.rotate.mock.calls).toEqual([[-45, "AS"], [22.5, "AS"]]);
+    expect(interaction.rotate.mock.calls).toEqual([[-45, "AS"], [15, "AS"]]);
     expect(onClose).toHaveBeenCalledTimes(3);
   });
 

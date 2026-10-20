@@ -39,6 +39,7 @@ describe("normalizeManifest", () => {
       back: { url: "https://example.com/games/aces/assets/back.svg" },
       states: null,
       edge: null,
+      outline: null,
       position: [45, 57],
       rotation: 0,
       faceUp: true,
@@ -236,5 +237,17 @@ describe("edges", () => {
     const piece = (edge) => manifest({ pieces: [{ id: "AS", type: "card", face: "assets/AS.svg", position: [45, 57], edge }] });
     expect(normalizeManifest(piece("#c0392b"), BASE).pieces[0].edge).toBe("#c0392b");
     expect(() => normalizeManifest(piece("red"), BASE)).toThrow(/hex color/);
+  });
+});
+
+describe("outlines", () => {
+  const tile = (extra) => manifest({ pieces: [{ id: "t", kind: "tile", size: [4, 2], face: "assets/t.svg", position: [20, 20], ...extra }] });
+
+  it("takes convex parts for tiles and boards, and refuses them elsewhere or malformed", () => {
+    const outline = [[[-2, -1], [0, -1], [0, 1], [-2, 1]], [[0, -1], [2, -1], [2, 1], [0, 1]]];
+    expect(normalizeManifest(tile({ outline }), BASE).pieces[0].outline).toEqual(outline);
+    expect(() => normalizeManifest(tile({ outline: [[[0, 0], [1, 1]]] }), BASE)).toThrow(/three or more/);
+    expect(() => normalizeManifest(manifest({ pieces: [{ id: "AS", type: "card", face: "assets/AS.svg", position: [45, 57], outline }] }), BASE))
+      .toThrow(/tile or board/);
   });
 });

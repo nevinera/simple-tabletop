@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { cameraSlotForKey, isTypingTarget, motionFromKeys } from "./table/keys";
 
 const ROTATE_STEP = 45;
-const FINE_ROTATE_STEP = 22.5;
+const FINE_ROTATE_STEP = 15; // a 24th of a turn, so four make 60° for hex tiles
 
 // Wires keys to the table: held camera keys drive continuous motion, digits
 // jump to or (with Shift) save camera points, F/R/T flip and rotate the

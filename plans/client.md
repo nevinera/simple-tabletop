@@ -58,7 +58,7 @@ Keys check the physical key (`event.code`), and are ignored while focus is in on
 | Shift+0-9              | save the current view to that camera point   |
 | F                      | flip the selected or hovered piece           |
 | R / T                  | rotate it 45° counterclockwise / clockwise   |
-| Shift+R / Shift+T      | rotate it 22.5°                              |
+| Shift+R / Shift+T      | rotate it 15°                                |
 | G                      | draw from the hovered deck or bag, to place  |
 | Shift+G                | draw from the hovered deck or bag into your hand |
 | L                      | lock or unlock the selected or hovered thing |

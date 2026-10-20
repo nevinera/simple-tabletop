@@ -3,7 +3,7 @@ import { Menu } from "./Menu";
 export function Toolbar({
   title, layout, menus, showActionBar, setShowActionBar, seatName, onLeaveSeat, handsEnabled, handStripVisible,
   setHandStripVisible, soundOn, setSoundOn, trayRollScatters, setTrayRollScatters, helpOpen, setHelpOpen, game, onHost,
-  documents = [],
+  documents = [], onSave,
 }) {
   const inviteUrl = game && `${window.location.origin}/tables/${game.token}`;
   return (
@@ -23,6 +23,9 @@ export function Toolbar({
             <p className="menu-note">This table only lives in your browser.</p>
             <button type="button" className="menu-item" disabled={!onHost} onClick={onHost}>Host it as a game…</button>
           </>
+        )}
+        {onSave && (
+          <button type="button" className="menu-item" onClick={onSave}>Save to a file</button>
         )}
       </Menu>
       <Menu id="seat" label="Seat" icon="🪑" disabled={!seatName} {...menus}>

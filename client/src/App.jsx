@@ -12,6 +12,7 @@ import { useMagnifyKey } from "./useMagnifyKey";
 import { TableSounds, soundFor } from "./sound/sounds";
 import { handId, openSeats, playerColor, seatName, seatOf, seatView } from "./state/seats";
 import { faceOf, pieceDef } from "./state/objects";
+import { saveFileName, savedTable } from "./state/saveFile";
 import { initialState } from "./state/actions";
 import { fetchGameState, joinGame, startGame } from "./server/api";
 import { connectGame } from "./server/sync";
@@ -120,6 +121,15 @@ export default function App({ manifestUrl, game = null }) {
   const hideRaceChip = useCallback(() => setRaceChip(null), []);
 
   const join = useCallback(async ({ name }) => setPlayer(await joinGame(game.token, name)), [game]);
+  // Downloads the table as a file a new table can start from.
+  const saveTable = useCallback(() => {
+    const save = savedTable({ manifestUrl: new URL(manifestUrl, window.location.href).href, manifest, state: store.getState() });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([JSON.stringify(save)], { type: "application/json" }));
+    link.download = saveFileName(manifest, save.savedAt);
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 0);
+  }, [manifestUrl, manifest, store]);
   const host = useCallback(async ({ name, gameName }) => {
     const { path } = await startGame({ manifestUrl, name: gameName, playerName: name, state: initialState(manifest) });
     window.location.assign(path);
@@ -245,6 +255,7 @@ export default function App({ manifestUrl, game = null }) {
       <Toolbar
         title={manifest?.name || "Simple Tabletop"}
         documents={manifest?.documents}
+        onSave={manifest && store ? saveTable : null}
         layout={layout}
         menus={menus}
         showActionBar={desktopActionBar}

@@ -52,6 +52,18 @@ Each client fetches the manifest and its assets on its own.
 
 There are no accounts for now.
 
+## Saving a table
+
+Any player can download the table as a file from the Game menu (see `state/saveFile.js`): the module's
+manifest URL, name, and version, plus the state as the server stores it (`sequence`, `seating`, pieces, and
+containers), with nothing held or dragged. Players and seats aren't saved.
+
+The home page's "A saved table" option starts a new table from such a file. The host's browser loads the
+module from the file's manifest URL and sends the saved state in place of the module's starting state. If the
+module has changed since the save, any piece or container it no longer lists is left out, along with anything
+inside it, and the page says how many before starting. The new game keeps the saved `sequence`, since ids
+made during play come from it.
+
 ## Data model
 
 ### `games`

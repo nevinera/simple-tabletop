@@ -1,0 +1,876 @@
+{
+  "formatVersion": 1,
+  "id": "cards",
+  "name": "Cards",
+  "version": "1.0.0",
+  "table": {
+    "size": [
+      120,
+      120
+    ],
+    "color": "#2e6b3f"
+  },
+  "layers": [
+    {
+      "id": "board",
+      "thickness": 0.1
+    },
+    {
+      "id": "pieces",
+      "thickness": 0.03
+    }
+  ],
+  "hands": true,
+  "maxStackShown": 20,
+  "sheets": {
+    "cards": {
+      "image": "assets/cards.svg",
+      "columns": 13,
+      "rows": 5
+    }
+  },
+  "pieceTypes": {
+    "card": {
+      "kind": "card",
+      "size": [
+        6.3,
+        8.8
+      ],
+      "back": "assets/back.svg"
+    },
+    "chip-1": {
+      "kind": "chip",
+      "size": [
+        3.9
+      ],
+      "thickness": 0.33,
+      "face": "assets/chip-1.svg",
+      "edge": "#f2efe6"
+    },
+    "chip-5": {
+      "kind": "chip",
+      "size": [
+        3.9
+      ],
+      "thickness": 0.33,
+      "face": "assets/chip-5.svg",
+      "edge": "#c0392b"
+    },
+    "chip-10": {
+      "kind": "chip",
+      "size": [
+        3.9
+      ],
+      "thickness": 0.33,
+      "face": "assets/chip-10.svg",
+      "edge": "#2e6fd8"
+    },
+    "chip-25": {
+      "kind": "chip",
+      "size": [
+        3.9
+      ],
+      "thickness": 0.33,
+      "face": "assets/chip-25.svg",
+      "edge": "#2e8b57"
+    },
+    "chip-100": {
+      "kind": "chip",
+      "size": [
+        3.9
+      ],
+      "thickness": 0.33,
+      "face": "assets/chip-100.svg",
+      "edge": "#222222"
+    }
+  },
+  "pieces": [
+    {
+      "id": "AS",
+      "type": "card",
+      "categories": [
+        "spades"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 0
+      }
+    },
+    {
+      "id": "2S",
+      "type": "card",
+      "categories": [
+        "spades"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 1
+      }
+    },
+    {
+      "id": "3S",
+      "type": "card",
+      "categories": [
+        "spades"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 2
+      }
+    },
+    {
+      "id": "4S",
+      "type": "card",
+      "categories": [
+        "spades"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 3
+      }
+    },
+    {
+      "id": "5S",
+      "type": "card",
+      "categories": [
+        "spades"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 4
+      }
+    },
+    {
+      "id": "6S",
+      "type": "card",
+      "categories": [
+        "spades"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 5
+      }
+    },
+    {
+      "id": "7S",
+      "type": "card",
+      "categories": [
+        "spades"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 6
+      }
+    },
+    {
+      "id": "8S",
+      "type": "card",
+      "categories": [
+        "spades"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 7
+      }
+    },
+    {
+      "id": "9S",
+      "type": "card",
+      "categories": [
+        "spades"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 8
+      }
+    },
+    {
+      "id": "10S",
+      "type": "card",
+      "categories": [
+        "spades"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 9
+      }
+    },
+    {
+      "id": "JS",
+      "type": "card",
+      "categories": [
+        "spades"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 10
+      }
+    },
+    {
+      "id": "QS",
+      "type": "card",
+      "categories": [
+        "spades"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 11
+      }
+    },
+    {
+      "id": "KS",
+      "type": "card",
+      "categories": [
+        "spades"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 12
+      }
+    },
+    {
+      "id": "AH",
+      "type": "card",
+      "categories": [
+        "hearts"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 13
+      }
+    },
+    {
+      "id": "2H",
+      "type": "card",
+      "categories": [
+        "hearts"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 14
+      }
+    },
+    {
+      "id": "3H",
+      "type": "card",
+      "categories": [
+        "hearts"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 15
+      }
+    },
+    {
+      "id": "4H",
+      "type": "card",
+      "categories": [
+        "hearts"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 16
+      }
+    },
+    {
+      "id": "5H",
+      "type": "card",
+      "categories": [
+        "hearts"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 17
+      }
+    },
+    {
+      "id": "6H",
+      "type": "card",
+      "categories": [
+        "hearts"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 18
+      }
+    },
+    {
+      "id": "7H",
+      "type": "card",
+      "categories": [
+        "hearts"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 19
+      }
+    },
+    {
+      "id": "8H",
+      "type": "card",
+      "categories": [
+        "hearts"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 20
+      }
+    },
+    {
+      "id": "9H",
+      "type": "card",
+      "categories": [
+        "hearts"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 21
+      }
+    },
+    {
+      "id": "10H",
+      "type": "card",
+      "categories": [
+        "hearts"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 22
+      }
+    },
+    {
+      "id": "JH",
+      "type": "card",
+      "categories": [
+        "hearts"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 23
+      }
+    },
+    {
+      "id": "QH",
+      "type": "card",
+      "categories": [
+        "hearts"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 24
+      }
+    },
+    {
+      "id": "KH",
+      "type": "card",
+      "categories": [
+        "hearts"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 25
+      }
+    },
+    {
+      "id": "AD",
+      "type": "card",
+      "categories": [
+        "diamonds"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 26
+      }
+    },
+    {
+      "id": "2D",
+      "type": "card",
+      "categories": [
+        "diamonds"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 27
+      }
+    },
+    {
+      "id": "3D",
+      "type": "card",
+      "categories": [
+        "diamonds"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 28
+      }
+    },
+    {
+      "id": "4D",
+      "type": "card",
+      "categories": [
+        "diamonds"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 29
+      }
+    },
+    {
+      "id": "5D",
+      "type": "card",
+      "categories": [
+        "diamonds"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 30
+      }
+    },
+    {
+      "id": "6D",
+      "type": "card",
+      "categories": [
+        "diamonds"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 31
+      }
+    },
+    {
+      "id": "7D",
+      "type": "card",
+      "categories": [
+        "diamonds"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 32
+      }
+    },
+    {
+      "id": "8D",
+      "type": "card",
+      "categories": [
+        "diamonds"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 33
+      }
+    },
+    {
+      "id": "9D",
+      "type": "card",
+      "categories": [
+        "diamonds"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 34
+      }
+    },
+    {
+      "id": "10D",
+      "type": "card",
+      "categories": [
+        "diamonds"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 35
+      }
+    },
+    {
+      "id": "JD",
+      "type": "card",
+      "categories": [
+        "diamonds"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 36
+      }
+    },
+    {
+      "id": "QD",
+      "type": "card",
+      "categories": [
+        "diamonds"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 37
+      }
+    },
+    {
+      "id": "KD",
+      "type": "card",
+      "categories": [
+        "diamonds"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 38
+      }
+    },
+    {
+      "id": "AC",
+      "type": "card",
+      "categories": [
+        "clubs"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 39
+      }
+    },
+    {
+      "id": "2C",
+      "type": "card",
+      "categories": [
+        "clubs"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 40
+      }
+    },
+    {
+      "id": "3C",
+      "type": "card",
+      "categories": [
+        "clubs"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 41
+      }
+    },
+    {
+      "id": "4C",
+      "type": "card",
+      "categories": [
+        "clubs"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 42
+      }
+    },
+    {
+      "id": "5C",
+      "type": "card",
+      "categories": [
+        "clubs"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 43
+      }
+    },
+    {
+      "id": "6C",
+      "type": "card",
+      "categories": [
+        "clubs"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 44
+      }
+    },
+    {
+      "id": "7C",
+      "type": "card",
+      "categories": [
+        "clubs"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 45
+      }
+    },
+    {
+      "id": "8C",
+      "type": "card",
+      "categories": [
+        "clubs"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 46
+      }
+    },
+    {
+      "id": "9C",
+      "type": "card",
+      "categories": [
+        "clubs"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 47
+      }
+    },
+    {
+      "id": "10C",
+      "type": "card",
+      "categories": [
+        "clubs"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 48
+      }
+    },
+    {
+      "id": "JC",
+      "type": "card",
+      "categories": [
+        "clubs"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 49
+      }
+    },
+    {
+      "id": "QC",
+      "type": "card",
+      "categories": [
+        "clubs"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 50
+      }
+    },
+    {
+      "id": "KC",
+      "type": "card",
+      "categories": [
+        "clubs"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 51
+      }
+    },
+    {
+      "id": "joker-red",
+      "type": "card",
+      "categories": [
+        "jokers"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 52
+      }
+    },
+    {
+      "id": "joker-black",
+      "type": "card",
+      "categories": [
+        "jokers"
+      ],
+      "face": {
+        "sheet": "cards",
+        "index": 53
+      }
+    }
+  ],
+  "containers": [
+    {
+      "id": "deck",
+      "kind": "deck",
+      "position": [
+        55,
+        64
+      ],
+      "size": [
+        6.3,
+        8.8
+      ],
+      "members": [
+        "AS",
+        "2S",
+        "3S",
+        "4S",
+        "5S",
+        "6S",
+        "7S",
+        "8S",
+        "9S",
+        "10S",
+        "JS",
+        "QS",
+        "KS",
+        "AH",
+        "2H",
+        "3H",
+        "4H",
+        "5H",
+        "6H",
+        "7H",
+        "8H",
+        "9H",
+        "10H",
+        "JH",
+        "QH",
+        "KH",
+        "AD",
+        "2D",
+        "3D",
+        "4D",
+        "5D",
+        "6D",
+        "7D",
+        "8D",
+        "9D",
+        "10D",
+        "JD",
+        "QD",
+        "KD",
+        "AC",
+        "2C",
+        "3C",
+        "4C",
+        "5C",
+        "6C",
+        "7C",
+        "8C",
+        "9C",
+        "10C",
+        "JC",
+        "QC",
+        "KC",
+        "joker-red",
+        "joker-black"
+      ]
+    },
+    {
+      "id": "discard",
+      "kind": "deck",
+      "position": [
+        65,
+        64
+      ],
+      "size": [
+        6.3,
+        8.8
+      ],
+      "faceUp": true,
+      "members": []
+    },
+    {
+      "id": "bank-1",
+      "kind": "bag",
+      "position": [
+        36,
+        44
+      ],
+      "size": [
+        9,
+        9
+      ],
+      "infinite": "chip-1",
+      "text": "1s",
+      "color": "#f2efe6",
+      "fixed": true
+    },
+    {
+      "id": "bank-5",
+      "kind": "bag",
+      "position": [
+        48,
+        44
+      ],
+      "size": [
+        9,
+        9
+      ],
+      "infinite": "chip-5",
+      "text": "5s",
+      "color": "#c0392b",
+      "fixed": true
+    },
+    {
+      "id": "bank-10",
+      "kind": "bag",
+      "position": [
+        60,
+        44
+      ],
+      "size": [
+        9,
+        9
+      ],
+      "infinite": "chip-10",
+      "text": "10s",
+      "color": "#2e6fd8",
+      "fixed": true
+    },
+    {
+      "id": "bank-25",
+      "kind": "bag",
+      "position": [
+        72,
+        44
+      ],
+      "size": [
+        9,
+        9
+      ],
+      "infinite": "chip-25",
+      "text": "25s",
+      "color": "#2e8b57",
+      "fixed": true
+    },
+    {
+      "id": "bank-100",
+      "kind": "bag",
+      "position": [
+        84,
+        44
+      ],
+      "size": [
+        9,
+        9
+      ],
+      "infinite": "chip-100",
+      "text": "100s",
+      "color": "#222222",
+      "fixed": true
+    }
+  ],
+  "labels": [
+    {
+      "text": "Deck",
+      "position": [
+        55,
+        58.4
+      ],
+      "fontSize": 0.9,
+      "color": "#e9f0e2"
+    },
+    {
+      "text": "Discard",
+      "position": [
+        65,
+        58.4
+      ],
+      "fontSize": 0.9,
+      "color": "#e9f0e2"
+    },
+    {
+      "text": "Bank",
+      "position": [
+        60,
+        37.5
+      ],
+      "fontSize": 1.1,
+      "color": "#e9f0e2"
+    }
+  ]
+}

@@ -52,3 +52,28 @@ describe("pachisi", () => {
     expect(manifest.pieces.find((piece) => piece.id === "die-1").die).toMatchObject({ name: "d6pips", pips: true });
   });
 });
+
+describe("cards", () => {
+  const raw = JSON.parse(readFileSync(join(BUILTINS, "cards", "manifest.json"), "utf8"));
+  const manifest = normalizeManifest(raw, "https://example.com/builtins/cards/manifest.json");
+  const act = (state, action) => applyAction(manifest, state, { playerId: "me", ...action });
+
+  it("starts with all 54 cards in the deck, face down, and an empty discard pile", () => {
+    const state = initialState(manifest);
+    expect(state.containers.deck).toMatchObject({ faceUp: false });
+    expect(state.containers.deck.members).toHaveLength(54);
+    expect(new Set(state.containers.deck.members).size).toBe(54);
+    expect(state.containers.discard.members).toEqual([]);
+  });
+
+  it("hands out chips from the bank that stack together, whatever their value", () => {
+    let state = act(initialState(manifest), { type: "draw", id: "bank-5" }).state;
+    const five = Object.keys(state.pieces).find((id) => id.startsWith("bank-5#"));
+    state = act(state, { type: "drop", id: five, x: 20, y: 20 }).state;
+    state = act(state, { type: "draw", id: "bank-100" }).state;
+    const hundred = Object.keys(state.pieces).find((id) => id.startsWith("bank-100#"));
+    state = act(state, { type: "drop", id: hundred, x: 20, y: 20 }).state;
+    const stack = Object.values(state.containers).find((container) => container.spec?.kind === "stack");
+    expect(stack.members).toEqual([hundred, five]);
+  });
+});

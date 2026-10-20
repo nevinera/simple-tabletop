@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="250" height="350" viewBox="0 0 250 350">
+<defs>
+  <pattern id="lattice" width="20" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+    <rect width="20" height="20" fill="#1d3f7a"/>
+    <path d="M0 10 H20 M10 0 V20" stroke="#3d66b0" stroke-width="2"/>
+  </pattern>
+</defs>
+<rect x="3" y="3" width="244" height="344" rx="16" fill="#fdfcf8" stroke="#c9c4b8" stroke-width="2"/>
+<rect x="16" y="16" width="218" height="318" rx="10" fill="url(#lattice)"/>
+<rect x="16" y="16" width="218" height="318" rx="10" fill="none" stroke="#e8d9a8" stroke-width="3"/>
+<circle cx="125" cy="175" r="38" fill="#1d3f7a" stroke="#e8d9a8" stroke-width="3"/>
+<g transform="translate(103 153) scale(0.44)" fill="#e8d9a8"><path d="M50 2 C38 22 4 40 4 64 C4 80 16 90 30 90 C38 90 44 86 47 80 C46 90 40 96 32 100 L68 100 C60 96 54 90 53 80 C56 86 62 90 70 90 C84 90 96 80 96 64 C96 40 62 22 50 2 Z"/></g>
+</svg>

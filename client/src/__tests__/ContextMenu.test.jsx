@@ -33,6 +33,17 @@ describe("ContextMenu", () => {
     expect(interaction.lock).toHaveBeenCalledWith("AS");
   });
 
+  it("draws several into your hand, stepping the count within the deck", () => {
+    localStorage.clear();
+    const { interaction, onClose } = renderMenu({}, { kind: "deck", locked: false, count: 6, hasHand: true });
+    fireEvent.click(screen.getByRole("button", { name: "Draw more" }));
+    expect(screen.getByRole("button", { name: "Draw more" }).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Draw 6" }));
+    expect(interaction.draw).toHaveBeenCalledWith("AS", { count: 6 });
+    expect(onClose).toHaveBeenCalled();
+    expect(localStorage.getItem("simple-tabletop:draw-count")).toBe("6");
+  });
+
   it("offers a deck drawing and shuffling, but not flipping", () => {
     const { interaction } = renderMenu({}, { kind: "deck", locked: false, count: 3, canMakeDeck: false });
     expect(screen.getByText("Deck: 3 cards")).toBeTruthy();

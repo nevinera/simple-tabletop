@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { rememberDrawCount, rememberedDrawCount } from "../browserMemory";
+
 // Buttons for one object, shared by the action bar's Selected menu and the
 // context menu. What shows depends on the object: decks draw, shuffle, and
 // flip,
@@ -62,6 +65,9 @@ export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onD
         <button type="button" className="menu-item" onClick={act(() => interaction.draw(objectId))}>
           Draw <kbd>G</kbd>
         </button>
+      )}
+      {(deck || stack) && object.hasHand && object.count > 1 && (
+        <DrawToHand most={object.count} onDraw={(count) => act(() => interaction.draw(objectId, { count }))()} />
       )}
       {deck && object.count > 1 && (
         <button type="button" className="menu-item" onClick={act(() => interaction.shuffle(objectId))}>
@@ -134,6 +140,28 @@ export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onD
         {object.locked ? "Unlock" : "Lock"} <kbd>L</kbd>
       </button>
     </div>
+  );
+}
+
+// Draws several into your hand at once: a count to step up and down, kept
+// for next time, and a button. most is how many there are to draw.
+function DrawToHand({ most, onDraw }) {
+  const [count, setCount] = useState(rememberedDrawCount);
+  const shown = Math.min(count, most);
+  const step = (by) => setCount(Math.max(1, Math.min(most, shown + by)));
+  const draw = () => {
+    rememberDrawCount(shown);
+    onDraw(shown);
+  };
+  return (
+    <>
+      <p className="menu-label">Draw several into your hand</p>
+      <div className="piece-actions-row">
+        <button type="button" className="menu-item" aria-label="Draw fewer" disabled={shown <= 1} onClick={() => step(-1)}>−</button>
+        <button type="button" className="menu-item" onClick={draw}>Draw {shown}</button>
+        <button type="button" className="menu-item" aria-label="Draw more" disabled={shown >= most} onClick={() => step(1)}>+</button>
+      </div>
+    </>
   );
 }
 

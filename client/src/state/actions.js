@@ -113,7 +113,9 @@ export function initialState(manifest) {
 //   drag:     { x, y }
 //   drop:     { x, y }, or { into, index } to put a piece in a hand
 //   draw:     { toHand: true } to draw into the player's hand, plus { pick },
-//             the member to take, for a bag that isn't infinite
+//             the member to take, for a bag that isn't infinite, or
+//             { count } for how many to draw from a deck or stack into the
+//             hand, which stops early if it runs out
 //   roll:     { values } for a die or a tray's dice, { [dieId]: face index },
 //             plus { spots } for a tray
 //   rotate:   { degrees }, positive is clockwise
@@ -276,6 +278,7 @@ const HANDLERS = {
     if (kind !== "container" || !["deck", "bag", "stack"].includes(def.kind)) {
       return reject(state, "Only decks, bags, and stacks can be drawn from.");
     }
+    if (action.count != null) return drawSeveral(manifest, state, action, def, object);
     let next = state;
     let pieceId;
     if (def.template) {
@@ -482,6 +485,29 @@ function formDeck(manifest, state, card, underId, changes) {
   next = withObject(next, { kind: "piece", id: underId }, { containerId: deckId, x: null, y: null });
   next = withObject(next, { kind: "container", id: deckId }, { members: [card.id, underId] });
   return save(next, card, { ...changes, faceUp: under.faceUp, containerId: deckId, x: null, y: null });
+}
+
+// Draws the top `count` cards or pieces of a deck or stack into the player's
+// hand, in order, or all of them if there are fewer.
+function drawSeveral(manifest, state, action, def, object) {
+  if (!action.toHand) return reject(state, "Only draws into your hand take a count.");
+  if (def.kind === "bag") return reject(state, "Draw from a bag one at a time.");
+  if (!Number.isInteger(action.count) || action.count < 1) return reject(state, "draw count must be a whole number, 1 or more.");
+  const hand = ownHand(state, action.playerId);
+  if (!hand) return reject(state, "You don't have a hand.");
+  const drawn = object.state.members.slice(0, action.count);
+  if (!drawn.length) return reject(state, "That deck is empty.");
+  let next = state;
+  for (const id of drawn) {
+    const piece = findObject(manifest, next, id);
+    if (!accepts(findObject(manifest, next, hand).def, piece.def)) return reject(state, "That can't go in a hand.");
+    next = addToContainer(manifest, next, piece, hand, {}, next.containers[hand].members.length).state;
+  }
+  if (def.kind === "stack" && !next.containers[object.id].members.length) {
+    const { [object.id]: _gone, ...containers } = next.containers;
+    next = { ...next, containers };
+  }
+  return settleStack(manifest, { ok: true, state: { ...next, sequence: state.sequence + 1 } }, object.id);
 }
 
 // Drops a deck on a deck that takes its cards: they all go on top, in their

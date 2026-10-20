@@ -169,7 +169,7 @@ There's no free-form multi-select. To move or roll several things together, put 
 | `shuffle`  | replace a container's `member_keys` with a new order            |
 | `reorder`  | the same, for an order a player chose; refused if the deck changed meanwhile |
 | `roll`     | set new `value`s for one die or every die in a tray, and new `spots` in a tray |
-| `draw`     | take a deck's top card, a bag's `pick`, or a new piece from an infinite bag; the drawing player holds it, or with `toHand` it goes in their hand |
+| `draw`     | take a deck's top card, a bag's `pick`, or a new piece from an infinite bag; the drawing player holds it, or with `toHand` it goes in their hand, `count` of them at once from a deck or stack |
 | `makeDeck` | turn a loose card into a new deck holding just that card        |
 | `splay`    | fan a deck's cards out in a `direction`, or close it with null, and set its `distance` |
 | `changeState` | put a card in one of its states, by `index`               |

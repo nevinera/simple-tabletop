@@ -156,3 +156,33 @@ describe("hands", () => {
     expect(deckHeight(1000)).toBeCloseTo(4.8);
   });
 });
+
+describe("drawing several into a hand", () => {
+  const several = normalizeManifest(raw({
+    pieces: ["c1", "c2", "c3", "c4"].map((id) => ({ id, type: "card", face: `${id}.svg` })),
+    containers: [{ id: "deck", kind: "deck", position: [60, 30], size: [6, 9], members: ["c1", "c2", "c3", "c4"] }],
+  }), "https://example.com/m.json");
+  const draw = (state, extra) => applyAction(several, state, { type: "draw", id: "deck", playerId: "me", toHand: true, ...extra });
+  const start = () => applyAction(several, initialState(several), join("me", "south-left")).state;
+
+  it("takes the top cards in order, as one change", () => {
+    const before = start();
+    const state = draw(before, { count: 3 }).state;
+    expect(hand(state, "south-left")).toEqual(["c1", "c2", "c3"]);
+    expect(state.containers.deck.members).toEqual(["c4"]);
+    expect(state.sequence).toBe(before.sequence + 1);
+  });
+
+  it("stops when the deck runs out", () => {
+    const state = draw(start(), { count: 9 }).state;
+    expect(hand(state, "south-left")).toEqual(["c1", "c2", "c3", "c4"]);
+    expect(draw(state, { count: 2 }).ok).toBe(false);
+  });
+
+  it("refuses bad counts, and players without a hand", () => {
+    expect(draw(start(), { count: 0 }).ok).toBe(false);
+    expect(draw(start(), { count: 1.5 }).ok).toBe(false);
+    expect(draw(start(), { count: 2, toHand: false }).ok).toBe(false);
+    expect(draw(initialState(several), { count: 2 }).reason).toMatch(/hand/);
+  });
+});

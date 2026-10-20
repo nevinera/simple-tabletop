@@ -94,6 +94,7 @@ export class PieceInteraction {
       splayDistance: object.def.kind === "deck" ? object.state.splayDistance ?? object.def.splayDistance ?? DEFAULT_SPLAY : null,
       states: object.def.states?.map((state) => state.name) || null,
       stateIndex: object.def.states ? object.state.stateIndex || 0 : null,
+      hasHand: Boolean(this.#ownHand()),
       inHand,
       inDeck,
       inTray: die && Boolean(object.state.containerId),
@@ -167,9 +168,11 @@ export class PieceInteraction {
   // you held, or with toHand, into your hand. A deck or stack gives its top
   // piece and a bag a random one. With no container given, uses the hovered one, or
   // the selected one. Returns the drawn piece's id, or null.
-  draw(containerId = this.#drawTarget(), { toHand = false } = {}) {
+  // count draws that many from a deck or stack into your hand.
+  draw(containerId = this.#drawTarget(), { toHand = false, count = null } = {}) {
     const container = containerId && this.#object(containerId);
     if (!container || !this.#hasSomething(container)) return null;
+    if (count != null) return this.#dispatch("draw", containerId, { toHand: true, count }).ok;
     const { members } = container.state;
     let pieceId = members[0];
     const extra = {};

@@ -4,6 +4,8 @@
 
 const MODULES_KEY = "simple-tabletop:recent-modules";
 const NAME_KEY = "simple-tabletop:player-name";
+const DRAW_COUNT_KEY = "simple-tabletop:draw-count";
+const DEFAULT_DRAW_COUNT = 5;
 const MAX_MODULES = 10;
 
 // [{ url, name, version, playedAt }], most recently played first.
@@ -41,5 +43,23 @@ export function rememberName(name, storage = localStorage) {
     storage.setItem(NAME_KEY, name);
   } catch {
     // Storage is blocked; you'll type it again next time.
+  }
+}
+
+// How many cards this player last drew into their hand at once.
+export function rememberedDrawCount(storage = localStorage) {
+  try {
+    const count = Number.parseInt(storage.getItem(DRAW_COUNT_KEY), 10);
+    return count > 0 ? count : DEFAULT_DRAW_COUNT;
+  } catch {
+    return DEFAULT_DRAW_COUNT;
+  }
+}
+
+export function rememberDrawCount(count, storage = localStorage) {
+  try {
+    storage.setItem(DRAW_COUNT_KEY, String(count));
+  } catch {
+    // Storage is blocked; it goes back to the default next time.
   }
 }

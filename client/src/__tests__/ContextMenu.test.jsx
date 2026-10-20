@@ -71,3 +71,15 @@ describe("ContextMenu", () => {
     expect(screen.getByRole("menu").style.left).toBe("");
   });
 });
+
+describe("bag titles", () => {
+  it("lead with a bag's label", () => {
+    renderMenu({}, { kind: "bag", locked: true, count: 3, text: "Skyrim" });
+    expect(screen.getByText("Skyrim: 3 things")).toBeTruthy();
+  });
+
+  it("say Bag without one", () => {
+    renderMenu({}, { kind: "bag", locked: true, count: 0, text: null });
+    expect(screen.getByText("Empty bag")).toBeTruthy();
+  });
+});

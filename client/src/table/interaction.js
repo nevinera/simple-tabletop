@@ -132,6 +132,7 @@ export class PieceInteraction {
       locked: object.state.locked,
       count: container && !infinite ? object.state.members.length : null,
       infinite,
+      text: object.def.kind === "bag" ? object.def.text || null : null,
       canMakeDeck: !container && !object.state.containerId && object.def.kind === "card",
       searchable: ["deck", "bag"].includes(object.def.kind) && !infinite && object.state.members.length > 0,
       canStackUp: this.#stackable(id),

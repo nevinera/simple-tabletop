@@ -41,3 +41,6 @@ node_modules/
 
 # Gems installed with bundle config path vendor/bundle.
 /vendor/bundle
+
+# Private modules, kept out of the public repo.
+/public/private/

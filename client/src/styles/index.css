@@ -417,16 +417,18 @@ kbd {
   inset: 0;
   display: grid;
   place-items: center;
-  padding: 16px;
+  padding: 8px;
   pointer-events: none;
   z-index: 28;
+  /* Sizes below use cqw/cqh: the table area, not the whole window. */
+  container-type: size;
 }
 
 .magnifier-closable { pointer-events: auto; background: rgba(0, 0, 0, 0.35); }
 
 .magnifier-die,
 .magnifier-pawn {
-  width: min(50vh, 420px, calc(100vw - 32px));
+  width: min(50cqh, 420px, calc(100cqw - 16px));
   filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.6));
 }
 
@@ -449,9 +451,11 @@ kbd {
 .bag-contents-name { flex: 1; }
 .bag-contents-count { color: var(--muted); font-variant-numeric: tabular-nums; }
 
+/* As tall as fits: no more than 640px or 90% of the table area, and no
+   wider than the area allows for the card's shape (--aspect, width over
+   height). */
 .magnifier-card {
-  height: min(70vh, 640px);
-  max-width: calc(100vw - 32px);
+  height: min(640px, 90cqh, calc((100cqw - 16px) / var(--aspect, 0.7)));
   border-radius: 12px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
 }
@@ -556,5 +560,5 @@ kbd {
 }
 .counter-face-label { font-weight: 600; opacity: 0.75; }
 .counter-face-value { font-size: 2.4em; font-weight: 800; }
-.magnifier-counter { width: min(60vw, 320px); font-size: 24px; }
+.magnifier-counter { width: min(calc(100cqw - 16px), 320px); font-size: 24px; }
 .bag-contents-counter { width: 48px; font-size: 9px; }

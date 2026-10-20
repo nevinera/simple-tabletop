@@ -35,7 +35,7 @@ function Side({ side, className }) {
   return (
     <div
       className={`${className}-card`}
-      style={{ ...imageStyle(side.image), aspectRatio: `${side.size[0]} / ${side.size[1]}` }}
+      style={{ ...imageStyle(side.image), aspectRatio: `${side.size[0]} / ${side.size[1]}`, "--aspect": side.size[0] / side.size[1] }}
     />
   );
 }

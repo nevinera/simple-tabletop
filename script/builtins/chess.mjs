@@ -173,6 +173,8 @@ function manifest() {
       { id: "white", name: "White", side: "south", color: "#e6dcc4" },
       { id: "black", name: "Black", side: "north", color: "#3a3632" },
     ],
+    // Pieces dropped anywhere on a square land in its middle.
+    snaps: [{ radius: SQUARE / 2, grid: { origin: spot(0, 0), step: [SQUARE, SQUARE], count: [8, 8] } }],
     pieceTypes,
     pieces,
   };

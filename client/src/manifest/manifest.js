@@ -96,7 +96,40 @@ export function normalizeManifest(raw, baseUrl) {
     labels: (raw.labels || []).map((label, i) => normalizeLabel(label, i, layers)),
     documents: normalizeDocuments(raw.documents, resolve),
     maxStackShown: normalizeStackShown(raw.maxStackShown),
+    snaps: (raw.snaps || []).map(normalizeSnaps),
   };
+}
+
+const MAX_SNAP_POINTS = 2000;
+
+// A spot on the table, [x, y].
+function isSpot(value) {
+  return Array.isArray(value) && value.length === 2 && value.every(Number.isFinite);
+}
+
+// A group of snap points: { radius, accepts, points: [[x, y], ...] }, from
+// either a list of points or a grid of them.
+function normalizeSnaps(snaps, index) {
+  const where = `Snaps ${index}`;
+  if (!(snaps?.radius > 0)) throw new ManifestError(`${where} needs a radius.`);
+  const accepts = snaps.accepts ?? null;
+  if (accepts && (!Array.isArray(accepts) || accepts.some((m) => !m?.type && !m?.category && !m?.kind))) {
+    throw new ManifestError(`${where} accepts must be a list of { kind, type, category } matchers.`);
+  }
+  let points = snaps.points;
+  if (snaps.grid) {
+    const { origin, step, count } = snaps.grid;
+    if (![origin, step].every(isSpot) || !Array.isArray(count) || !count.every((n) => Number.isInteger(n) && n > 0)) {
+      throw new ManifestError(`${where} grid needs an origin, a step, and a count of columns and rows.`);
+    }
+    points = [];
+    for (let row = 0; row < count[1]; row++) {
+      for (let column = 0; column < count[0]; column++) points.push([origin[0] + column * step[0], origin[1] + row * step[1]]);
+    }
+  }
+  if (!Array.isArray(points) || !points.length || !points.every(isSpot)) throw new ManifestError(`${where} needs points or a grid.`);
+  if (points.length > MAX_SNAP_POINTS) throw new ManifestError(`${where} has more than ${MAX_SNAP_POINTS} points.`);
+  return { radius: snaps.radius, accepts, points };
 }
 
 // How many pieces tall a stack grows before it shows a count instead.

@@ -30,6 +30,7 @@ import { dealOrder } from "../state/actions";
 import { rollValues } from "../state/dice";
 import { DEFAULT_SPLAY, fanSpots, findObject, pieceDef, pilesWith, spawnedId } from "../state/objects";
 import { scatter } from "../state/trays";
+import { snapSpot } from "../state/snaps";
 import { handId, seatOf } from "../state/seats";
 
 export const DRAG_THRESHOLD_PX = 6;
@@ -262,8 +263,7 @@ export class PieceInteraction {
   handMove(cardId, clientX, clientY) {
     const point = this.tablePoint(clientX, clientY, cardId);
     if (!point) return;
-    const [x, y] = this.clampToTable(point);
-    this.#dispatch("drag", cardId, { x, y });
+    this.#drag(cardId, this.clampToTable(point));
   }
 
   // Let go over the strip at `index`, or over the table where the card
@@ -445,9 +445,16 @@ export class PieceInteraction {
     if (gesture.kind === "object") {
       const point = this.tablePoint(event.clientX, event.clientY, gesture.objectId);
       if (!point) return;
-      const [x, y] = this.clampToTable([point[0] + gesture.offset[0], point[1] + gesture.offset[1]]);
-      this.#dispatch("drag", gesture.objectId, { x, y });
+      this.#drag(gesture.objectId, this.clampToTable([point[0] + gesture.offset[0], point[1] + gesture.offset[1]]));
     }
+  }
+
+  // Moves a held object to where the pointer has it, or, for a piece, to the
+  // snap point it's near, so it shows where it will land.
+  #drag(id, [x, y]) {
+    const object = this.#object(id);
+    const [sx, sy] = (object?.kind === "piece" && snapSpot(this.manifest, object.def, x, y)) || [x, y];
+    this.#dispatch("drag", id, { x: sx, y: sy });
   }
 
   pointerUp(event) {

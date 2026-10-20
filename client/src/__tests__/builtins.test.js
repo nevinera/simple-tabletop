@@ -94,3 +94,25 @@ describe("chess", () => {
     expect(state.pieces["white-pawn-a"].rotation).toBe(0);
   });
 });
+
+describe("snapping on boards", () => {
+  const load = (slug) => normalizeManifest(JSON.parse(readFileSync(join(BUILTINS, slug, "manifest.json"), "utf8")),
+    `https://example.com/builtins/${slug}/manifest.json`);
+  const move = (manifest, id, x, y) => {
+    let state = applyAction(manifest, initialState(manifest), { type: "grab", id, playerId: "me" }).state;
+    state = applyAction(manifest, state, { type: "drop", id, x, y, playerId: "me" }).state;
+    return state.pieces[id];
+  };
+
+  it("lands a chess piece in the middle of the square it's dropped on", () => {
+    const chess = load("chess");
+    // e4's middle is 4 squares right of a1's and 3 up.
+    const [x, y] = [chess.snaps[0].points[0][0] + 4 * 5.5, chess.snaps[0].points[0][1] + 3 * 5.5];
+    expect(move(chess, "white-pawn-e", x + 1.8, y - 2)).toMatchObject({ x, y });
+  });
+
+  it("lands a checker on the dark square it's dropped near", () => {
+    const checkers = load("checkers");
+    expect(move(checkers, "red-9", 27.5, 28)).toMatchObject({ x: 29.5, y: 29.5 });
+  });
+});

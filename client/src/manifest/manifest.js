@@ -343,6 +343,15 @@ function normalizeSheets(sheets, resolve) {
 
 // An image is either a path or { sheet, index }. Both come out as { url },
 // and sheet images also carry the grid cell to crop to.
+// The color of a flat piece's sides, or null for the usual off-white.
+function normalizeEdge(edge, where) {
+  if (edge == null) return null;
+  if (typeof edge !== "string" || !/^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(edge)) {
+    throw new ManifestError(`${where} edge must be a hex color like "#c0392b".`);
+  }
+  return edge;
+}
+
 // A card's states, like normal and upgraded, as [{ name, face, back }], or
 // null for a card without them. A state without a face or back uses the
 // card's own, and a card's face defaults to its first state's.
@@ -487,6 +496,7 @@ function normalizePiece(rawPiece, raw, layers, image, contained, dieTypes) {
     face,
     back,
     states,
+    edge: normalizeEdge(piece.edge, where),
     position: inContainer ? null : piece.position,
     rotation: piece.rotation || 0,
     faceUp: piece.faceUp ?? true,

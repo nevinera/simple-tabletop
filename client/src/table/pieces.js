@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { tableRotationToThree, tableToThree } from "./coordinates";
 import { deferImages, lazyMaterial, setImages } from "./lazyImages";
 
-const EDGE_COLOR = 0xe8e4da;
+export const EDGE_COLOR = "#e8e4da";
 export const HELD_LIFT = 0.3; // cm a held piece floats above its resting height
 const SHADOW_OPACITY = 0.35;
 const SHADOW_COLOR = 0x000000;
@@ -23,7 +23,7 @@ export function buildPiece(piece) {
   const [width, depth] = piece.size;
   const thickness = piece.thickness;
 
-  const edge = new THREE.MeshStandardMaterial({ color: EDGE_COLOR, roughness: 0.9 });
+  const edge = new THREE.MeshStandardMaterial({ color: piece.edge || EDGE_COLOR, roughness: 0.9 });
   const top = lazyMaterial(sideMaterial(), "face");
   const bottom = lazyMaterial(sideMaterial(), "back");
 

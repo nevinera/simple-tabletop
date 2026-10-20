@@ -14,7 +14,8 @@ const raw = (overrides = {}) => ({
   layers: [{ id: "board", thickness: 0.4 }, { id: "pieces", thickness: 0.03 }],
   pieceTypes: {
     gold: { kind: "chip", size: [2], face: "gold.svg" },
-    silver: { kind: "chip", size: [2], face: "silver.svg" },
+    silver: { kind: "token", shape: "circle", size: [2], face: "silver.svg" },
+    ruby: { kind: "chip", size: [2], face: "ruby.svg", edge: "#c0392b" },
   },
   pieces: [
     { id: "g1", type: "gold", position: [10, 10] },
@@ -55,6 +56,16 @@ describe("stacks", () => {
     expect(state.containers.pile.members).toEqual(["g1", "g3", "g4", "g5", "g6", "g7", "g8"]);
     state = act(state, { type: "grab", id: "s1" }).state;
     expect(landing(manifest, state, "s1", 10, 40, 0, "me").z).toBeCloseTo(objectHeight(findObject(manifest, state, "pile")));
+  });
+
+  it("piles chips of the same size together, whatever is on them", () => {
+    const withRuby = normalizeManifest(raw({ pieces: [...raw().pieces, { id: "r1", type: "ruby", position: [70, 10] }] }), BASE);
+    const play = (state, action) => applyAction(withRuby, state, { playerId: "me", ...action });
+    let state = play(initialState(withRuby), { type: "grab", id: "r1" }).state;
+    expect(landing(withRuby, state, "r1", 10, 40, 0, "me")).toEqual({ into: "pile" });
+    state = play(state, { type: "drop", id: "r1", x: 10, y: 40 }).state;
+    expect(state.containers.pile.members[0]).toBe("r1");
+    expect(findObject(withRuby, state, "r1").def.edge).toBe("#c0392b");
   });
 
   it("grows a piece taller per piece, up to five", () => {

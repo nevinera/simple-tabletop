@@ -148,7 +148,8 @@ export class TableScene {
       }
       if (container.def.kind === "stack") {
         const group = this.#stackGroup(container);
-        applyStackPlacement(group, container.def, container.state, this.#hover(id));
+        const edges = container.state.members.map((member) => pieceDef(this.manifest, member).edge);
+        applyStackPlacement(group, container.def, container.state, edges, this.#hover(id));
         this.#updateTop(group, this.#stackTopImage(container, state), setStackTop);
       }
       if (container.def.kind !== "deck") continue;

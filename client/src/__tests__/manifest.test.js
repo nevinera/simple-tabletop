@@ -38,6 +38,7 @@ describe("normalizeManifest", () => {
       face: { url: "https://example.com/games/aces/assets/AS.svg" },
       back: { url: "https://example.com/games/aces/assets/back.svg" },
       states: null,
+      edge: null,
       position: [45, 57],
       rotation: 0,
       faceUp: true,
@@ -227,5 +228,13 @@ describe("documents", () => {
   it("refuses unnamed documents and urls that aren't http or https", () => {
     expect(() => normalizeManifest(manifest({ documents: [{ url: "a.pdf" }] }), BASE)).toThrow(/needs a name/);
     expect(() => normalizeManifest(manifest({ documents: [{ name: "x", url: "javascript:alert(1)" }] }), BASE)).toThrow(/http/);
+  });
+});
+
+describe("edges", () => {
+  it("takes a hex edge color, and refuses anything else", () => {
+    const piece = (edge) => manifest({ pieces: [{ id: "AS", type: "card", face: "assets/AS.svg", position: [45, 57], edge }] });
+    expect(normalizeManifest(piece("#c0392b"), BASE).pieces[0].edge).toBe("#c0392b");
+    expect(() => normalizeManifest(piece("red"), BASE)).toThrow(/hex color/);
   });
 });

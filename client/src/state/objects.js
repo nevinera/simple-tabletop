@@ -177,9 +177,11 @@ export function canStack(def) {
   return STACKABLE.includes(def.kind);
 }
 
-// What makes pieces alike enough to stack: the same piece type, or for
-// untyped pieces, the same kind, shape, size, and images.
+// What makes pieces alike enough to stack: for chips, just their size, since
+// poker-style chips pile up whatever is on them; otherwise the same piece
+// type, or for untyped pieces, the same kind, shape, size, and images.
 export function stackKey(def) {
+  if (def.kind === "chip") return `chip:${def.size[0]}`;
   if (def.type) return `type:${def.type}`;
   const image = (img) => (img ? `${img.url}#${img.index ?? ""}` : "");
   return `look:${def.kind}|${def.shape}|${def.size.join("x")}|${image(def.face)}|${image(def.back)}`;

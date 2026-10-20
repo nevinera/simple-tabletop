@@ -144,6 +144,7 @@ of them.
 | `die`      | dice     | a built-in die name, or a key in `dieTypes`                   |
 | `face`     | yes*     | image for the up side; not used by dice or pawns              |
 | `color`    | no       | hex; tints built-in dice, and colors pawns                    |
+| `edge`     | no       | hex; the color of a flat piece's sides, and its band in a stack |
 | `back`     | no       | image for the down side; defaults to `face`                   |
 | `states`   | no       | cards only: the looks a card can switch between; see [Card states](#card-states) |
 | `position` | no*      | required unless a container lists the piece                   |
@@ -325,9 +326,10 @@ Without `accepts`, decks take pieces of their members' type, trays take dice, an
   over a bag lists what's inside. Bags take any piece, dice included, but never another container.
 - **infinite bag:** a bag with `infinite` set to a piece type. Every draw makes a new piece of that type, and a
   piece of that type dropped back in is gone for good. It takes nothing else, and it can't list `members`.
-- **stack:** tiles, chips, or tokens that are all alike, piled up. It needs at least two `members`, top first,
+- **stack:** tiles, chips, or tokens piled up. Chips of the same size pile together whatever is on them, like
+  poker chips; tiles and tokens only pile with ones just like them. It needs at least two `members`, top first,
   and takes its size and look from them. Pieces are alike when they share a piece type, or, without one, the
-  same kind, shape, size, and images. A stack grows one piece taller per piece up to five, then shows a count
+  same kind, shape, size, and images. Its side shows a band per piece in that piece's `edge` color. A stack grows one piece taller per piece up to five, then shows a count
   on top instead. Players draw from the top, and a stack down to one piece turns back into that piece.
   Dropping a piece on a loose one just like it makes a new stack.
 - **bowl:** contents sit visible in a pile. Players pick any member.

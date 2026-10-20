@@ -50,7 +50,8 @@ describe("server games", () => {
     fireEvent.click(screen.getByRole("button", { name: "Join" }));
     expect(await screen.findByRole("dialog", { name: "Pick a seat" })).toBeTruthy();
     expect(joinGame).toHaveBeenCalledWith("abc", "Alex");
-    expect(connectGame).toHaveBeenCalledWith("abc", window.tableStore, expect.anything());
+    // The seat picker can show before the effect that connects the store runs.
+    await vi.waitFor(() => expect(connectGame).toHaveBeenCalledWith("abc", window.tableStore, expect.anything()));
     expect(window.tableStore.getState().pieces.AS).toMatchObject({ x: 20, y: 30 });
     fireEvent.click(screen.getByRole("button", { name: "South" }));
     expect(window.tableStore.getState().players.p2).toEqual({ seatId: "south-left" });

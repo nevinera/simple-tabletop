@@ -48,7 +48,7 @@ describe("ContextMenu", () => {
     const { interaction } = renderMenu({}, { kind: "deck", locked: false, count: 3, canMakeDeck: false });
     expect(screen.getByText("Deck: 3 cards")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Flip/ })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /Draw/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Draw G/ }));
     fireEvent.click(screen.getByRole("button", { name: /Shuffle/ }));
     expect(interaction.draw).toHaveBeenCalledWith("AS");
     expect(interaction.shuffle).toHaveBeenCalledWith("AS");

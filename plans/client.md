@@ -26,6 +26,7 @@ pointer, selecting a different piece puts the first one back.
 |------------------------------------------------|------------------------------------------------------------|
 | drag a movable deck                            | move the deck                                              |
 | drag a locked deck                             | draw the top card and move it                              |
+| shift-drag a deck                              | draw the top card face down, whichever way the deck faces  |
 | drag a locked bag                              | draw a random piece and move it                            |
 | drag a locked stack                            | take the top piece and move it                             |
 | drop a tile, chip, or token on one just like it | make a stack of the two                                   |

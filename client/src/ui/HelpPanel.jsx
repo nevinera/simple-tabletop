@@ -52,6 +52,7 @@ const KEYS = [
   ["Rotate 22.5°", "Shift + R / T"],
   ["Draw from the deck, bag, or stack under the mouse", "G"],
   ["Draw it into your hand", "Shift + G"],
+  ["Draw a deck's top card face down, unseen", "Shift + drag the deck"],
   ["See a card or die up close, or what's in a bag", "Hold Alt"],
   ["Lock or unlock", "L"],
   ["Select several, or take one back out", "Shift + click"],

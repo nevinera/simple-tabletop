@@ -515,3 +515,43 @@ describe("group selection", () => {
     expect([piece("AS").faceUp, piece("AH").faceUp]).toEqual([false, false]);
   });
 });
+
+describe("drawing face down", () => {
+  const pointer = (x, y, extra = {}) => ({
+    clientX: x, clientY: y, pointerId: 1, button: 0, isPrimary: true, pointerType: "mouse", ...extra,
+  });
+  let store;
+  let interaction;
+  beforeEach(() => {
+    store = createTableStore(manifest);
+    store.dispatch({ type: "flip", id: "deck", playerId: "me" }); // face up, so drawing would show the card
+    interaction = new PieceInteraction({
+      store, manifest, playerId: "me",
+      pick: (x, y) => Object.keys(HITS).find((id) => HITS[id][0] === x && HITS[id][1] === y) || null,
+      tablePoint: (x, y) => [x, y],
+      clampToTable: (point) => point,
+      setCameraEnabled: () => {}, setCursor: () => {},
+    });
+  });
+
+  it("draws a face-up deck's top card face down with a shift-drag", () => {
+    const top = store.getState().containers.deck.members[0];
+    interaction.pointerDown(pointer(60, 60, { shiftKey: true }));
+    interaction.pointerMove(pointer(60 + DRAG_THRESHOLD_PX, 60, { shiftKey: true }));
+    interaction.pointerMove(pointer(80, 80, { shiftKey: true }));
+    interaction.pointerUp(pointer(80, 80, { shiftKey: true }));
+    expect(store.getState().pieces[top]).toMatchObject({ x: 80, y: 80, faceUp: false, containerId: null });
+    expect(store.getState().containers.deck.members).not.toContain(top);
+  });
+
+  it("still adds a movable deck to what you hold with a shift-click", () => {
+    interaction.pointerDown(pointer(60, 60, { shiftKey: true }));
+    interaction.pointerUp(pointer(60, 60, { shiftKey: true }));
+    expect(interaction.selectedIds()).toEqual(["deck"]);
+  });
+
+  it("draws face down from the menu", () => {
+    const top = interaction.draw("deck", { faceDown: true });
+    expect(store.getState().pieces[top]).toMatchObject({ faceUp: false, heldBy: "me" });
+  });
+});

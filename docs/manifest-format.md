@@ -313,7 +313,7 @@ Without `accepts`, decks take pieces of their members' type, trays take dice, an
 
 - **deck:** an ordered stack. Players draw from the top, one at a time or several into their hand, and can
   shuffle it. They can also look at the top few cards, or the whole deck, by themselves, and put them back in
-  a new order. It starts 0.8cm tall and grows toward
+  a new order, or search it for a particular card to take out. It starts 0.8cm tall and grows toward
   4.8cm as cards go in, showing its `image` or else the top card. An empty deck stays on the table
   as an outlined placeholder. Dropping a card on a loose card of the same type and size makes a new deck.
   Dropping a deck on a deck that takes its cards stacks them all on top, like shuffling a discard pile back in.
@@ -321,7 +321,8 @@ Without `accepts`, decks take pieces of their members' type, trays take dice, an
   card stays at the deck's position, and the fan runs in the `splay` direction, turned with the deck: `away` runs
   from its near edge toward its far edge. Players can splay, close, and respace a deck from its menu, and pull
   any card out of the fan.
-- **bag:** a box with a fixed height. Drawing takes a random member, which keeps the way it faced. Holding Alt
+- **bag:** a box with a fixed height. Drawing takes a random member, which keeps the way it faced. Players can
+  also search a bag and take out a particular piece. Holding Alt
   over a bag lists what's inside. Bags take any piece, dice included, but never another container.
 - **infinite bag:** a bag with `infinite` set to a piece type. Every draw makes a new piece of that type, and a
   piece of that type dropped back in is gone for good. It takes nothing else, and it can't list `members`.

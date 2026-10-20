@@ -131,6 +131,7 @@ export class PieceInteraction {
       count: container && !infinite ? object.state.members.length : null,
       infinite,
       canMakeDeck: !container && !object.state.containerId && object.def.kind === "card",
+      searchable: ["deck", "bag"].includes(object.def.kind) && !infinite && object.state.members.length > 0,
       canFlip: container ? object.def.kind === "deck" : !["die", "board", "standee", "pawn"].includes(object.def.kind),
       splay: object.def.kind === "deck" ? object.state.splay : null,
       splayDistance: object.def.kind === "deck" ? object.state.splayDistance ?? object.def.splayDistance ?? DEFAULT_SPLAY : null,
@@ -215,14 +216,18 @@ export class PieceInteraction {
   // piece and a bag a random one. With no container given, uses the hovered one, or
   // the selected one. Returns the drawn piece's id, or null.
   // count draws that many from a deck or stack into your hand.
-  draw(containerId = this.#drawTarget(), { toHand = false, count = null } = {}) {
+  // pick takes that member of a deck or bag, as from a search.
+  draw(containerId = this.#drawTarget(), { toHand = false, count = null, pick = null } = {}) {
     const container = containerId && this.#object(containerId);
     if (!container || !this.#hasSomething(container)) return null;
     if (count != null) return this.#dispatch("draw", containerId, { toHand: true, count }).ok;
     const { members } = container.state;
     let pieceId = members[0];
     const extra = {};
-    if (container.def.template) {
+    if (pick != null) {
+      pieceId = pick;
+      extra.pick = pick;
+    } else if (container.def.template) {
       pieceId = spawnedId(containerId, container.state.spawned + 1);
     } else if (container.def.kind === "bag") {
       pieceId = members[Math.floor(this.random() * members.length)];

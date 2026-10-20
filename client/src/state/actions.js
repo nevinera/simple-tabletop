@@ -115,7 +115,8 @@ export function initialState(manifest) {
 //   drag:     { x, y }
 //   drop:     { x, y }, or { into, index } to put a piece in a hand
 //   draw:     { toHand: true } to draw into the player's hand, plus { pick },
-//             the member to take, for a bag that isn't infinite, or
+//             the member to take, for a bag that isn't infinite or a deck
+//             someone searched, or
 //             { count } for how many to draw from a deck or stack into the
 //             hand, which stops early if it runs out
 //   roll:     { values } for a die or a tray's dice, { [dieId]: face index },
@@ -269,6 +270,10 @@ const HANDLERS = {
     } else if (def.kind === "bag") {
       if (!object.state.members.length) return reject(state, "That bag is empty.");
       if (!object.state.members.includes(action.pick)) return reject(state, "draw needs a pick from the bag.");
+      pieceId = action.pick;
+    } else if (action.pick != null) {
+      // Searching a deck takes any card, not just the top one.
+      if (def.kind !== "deck" || !object.state.members.includes(action.pick)) return reject(state, "That isn't in the deck.");
       pieceId = action.pick;
     } else {
       pieceId = object.state.members[0];

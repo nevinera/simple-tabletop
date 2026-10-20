@@ -9,7 +9,7 @@ import { rememberCount, rememberedCount } from "../browserMemory";
 // your hand or a deck's fan only magnify and change state. Cards with states
 // list them. Decks also splay, locked or not. onDone runs after any action,
 // so a menu can close.
-export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onDone = () => {} }) {
+export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onSearch, onDone = () => {} }) {
   const object = interaction.describe(objectId);
   if (!object) return <p className="menu-note">{interaction.holderName(objectId) || "Someone else"} has that.</p>;
 
@@ -97,6 +97,11 @@ export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onD
             ))}
           </div>
         </>
+      )}
+      {object.searchable && onSearch && (
+        <button type="button" className="menu-item" onClick={act(() => onSearch(objectId))}>
+          Search…
+        </button>
       )}
       {deck && onReorder && object.count > 1 && (
         <>

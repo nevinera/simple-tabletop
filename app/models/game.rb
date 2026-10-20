@@ -21,10 +21,14 @@ class Game < ApplicationRecord
   def self.find_by_ulid!(ulid) = find_by!(ulid: ulid.to_s.upcase)
 
   # Creates a game from the starting state the host's browser built from the
-  # manifest, with the host as its first player.
+  # manifest, or from a saved table, with the host as its first player. A
+  # saved table keeps its sequence, since ids made during play (like
+  # "#stack-12") come from it, and its seating.
   def self.start!(manifest_url:, name:, host_name:, browser_token:, state:)
     transaction do
-      game = create!(manifest_url:, name:)
+      sequence = state[:sequence].is_a?(Integer) && state[:sequence].positive? ? state[:sequence] : 0
+      seating = SEATINGS.include?(state[:seating]) ? state[:seating] : SEATINGS.first
+      game = create!(manifest_url:, name:, sequence:, seating:)
       game.replace_objects!(state)
       [ game, game.players.create!(name: host_name, host: true, browser_token:) ]
     end

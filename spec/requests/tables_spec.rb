@@ -42,6 +42,11 @@ RSpec.describe "Tables", type: :request do
     expect(body["containers"]).to eq(state[:containers].deep_stringify_keys)
   end
 
+  it "picks up a saved table's sequence and seating" do
+    start_game(state: state.merge(sequence: 42, seating: "eight"))
+    expect(Game.last).to have_attributes(sequence: 42, seating: "eight")
+  end
+
   it "remembers the host's browser" do
     start_game
     get table_path(Game.last)

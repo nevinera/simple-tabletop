@@ -54,7 +54,7 @@ describe("Home", () => {
     render(<Home tables={[]} builtIns={BUILT_INS} />);
     const radios = screen.getAllByRole("radio");
     expect(radios.map((radio) => radio.closest("label").textContent)).toEqual([
-      "CheckersCrown your checkers.", "New2.0 · b.test", "Old1.0 · a.test", "",
+      "CheckersCrown your checkers.", "New2.0 · b.test", "Old1.0 · a.test", "", "",
     ]);
     expect(radios[1].checked).toBe(true);
     expect(screen.getByRole("link", { name: "Try it alone" }).getAttribute("href")).toBe(
@@ -71,5 +71,45 @@ describe("Home", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), { target: { value: "Alex" } });
     fireEvent.click(screen.getByRole("button", { name: "Start table" }));
     await vi.waitFor(() => expect(startGame).toHaveBeenCalledWith(expect.objectContaining({ manifestUrl: "https://c.test/m.json", name: "Friday" })));
+  });
+});
+
+describe("resuming a saved table", () => {
+  it("reads the file, says what it resumes, and starts the table from the saved state", async () => {
+    const { normalizeManifest } = await import("../manifest/manifest");
+    const raw = {
+      formatVersion: 1, id: "t", name: "Tiny", table: { size: [20, 20] }, layers: [{ id: "pieces", thickness: 0.03 }],
+      pieces: [{ id: "AS", kind: "card", size: [6, 9], face: "AS.svg", position: [5, 5] }],
+    };
+    const manifest = normalizeManifest(raw, "https://example.com/tiny.json");
+    vi.spyOn(await import("../manifest/manifest"), "fetchManifest").mockResolvedValue(manifest);
+    const api = await import("../server/api");
+    const startGame = vi.spyOn(api, "startGame").mockResolvedValue({ path: "/tables/new" });
+    const assign = vi.fn();
+    vi.spyOn(window, "location", "get").mockReturnValue({ ...window.location, assign, href: "http://localhost/" });
+
+    render(<Home tables={[]} builtIns={BUILT_INS} />);
+    const save = {
+      format: "simple-tabletop-save", formatVersion: 1, manifestUrl: "https://example.com/tiny.json", moduleName: "Tiny",
+      savedAt: "2026-10-21T12:00:00Z",
+      state: {
+        sequence: 9, seating: "four",
+        pieces: {
+          AS: { x: 12, y: 3, rotation: 90, faceUp: false, stackOrder: 0, containerId: null, heldBy: null, drag: null, locked: false },
+          gone: { x: 1, y: 1, rotation: 0, faceUp: true, stackOrder: 1, containerId: null, heldBy: null, drag: null, locked: false },
+        },
+        containers: {},
+      },
+    };
+    const file = new File([JSON.stringify(save)], "tiny.table.json", { type: "application/json" });
+    fireEvent.change(screen.getByLabelText("Saved table file"), { target: { files: [file] } });
+    expect(await screen.findByText(/Resumes Tiny, saved .*1 piece it no longer has will be left out/)).toBeTruthy();
+    fireEvent.change(screen.getByRole("textbox", { name: "Your name" }), { target: { value: "Sam" } });
+    fireEvent.click(screen.getByRole("button", { name: "Resume table" }));
+    await vi.waitFor(() => expect(assign).toHaveBeenCalledWith("/tables/new"));
+    const { state } = startGame.mock.calls[0][0];
+    expect(state.sequence).toBe(9);
+    expect(Object.keys(state.pieces)).toEqual(["AS"]);
+    expect(state.pieces.AS).toMatchObject({ x: 12, y: 3, faceUp: false });
   });
 });

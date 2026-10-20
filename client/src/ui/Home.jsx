@@ -3,9 +3,11 @@ import { fetchManifest } from "../manifest/manifest";
 import { initialState } from "../state/actions";
 import { startGame } from "../server/api";
 import { recentModules, rememberName, rememberedName } from "../browserMemory";
+import { readSave, restoreState } from "../state/saveFile";
 
 // The front page: get back to a table this browser joined, or start one from
-// a built-in module, one you played recently, or a manifest URL you paste.
+// a built-in module, one you played recently, a manifest URL you paste, or a
+// saved table's file.
 // tables is [{ path, name, playerName }], newest visit first, and builtIns
 // [{ url, name, description, thumbnailUrl }] from config/builtins.yml.
 export function Home({ tables, builtIns }) {
@@ -18,17 +20,35 @@ export function Home({ tables, builtIns }) {
   const [name, setName] = useState(rememberedName);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const manifestUrl = selected === "pasted" ? pasted.trim() : selected;
+  // A saved table, once read and checked against its module:
+  // { save, manifest, state, dropped }, or { error }.
+  const [resume, setResume] = useState(null);
+  const resuming = selected === "saved";
+  const manifestUrl = resuming ? resume?.save?.manifestUrl || "" : selected === "pasted" ? pasted.trim() : selected;
+
+  const pickSave = async (file) => {
+    setSelected("saved");
+    setResume(file ? { reading: true } : null);
+    if (!file) return;
+    try {
+      const save = readSave(await file.text());
+      const manifest = await fetchManifest(save.manifestUrl);
+      setResume({ save, manifest, ...restoreState(manifest, save) });
+    } catch (err) {
+      setResume({ error: err.message });
+    }
+  };
 
   const start = async (event) => {
     event.preventDefault();
     setBusy(true);
     setError(null);
     try {
-      const manifest = await fetchManifest(manifestUrl);
+      const manifest = resuming ? resume.manifest : await fetchManifest(manifestUrl);
       rememberName(name.trim());
       const { path } = await startGame({
-        manifestUrl, name: gameName.trim() || manifest.name, playerName: name.trim(), state: initialState(manifest),
+        manifestUrl, name: gameName.trim() || manifest.name, playerName: name.trim(),
+        state: resuming ? resume.state : initialState(manifest),
       });
       window.location.assign(path);
     } catch (err) {
@@ -101,6 +121,15 @@ export function Home({ tables, builtIns }) {
             />
           </label>
         </fieldset>
+        <fieldset className="home-modules">
+          <legend>A saved table</legend>
+          <label className="home-module">
+            <input type="radio" name="module" checked={resuming} onChange={() => setSelected("saved")} />
+            <input aria-label="Saved table file" type="file" accept=".json,application/json"
+              onChange={(event) => pickSave(event.target.files[0])} />
+          </label>
+          {resuming && resume && <p className="menu-note" role="status">{resumeNote(resume)}</p>}
+        </fieldset>
         <label>
           Table name
           <input value={gameName} maxLength={60} placeholder="The module's name" onChange={(event) => setGameName(event.target.value)} />
@@ -111,12 +140,28 @@ export function Home({ tables, builtIns }) {
         </label>
         {error && <p className="menu-note" role="alert">{error}</p>}
         <div className="piece-actions-row">
-          <a className="menu-item" href={sandboxPath(manifestUrl, builtIns)}>Try it alone</a>
-          <button type="submit" className="menu-item" disabled={busy || !name.trim() || !manifestUrl}>Start table</button>
+          {!resuming && <a className="menu-item" href={sandboxPath(manifestUrl, builtIns)}>Try it alone</a>}
+          <button type="submit" className="menu-item"
+            disabled={busy || !name.trim() || !manifestUrl || (resuming && !resume?.state)}>
+            {resuming ? "Resume table" : "Start table"}
+          </button>
         </div>
       </form>
     </div>
   );
+}
+
+// What a picked save will do: which module it resumes, from when, and what
+// it leaves out because the module changed.
+function resumeNote(resume) {
+  if (resume.reading) return "Reading the file…";
+  if (resume.error) return resume.error;
+  const { save, dropped } = resume;
+  const when = new Date(save.savedAt).toLocaleString();
+  const left = dropped.length
+    ? ` The module changed since, so ${dropped.length} piece${dropped.length === 1 ? "" : "s"} it no longer has will be left out.`
+    : "";
+  return `Resumes ${save.moduleName || "the table"}, saved ${when}.${left}`;
 }
 
 // "1.2.0 · example.com"

@@ -6,3 +6,7 @@ inherit_gem: { rubocop-rails-omakase: rubocop.yml }
 # # Use `[a, [b, c]]` not `[ a, [ b, c ] ]`
 # Layout/SpaceInsideArrayLiteralBrackets:
 #   Enabled: false
+
+# .ruby-version is gitignored, so without this a fresh checkout parses as Ruby 2.7.
+AllCops:
+  TargetRubyVersion: 3.3

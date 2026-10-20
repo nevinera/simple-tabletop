@@ -92,6 +92,7 @@ Modules are data only. They place pieces and describe how they look. They can't 
 | `containers`    | no       | decks, bags, bowls, and trays                            |
 | `labels`        | no       | text drawn on the table; see [Labels](#labels)           |
 | `documents`     | no       | rulebooks and other files to link to; see [Documents](#documents) |
+| `snaps`         | no       | spots pieces jump to when dropped near them; see [Snaps](#snaps) |
 | `maxStackShown` | no       | how many pieces tall a stack draws before showing a count, 2 to 20; defaults to 5 |
 
 ## Table
@@ -278,6 +279,30 @@ a circle its width across on the table, and a meeple covers its base.
 
 Pawns don't flip. Turn one to face another way. Bags take pawns, so a pawn type in an infinite bag makes
 a supply.
+
+## Snaps
+
+Snap points are spots that pieces jump to when dropped or dragged near them, like the middles of a chess
+board's squares. `snaps` lists groups of them, each with a radius and, optionally, what it takes:
+
+```json
+"snaps": [
+  { "radius": 2.75, "grid": { "origin": [12.75, 12.75], "step": [5.5, 5.5], "count": [8, 8] } },
+  { "radius": 4, "accepts": [{ "kind": "card" }], "points": [[40, 60], [50, 60]] }
+]
+```
+
+| field     | required | notes                                                                   |
+|-----------|----------|-------------------------------------------------------------------------|
+| `radius`  | yes      | how near, in cm, a piece has to be to snap                              |
+| `points`  | yes*     | `[x, y]` spots                                                          |
+| `grid`    | yes*     | instead of `points`: `origin` (the first spot), `step` between spots, and `count` of columns and rows |
+| `accepts` | no       | `{ kind, type, category }` matchers, like a container's; without it, every piece snaps |
+
+\* One or the other.
+
+A piece snaps to the nearest point within its group's radius, among the groups that take it. When several
+pieces move together, the one being dragged snaps and the rest keep their places around it.
 
 ## Counters
 

@@ -34,6 +34,25 @@
       "color": "#3a3632"
     }
   ],
+  "snaps": [
+    {
+      "radius": 2.75,
+      "grid": {
+        "origin": [
+          12.75,
+          12.75
+        ],
+        "step": [
+          5.5,
+          5.5
+        ],
+        "count": [
+          8,
+          8
+        ]
+      }
+    }
+  ],
   "pieceTypes": {
     "white-pawn": {
       "kind": "token",

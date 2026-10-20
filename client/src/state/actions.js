@@ -45,6 +45,7 @@ import {
   spawnedId,
 } from "./objects";
 import { nearestFree, scatter, seededRandom, toTray } from "./trays";
+import { snapSpot } from "./snaps";
 import { handId, openSeats, seatOf } from "./seats";
 
 const LAID_OUT_GAP = 0.5; // cm between cards laid out from a hand
@@ -482,16 +483,19 @@ function dropGroup(manifest, state, action, object) {
     if (action.into !== ownHand(state, action.playerId)) return reject(state, "That isn't your hand.");
     return addToContainer(manifest, state, object, action.into, letGo, action.index);
   }
-  const target = landing(manifest, state, object.id, action.x, action.y, object.state.rotation, action.playerId);
+  // A piece let go of near a snap point lands on it.
+  const snapped = object.kind === "piece" ? snapSpot(manifest, object.def, action.x, action.y) : null;
+  const [x, y] = snapped ?? [action.x, action.y];
+  const target = landing(manifest, state, object.id, x, y, object.state.rotation, action.playerId);
   if (target.blocked) return blocked(state);
   if (target.into && object.kind === "container") return mergeDeck(manifest, state, object, target.into, letGo);
   if (target.onto && object.def.kind === "card") return formDeck(manifest, state, object, target.onto, letGo);
   if (target.onto) return formStack(state, object, target.onto, letGo);
   if (target.into && state.containers[target.into].spots) {
-    return addToTray(manifest, state, object, target.into, letGo, [action.x, action.y]);
+    return addToTray(manifest, state, object, target.into, letGo, [x, y]);
   }
-  if (target.into) return addAllToContainer(manifest, state, [...group, object.id], target.into, [action.x, action.y]);
-  const changes = { ...letGo, x: action.x, y: action.y, z: target.z };
+  if (target.into) return addAllToContainer(manifest, state, [...group, object.id], target.into, [x, y]);
+  const changes = { ...letGo, x, y, z: target.z };
   if (object.kind === "piece") changes.stackOrder = topOfLayer(manifest, state, object.def.layer.id);
   if (object.state.containerId) {
     // Played from a hand, a card lands facing the way the hand does, and
@@ -506,7 +510,7 @@ function dropGroup(manifest, state, action, object) {
   }
   const from = object.state;
   return carryAlong(manifest, state, save(state, object, changes), object.id, action.playerId, {
-    dx: action.x - from.x, dy: action.y - from.y, dz: target.z - elevation(object),
+    dx: x - from.x, dy: y - from.y, dz: target.z - elevation(object),
   });
 }
 

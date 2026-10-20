@@ -77,3 +77,20 @@ describe("cards", () => {
     expect(stack.members).toEqual([hundred, five]);
   });
 });
+
+describe("chess", () => {
+  const raw = JSON.parse(readFileSync(join(BUILTINS, "chess", "manifest.json"), "utf8"));
+  const manifest = normalizeManifest(raw, "https://example.com/builtins/chess/manifest.json");
+
+  it("sets up sixteen pieces a side, kings on e, Black's turned to face Black", () => {
+    const state = initialState(manifest);
+    const side = (color) => Object.keys(state.pieces).filter((id) => id.startsWith(`${color}-`));
+    expect(side("white")).toHaveLength(16);
+    expect(side("black")).toHaveLength(16);
+    const [x1] = [state.pieces["white-king-e"].x];
+    expect(state.pieces["black-king-e"].x).toBe(x1);
+    expect(state.pieces["white-queen-d"].x).toBeLessThan(x1);
+    expect(state.pieces["black-pawn-a"].rotation).toBe(180);
+    expect(state.pieces["white-pawn-a"].rotation).toBe(0);
+  });
+});

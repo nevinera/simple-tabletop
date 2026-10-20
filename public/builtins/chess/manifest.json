@@ -1,0 +1,463 @@
+{
+  "formatVersion": 1,
+  "id": "chess",
+  "name": "Chess",
+  "version": "1.0.0",
+  "table": {
+    "size": [
+      64,
+      64
+    ],
+    "color": "#2e6b3f"
+  },
+  "layers": [
+    {
+      "id": "board",
+      "thickness": 0.1
+    },
+    {
+      "id": "pieces",
+      "thickness": 0.5
+    }
+  ],
+  "seats": [
+    {
+      "id": "white",
+      "name": "White",
+      "side": "south",
+      "color": "#e6dcc4"
+    },
+    {
+      "id": "black",
+      "name": "Black",
+      "side": "north",
+      "color": "#3a3632"
+    }
+  ],
+  "pieceTypes": {
+    "white-pawn": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        4.6
+      ],
+      "thickness": 0.5,
+      "face": "assets/white-pawn.svg",
+      "edge": "#e6dcc4"
+    },
+    "white-rook": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        4.6
+      ],
+      "thickness": 0.5,
+      "face": "assets/white-rook.svg",
+      "edge": "#e6dcc4"
+    },
+    "white-knight": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        4.6
+      ],
+      "thickness": 0.5,
+      "face": "assets/white-knight.svg",
+      "edge": "#e6dcc4"
+    },
+    "white-bishop": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        4.6
+      ],
+      "thickness": 0.5,
+      "face": "assets/white-bishop.svg",
+      "edge": "#e6dcc4"
+    },
+    "white-queen": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        4.6
+      ],
+      "thickness": 0.5,
+      "face": "assets/white-queen.svg",
+      "edge": "#e6dcc4"
+    },
+    "white-king": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        4.6
+      ],
+      "thickness": 0.5,
+      "face": "assets/white-king.svg",
+      "edge": "#e6dcc4"
+    },
+    "black-pawn": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        4.6
+      ],
+      "thickness": 0.5,
+      "face": "assets/black-pawn.svg",
+      "edge": "#3a3632"
+    },
+    "black-rook": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        4.6
+      ],
+      "thickness": 0.5,
+      "face": "assets/black-rook.svg",
+      "edge": "#3a3632"
+    },
+    "black-knight": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        4.6
+      ],
+      "thickness": 0.5,
+      "face": "assets/black-knight.svg",
+      "edge": "#3a3632"
+    },
+    "black-bishop": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        4.6
+      ],
+      "thickness": 0.5,
+      "face": "assets/black-bishop.svg",
+      "edge": "#3a3632"
+    },
+    "black-queen": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        4.6
+      ],
+      "thickness": 0.5,
+      "face": "assets/black-queen.svg",
+      "edge": "#3a3632"
+    },
+    "black-king": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        4.6
+      ],
+      "thickness": 0.5,
+      "face": "assets/black-king.svg",
+      "edge": "#3a3632"
+    }
+  },
+  "pieces": [
+    {
+      "id": "board",
+      "kind": "board",
+      "size": [
+        48.4,
+        48.4
+      ],
+      "face": "assets/board.svg",
+      "position": [
+        32,
+        32
+      ],
+      "fixed": true
+    },
+    {
+      "id": "white-rook-a",
+      "type": "white-rook",
+      "position": [
+        12.75,
+        12.75
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "white-knight-b",
+      "type": "white-knight",
+      "position": [
+        18.25,
+        12.75
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "white-bishop-c",
+      "type": "white-bishop",
+      "position": [
+        23.75,
+        12.75
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "white-queen-d",
+      "type": "white-queen",
+      "position": [
+        29.25,
+        12.75
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "white-king-e",
+      "type": "white-king",
+      "position": [
+        34.75,
+        12.75
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "white-bishop-f",
+      "type": "white-bishop",
+      "position": [
+        40.25,
+        12.75
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "white-knight-g",
+      "type": "white-knight",
+      "position": [
+        45.75,
+        12.75
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "white-rook-h",
+      "type": "white-rook",
+      "position": [
+        51.25,
+        12.75
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "white-pawn-a",
+      "type": "white-pawn",
+      "position": [
+        12.75,
+        18.25
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "white-pawn-b",
+      "type": "white-pawn",
+      "position": [
+        18.25,
+        18.25
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "white-pawn-c",
+      "type": "white-pawn",
+      "position": [
+        23.75,
+        18.25
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "white-pawn-d",
+      "type": "white-pawn",
+      "position": [
+        29.25,
+        18.25
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "white-pawn-e",
+      "type": "white-pawn",
+      "position": [
+        34.75,
+        18.25
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "white-pawn-f",
+      "type": "white-pawn",
+      "position": [
+        40.25,
+        18.25
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "white-pawn-g",
+      "type": "white-pawn",
+      "position": [
+        45.75,
+        18.25
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "white-pawn-h",
+      "type": "white-pawn",
+      "position": [
+        51.25,
+        18.25
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "black-rook-a",
+      "type": "black-rook",
+      "position": [
+        12.75,
+        51.25
+      ],
+      "rotation": 180
+    },
+    {
+      "id": "black-knight-b",
+      "type": "black-knight",
+      "position": [
+        18.25,
+        51.25
+      ],
+      "rotation": 180
+    },
+    {
+      "id": "black-bishop-c",
+      "type": "black-bishop",
+      "position": [
+        23.75,
+        51.25
+      ],
+      "rotation": 180
+    },
+    {
+      "id": "black-queen-d",
+      "type": "black-queen",
+      "position": [
+        29.25,
+        51.25
+      ],
+      "rotation": 180
+    },
+    {
+      "id": "black-king-e",
+      "type": "black-king",
+      "position": [
+        34.75,
+        51.25
+      ],
+      "rotation": 180
+    },
+    {
+      "id": "black-bishop-f",
+      "type": "black-bishop",
+      "position": [
+        40.25,
+        51.25
+      ],
+      "rotation": 180
+    },
+    {
+      "id": "black-knight-g",
+      "type": "black-knight",
+      "position": [
+        45.75,
+        51.25
+      ],
+      "rotation": 180
+    },
+    {
+      "id": "black-rook-h",
+      "type": "black-rook",
+      "position": [
+        51.25,
+        51.25
+      ],
+      "rotation": 180
+    },
+    {
+      "id": "black-pawn-a",
+      "type": "black-pawn",
+      "position": [
+        12.75,
+        45.75
+      ],
+      "rotation": 180
+    },
+    {
+      "id": "black-pawn-b",
+      "type": "black-pawn",
+      "position": [
+        18.25,
+        45.75
+      ],
+      "rotation": 180
+    },
+    {
+      "id": "black-pawn-c",
+      "type": "black-pawn",
+      "position": [
+        23.75,
+        45.75
+      ],
+      "rotation": 180
+    },
+    {
+      "id": "black-pawn-d",
+      "type": "black-pawn",
+      "position": [
+        29.25,
+        45.75
+      ],
+      "rotation": 180
+    },
+    {
+      "id": "black-pawn-e",
+      "type": "black-pawn",
+      "position": [
+        34.75,
+        45.75
+      ],
+      "rotation": 180
+    },
+    {
+      "id": "black-pawn-f",
+      "type": "black-pawn",
+      "position": [
+        40.25,
+        45.75
+      ],
+      "rotation": 180
+    },
+    {
+      "id": "black-pawn-g",
+      "type": "black-pawn",
+      "position": [
+        45.75,
+        45.75
+      ],
+      "rotation": 180
+    },
+    {
+      "id": "black-pawn-h",
+      "type": "black-pawn",
+      "position": [
+        51.25,
+        45.75
+      ],
+      "rotation": 180
+    }
+  ]
+}

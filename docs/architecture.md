@@ -189,7 +189,9 @@ anything. A splayed deck's footprint is its whole fan.
 
 Whatever is on top under a dropped piece's center decides what happens: a container that accepts the piece
 takes it, and a loose piece it piles with (see [Data model](#data-model)) makes a deck or stack with it.
-Otherwise it rests on top.
+Otherwise it rests on top. A deck dropped with its center over a deck that takes all its cards puts them on
+top of it, in order, facing that deck's way. A deck made during play is then gone, and a module's deck stays
+behind, empty, where it was.
 
 Moving or turning an object carries what rests on it, swinging it around the object's center for a turn.
 Picking something up records what's riding on it in its `carrying`, so a card drawn out from under a token

@@ -203,6 +203,7 @@ const HANDLERS = {
     }
     const target = landing(manifest, state, object.id, action.x, action.y, object.state.rotation, action.playerId);
     if (target.blocked) return blocked(state);
+    if (target.into && object.kind === "container") return mergeDeck(manifest, state, object, target.into, letGo);
     if (target.onto && object.def.kind === "card") return formDeck(manifest, state, object, target.onto, letGo);
     if (target.onto) return formStack(state, object, target.onto, letGo);
     if (target.into && state.containers[target.into].spots) {
@@ -481,6 +482,23 @@ function formDeck(manifest, state, card, underId, changes) {
   next = withObject(next, { kind: "piece", id: underId }, { containerId: deckId, x: null, y: null });
   next = withObject(next, { kind: "container", id: deckId }, { members: [card.id, underId] });
   return save(next, card, { ...changes, faceUp: under.faceUp, containerId: deckId, x: null, y: null });
+}
+
+// Drops a deck on a deck that takes its cards: they all go on top, in their
+// order, turned to face the way that deck does. A deck made during play is
+// gone once it's empty, and a module's deck stays behind, empty, where it was.
+function mergeDeck(manifest, state, deck, intoId, changes) {
+  const into = state.containers[intoId];
+  const cards = deck.state.members;
+  let next = withObject(state, { kind: "container", id: intoId }, { members: [...cards, ...into.members] });
+  for (const id of cards) next = withObject(next, { kind: "piece", id }, { containerId: intoId, faceUp: into.faceUp });
+  if (manifest.containers.some((container) => container.id === deck.id)) {
+    next = withObject(next, deck, { ...changes, members: [] });
+  } else {
+    const { [deck.id]: _gone, ...containers } = next.containers;
+    next = { ...next, containers };
+  }
+  return { ok: true, state: { ...next, sequence: state.sequence + 1 } };
 }
 
 // Moves a piece into a container, out of any it was in. A deck takes it on

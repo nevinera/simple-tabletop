@@ -313,6 +313,7 @@ Without `accepts`, decks take pieces of their members' type, trays take dice, an
 - **deck:** an ordered stack. Players draw from the top and can shuffle it. It starts 0.8cm tall and grows toward
   4.8cm as cards go in, showing its `image` or else the top card. An empty deck stays on the table
   as an outlined placeholder. Dropping a card on a loose card of the same type and size makes a new deck.
+  Dropping a deck on a deck that takes its cards stacks them all on top, like shuffling a discard pile back in.
 - **splayed deck:** a deck with its cards fanned out, each `splayDistance` past the one under it. The bottom
   card stays at the deck's position, and the fan runs in the `splay` direction, turned with the deck: `away` runs
   from its near edge toward its far edge. Players can splay, close, and respace a deck from its menu, and pull

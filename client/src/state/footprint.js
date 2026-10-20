@@ -53,7 +53,8 @@ export function overlaps(a, b) {
 
 // Where object `id` would land at (x, y), facing `rotation`, when
 // `playerId` lets go of it:
-//   { into: containerId }  a piece over a container that takes it
+//   { into: containerId }  a piece over a container that takes it, or a deck
+//                          over a deck that takes all its cards
 //   { onto: pieceId }      a piece over a loose one it piles with (see pilesWith)
 //   { blocked: [ids] }     overlapping things it can't rest on, or off the
 //                          table (with no ids)
@@ -69,8 +70,11 @@ export function landing(manifest, state, id, x, y, rotation, playerId) {
   const along = new Set(carried(manifest, state, id));
   const others = layerMates(manifest, state, object).filter((other) => !along.has(other.id));
 
+  const [top] = others.filter((other) => inside(other.outline, x, y)).sort((a, b) => elevation(b) - elevation(a));
+  if (object.kind === "container" && object.def.kind === "deck" && top?.def.kind === "deck") {
+    if (takesDeck(manifest, top, object, playerId)) return { into: top.id };
+  }
   if (object.kind === "piece") {
-    const [top] = others.filter((other) => inside(other.outline, x, y)).sort((a, b) => elevation(b) - elevation(a));
     if (top && CONTAINER_TARGETS.includes(top.def.kind)) {
       if (takes(manifest, state, top, object, playerId)) return { into: top.id };
       if (!holdsUp(top, playerId)) return { blocked: [top.id] };
@@ -259,6 +263,13 @@ function takes(manifest, state, container, piece, playerId) {
   }
   if (container.def.kind !== "hand") return true;
   return manifest.hands.passing || seatOf(state, playerId) === container.def.seatId;
+}
+
+// Whether a deck takes every card in another, so the two can merge.
+function takesDeck(manifest, target, deck, playerId) {
+  const free = !target.state.heldBy || target.state.heldBy === playerId;
+  return free && deck.state.members.length > 0 &&
+    deck.state.members.every((id) => accepts(target.def, pieceDef(manifest, id)));
 }
 
 // Separating axis test: two convex polygons overlap unless some edge's

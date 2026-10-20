@@ -35,6 +35,7 @@ pointer, selecting a different piece puts the first one back.
 | right-click, or tap and hold                   | context menu: at the cursor, or in a popover on touch      |
 | double-click or double-tap a deck              | draw the top card into your hand                           |
 | drop onto a container that accepts the piece   | add it                                                     |
+| drop a deck onto a deck that takes its cards   | put all its cards on top                                   |
 
 A right-click that moves more than a few pixels counts as a pan, not a menu.
 

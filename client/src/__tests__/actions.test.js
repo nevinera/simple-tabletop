@@ -330,3 +330,50 @@ describe("resting on things", () => {
     expect(state.pieces.card.z).toBeUndefined();
   });
 });
+
+describe("dropping a deck on a deck", () => {
+  const decks = normalizeManifest({
+    formatVersion: 1, id: "d", name: "D", table: { size: [80, 60] },
+    layers: [{ id: "pieces", thickness: 0.03 }],
+    pieceTypes: {
+      card: { kind: "card", size: [6, 9], face: "f.svg", back: "b.svg" },
+      other: { kind: "card", size: [6, 9], face: "o.svg", back: "b.svg" },
+    },
+    pieces: [
+      ...["a", "b", "c", "d"].map((id) => ({ id, type: "card" })),
+      { id: "x", type: "other" },
+      { id: "loose1", type: "card", position: [60, 10] },
+      { id: "loose2", type: "card", position: [70, 10] },
+    ],
+    containers: [
+      { id: "draw", kind: "deck", position: [10, 30], size: [6, 9], members: ["a", "b"] },
+      { id: "discard", kind: "deck", position: [30, 30], size: [6, 9], faceUp: true, members: ["c", "d"] },
+      { id: "odd", kind: "deck", position: [50, 30], size: [6, 9], members: ["x"] },
+    ],
+  }, "https://example.com/manifest.json");
+  const move = (state, id, x, y) => {
+    const grabbed = applyAction(decks, state, { type: "grab", id, playerId: "p1" }).state;
+    return applyAction(decks, grabbed, { type: "drop", id, x, y, playerId: "p1" });
+  };
+
+  it("puts every card on top, facing the way that deck does, and leaves a module's deck behind empty", () => {
+    const state = move(initialState(decks), "discard", 11, 31).state;
+    expect(state.containers.draw.members).toEqual(["c", "d", "a", "b"]);
+    expect(state.pieces.c).toMatchObject({ containerId: "draw", faceUp: false });
+    expect(state.containers.discard).toMatchObject({ x: 30, y: 30, members: [], heldBy: null });
+  });
+
+  it("does away with a deck made during play", () => {
+    let state = move(initialState(decks), "loose1", 70, 10).state;
+    const made = Object.keys(state.containers).find((id) => id.startsWith("#deck-"));
+    state = move(state, made, 10, 30).state;
+    expect(state.containers[made]).toBeUndefined();
+    expect(state.containers.draw.members).toEqual(["loose1", "loose2", "a", "b"]);
+  });
+
+  it("rests on a deck that won't take all its cards", () => {
+    const state = move(initialState(decks), "odd", 10, 30).state;
+    expect(state.containers.odd.members).toEqual(["x"]);
+    expect(state.containers.odd.z).toBeGreaterThan(0);
+  });
+});

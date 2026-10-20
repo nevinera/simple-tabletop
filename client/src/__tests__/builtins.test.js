@@ -115,4 +115,14 @@ describe("snapping on boards", () => {
     const checkers = load("checkers");
     expect(move(checkers, "red-9", 27.5, 28)).toMatchObject({ x: 29.5, y: 29.5 });
   });
+
+  it("lands a Go stone from the bowl on the point it's dropped near", () => {
+    const go = load("go");
+    let state = applyAction(go, initialState(go), { type: "draw", id: "black-bowl", playerId: "me" }).state;
+    const stone = Object.keys(state.pieces).find((id) => id.startsWith("black-bowl#"));
+    // The middle point, tengen, is the table's middle.
+    state = applyAction(go, state, { type: "drop", id: stone, x: 36.8, y: 35.3, playerId: "me" }).state;
+    expect(state.pieces[stone]).toMatchObject({ x: 36, y: 36 });
+    expect(go.snaps[0].points).toHaveLength(361);
+  });
 });

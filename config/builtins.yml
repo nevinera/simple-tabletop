@@ -18,3 +18,7 @@
   name: Cards
   description: A standard 52-card deck with two jokers, and a bank of poker chips. Deal, play, and bet any card game.
   thumbnail: thumbnail.svg
+- slug: go
+  name: Go
+  description: Two players take turns placing black and white stones on a 19 by 19 board to surround territory.
+  thumbnail: thumbnail.svg

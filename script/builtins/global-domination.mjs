@@ -340,7 +340,8 @@ function manifest() {
     table: { size: TABLE, color: "#2e6b3f" },
     layers: [{ id: "board", thickness: 0.1 }, { id: "pieces", thickness: 0.03 }],
     hands: true,
-    maxStackShown: 10,
+    // Every pile of armies shows its count, however short.
+    maxStackShown: 1,
     seats: PLAYERS.map(({ id, name, side, color }) => ({ id, name, side, color })),
     // Armies dropped near a territory's ring pile up on it.
     snaps: [{

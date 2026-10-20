@@ -82,6 +82,15 @@
       "thickness": 0.33,
       "face": "assets/chip-100.svg",
       "edge": "#222222"
+    },
+    "score": {
+      "kind": "counter",
+      "size": [
+        7,
+        3.5
+      ],
+      "label": "Score",
+      "color": "#f4efe0"
     }
   },
   "pieces": [
@@ -841,6 +850,22 @@
       "infinite": "chip-100",
       "text": "100s",
       "color": "#222222",
+      "fixed": true
+    },
+    {
+      "id": "scores",
+      "kind": "bag",
+      "position": [
+        90,
+        44
+      ],
+      "size": [
+        9,
+        9
+      ],
+      "infinite": "score",
+      "text": "Scores",
+      "color": "#8a6a3a",
       "fixed": true
     }
   ],

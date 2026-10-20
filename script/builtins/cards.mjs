@@ -196,12 +196,21 @@ function manifest() {
     hands: true,
     maxStackShown: 20,
     sheets: { cards: { image: "assets/cards.svg", columns: COLUMNS, rows: ROWS } },
-    pieceTypes: { card: { kind: "card", size: CARD_SIZE, back: "assets/back.svg" }, ...chipTypes },
+    pieceTypes: {
+      card: { kind: "card", size: CARD_SIZE, back: "assets/back.svg" },
+      ...chipTypes,
+      // Score keepers: each one a labeled number players count up and down.
+      score: { kind: "counter", size: [7, 3.5], label: "Score", color: "#f4efe0" },
+    },
     pieces: cards,
     containers: [
       { id: "deck", kind: "deck", position: [TABLE / 2 - 5, TABLE / 2 + 4], size: CARD_SIZE, members: cards.map((card) => card.id) },
       { id: "discard", kind: "deck", position: [TABLE / 2 + 5, TABLE / 2 + 4], size: CARD_SIZE, faceUp: true, members: [] },
       ...banks,
+      {
+        id: "scores", kind: "bag", position: [TABLE / 2 + 30, TABLE / 2 - 16], size: [9, 9],
+        infinite: "score", text: "Scores", color: "#8a6a3a", fixed: true,
+      },
     ],
     labels: [
       { text: "Deck", position: [TABLE / 2 - 5, TABLE / 2 - 1.6], fontSize: 0.9, color: "#e9f0e2" },

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { rememberCount, rememberedCount } from "../browserMemory";
+import { MAX_COUNTER_LABEL } from "../state/objects";
+import { useStoreValue } from "../useStoreValue";
 
 // Buttons for one object, shared by the action bar's Selected menu and the
 // context menu. What shows depends on the object: decks draw, shuffle, and
@@ -42,10 +44,12 @@ export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onS
     </>
   );
   if (object.inHand || object.inDeck) return <div className="piece-actions">{magnify}{states}</div>;
+  const counter = object.counter && <CounterControls interaction={interaction} objectId={objectId} />;
 
   return (
     <div className="piece-actions">
       {!die && !tray && magnify}
+      {counter}
       {states}
       {deck && <p className="menu-title">{deckTitle(object.count)}</p>}
       {bag && <p className="menu-title">{bagTitle(object)}</p>}
@@ -188,6 +192,57 @@ function CountAction({ label, verb, name, fallback, most, onAct }) {
         <button type="button" className="menu-item" aria-label={`${verb} more`} disabled={shown >= most} onClick={() => step(1)}>+</button>
       </div>
     </>
+  );
+}
+
+const COUNTER_STEPS = [1, 5, 20, 100];
+
+// A counter's label and number, with the adds along the top and the
+// subtractions along the bottom. Typing commits on Enter or leaving the box.
+// The menu stays open, so a player can tap several times.
+function CounterControls({ interaction, objectId }) {
+  // Follows the store, since the menu stays open while players count.
+  const piece = useStoreValue(interaction.store, (state) => state.pieces[objectId]);
+  const counter = { label: piece?.label ?? "", value: piece?.value ?? 0 };
+  const [label, setLabel] = useState(counter.label);
+  const [value, setValue] = useState(String(counter.value));
+  const [seen, setSeen] = useState(counter);
+  if (seen.label !== counter.label || seen.value !== counter.value) {
+    setSeen(counter);
+    setLabel(counter.label);
+    setValue(String(counter.value));
+  }
+  const add = (by) => interaction.setCounter(objectId, { value: counter.value + by });
+  const commitLabel = () => label !== counter.label && interaction.setCounter(objectId, { label });
+  const commitValue = () => {
+    const number = Number.parseInt(value, 10);
+    if (Number.isInteger(number) && number !== counter.value) interaction.setCounter(objectId, { value: number });
+    else setValue(String(counter.value));
+  };
+  const onKey = (commit) => (event) => {
+    if (event.key === "Enter") commit();
+  };
+  const row = (sign) => (
+    <div className="piece-actions-row">
+      {COUNTER_STEPS.map((step) => (
+        <button key={step} type="button" className="menu-item" aria-label={`${sign > 0 ? "Add" : "Subtract"} ${step}`}
+          onClick={() => add(sign * step)}>
+          {sign > 0 ? "+" : "−"}{step}
+        </button>
+      ))}
+    </div>
+  );
+  return (
+    <div className="counter-controls">
+      {row(1)}
+      <div className="counter-fields">
+        <input className="counter-label" aria-label="Label" maxLength={MAX_COUNTER_LABEL} value={label} placeholder="Label"
+          onChange={(event) => setLabel(event.target.value)} onBlur={commitLabel} onKeyDown={onKey(commitLabel)} />
+        <input className="counter-value" aria-label="Value" inputMode="numeric" value={value}
+          onChange={(event) => setValue(event.target.value)} onBlur={commitValue} onKeyDown={onKey(commitValue)} />
+      </div>
+      {row(-1)}
+    </div>
   );
 }
 

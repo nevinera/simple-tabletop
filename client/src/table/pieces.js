@@ -59,7 +59,7 @@ function circleGeometry(width, thickness) {
 
 // A see-through copy of the piece left at its resting spot while it's
 // dragged, so you can see where it came from.
-function buildGhost(mesh) {
+export function buildGhost(mesh) {
   const materials = mesh.material.map((material) => {
     const ghost = material.clone();
     ghost.transparent = true;
@@ -77,7 +77,7 @@ function buildGhost(mesh) {
 
 // A dark footprint on the surface under a held piece, showing where it will
 // land.
-function buildShadow(piece) {
+export function buildShadow(piece) {
   const [width, depth] = piece.size;
   const geometry = piece.shape === "circle"
     ? new THREE.CircleGeometry(width / 2, 48)

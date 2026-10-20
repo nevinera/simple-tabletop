@@ -7,7 +7,8 @@ import { PawnIcon } from "./PawnIcon";
 // closes it; otherwise it lets pointer events through and goes away when Alt
 // comes up.
 export function Magnifier({ side, onClose }) {
-  const label = side.contents ? "Bag contents" : side.die ? "Magnified die" : side.pawn ? "Magnified pawn" : "Magnified card";
+  const label = side.contents ? "Bag contents" : side.die ? "Magnified die" : side.pawn ? "Magnified pawn"
+    : side.counter ? "Magnified counter" : "Magnified card";
   return (
     <div
       className={`magnifier${onClose ? " magnifier-closable" : ""}`}
@@ -23,6 +24,14 @@ export function Magnifier({ side, onClose }) {
 function Side({ side, className }) {
   if (side.die) return <DieFace die={side.die} value={side.value} className={`${className}-die`} />;
   if (side.pawn) return <PawnIcon pawn={side.pawn} className={`${className}-pawn`} />;
+  if (side.counter) {
+    return (
+      <div className={`${className}-counter counter-face`} style={{ background: side.counter.color }}>
+        <span className="counter-face-label">{side.counter.label}</span>
+        <span className="counter-face-value">{side.counter.value}</span>
+      </div>
+    );
+  }
   return (
     <div
       className={`${className}-card`}

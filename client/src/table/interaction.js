@@ -134,7 +134,8 @@ export class PieceInteraction {
       canMakeDeck: !container && !object.state.containerId && object.def.kind === "card",
       searchable: ["deck", "bag"].includes(object.def.kind) && !infinite && object.state.members.length > 0,
       canStackUp: this.#stackable(id),
-      canFlip: container ? object.def.kind === "deck" : !["die", "board", "standee", "pawn"].includes(object.def.kind),
+      canFlip: container ? object.def.kind === "deck" : !["die", "board", "standee", "pawn", "counter"].includes(object.def.kind),
+      counter: object.def.kind === "counter" ? { label: object.state.label, value: object.state.value } : null,
       splay: object.def.kind === "deck" ? object.state.splay : null,
       splayDistance: object.def.kind === "deck" ? object.state.splayDistance ?? object.def.splayDistance ?? DEFAULT_SPLAY : null,
       states: object.def.states?.map((state) => state.name) || null,
@@ -169,6 +170,11 @@ export class PieceInteraction {
 
   flip(id) {
     for (const target of this.#actionTargets(id)) this.#dispatch("flip", target);
+  }
+
+  // Changes a counter: { value } and/or { label }.
+  setCounter(id, changes) {
+    return this.#dispatch("setCounter", id, changes).ok;
   }
 
   // Deals count cards from a deck to every seated player's hand.

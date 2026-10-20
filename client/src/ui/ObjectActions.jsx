@@ -255,10 +255,12 @@ const SPLAYS = [
 ];
 const SPLAY_DISTANCES = [1, 2, 3, 5];
 
-function bagTitle({ count, infinite }) {
-  if (infinite) return "Bag: never runs out";
-  if (count === 0) return "Empty bag";
-  return count === 1 ? "Bag: 1 thing" : `Bag: ${count} things`;
+// A bag's title in its menu: its label, if it has one, and what's in it.
+function bagTitle({ count, infinite, text }) {
+  const name = text || "Bag";
+  if (infinite) return `${name}: never runs out`;
+  if (count === 0) return text ? `${text}: empty` : "Empty bag";
+  return count === 1 ? `${name}: 1 thing` : `${name}: ${count} things`;
 }
 
 function deckTitle(count) {

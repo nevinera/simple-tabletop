@@ -3,9 +3,10 @@ import { bagHeight } from "../state/objects";
 import { tableRotationToThree, tableToThree } from "./coordinates";
 import { HELD_LIFT, restingTurn } from "./pieces";
 
-const TEXT_PIXELS = 64; // canvas pixels per cm of side height
-const TEXT_HEIGHT = 0.45; // of the side's height
-const TEXT_MARGIN = 0.08; // of the side's width, kept clear at each end
+const TEXT_PIXELS = 64; // canvas pixels per cm of lid
+const TEXT_HEIGHT = 0.32; // of the lid's depth, at most
+const TEXT_MARGIN = 0.08; // of the lid's width, kept clear at each end
+const TEXT_BAND = 0.14; // of the lid's depth: where text sits under a lid image, measured from the near edge
 const LID_IMAGE = 0.35; // the lid image's radius, as a share of the shorter side
 const RING_WIDTH = 0.08; // of the lid image's radius
 const RING_COLOR = 0xf1ece0;
@@ -16,18 +17,18 @@ const SHADOW_LIFT = 0.003;
 const BLOCKED_SHADOW_COLOR = 0xd0302a;
 const GHOST_OPACITY = 0.35;
 
-// A bag is a box in its color, its text printed along each side, and its
-// image in a ringed circle on the lid. Every pickable mesh carries the bag's
+// A bag is a box in its color, its text printed on the lid, reading from
+// the near edge, and its image in a ringed circle on the lid (with the text
+// along the near edge below it). Every pickable mesh carries the bag's
 // id in userData.objectId.
 export function buildBag(id, def, textures) {
   const [width, depth] = def.size;
   const height = bagHeight(def);
   const color = new THREE.Color(def.color);
   const plain = new THREE.MeshStandardMaterial({ color, roughness: 0.8 });
-  const long = sideMaterial(def, width, height);
-  const short = sideMaterial(def, depth, height);
+  const lid = lidMaterial(def, width, depth);
   // Box material order: +x, -x, +y (top), -y (bottom), +z, -z.
-  const box = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), [short, short, plain, plain, long, long]);
+  const box = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), [plain, plain, lid, plain, plain, plain]);
   box.position.y = height / 2;
   box.userData.objectId = id;
 
@@ -100,17 +101,21 @@ export function applyBagPlacement(group, def, state, { blocked = false, floor = 
   }
 }
 
-// One side of the box: the bag's color, with its text centered and sized to
-// fit, in black or white, whichever stands out.
-function sideMaterial(def, sideWidth, sideHeight) {
+// The lid: the bag's color, with its text sized to fit, in black or white,
+// whichever stands out. The canvas's top edge is the lid's far edge, so the
+// text reads upright from the near side.
+function lidMaterial(def, width, depth) {
   if (!def.text) return new THREE.MeshStandardMaterial({ color: new THREE.Color(def.color), roughness: 0.8 });
   const canvas = document.createElement("canvas");
-  canvas.width = Math.ceil(sideWidth * TEXT_PIXELS);
-  canvas.height = Math.ceil(sideHeight * TEXT_PIXELS);
+  canvas.width = Math.ceil(width * TEXT_PIXELS);
+  canvas.height = Math.ceil(depth * TEXT_PIXELS);
   const ctx = canvas.getContext("2d");
+  if (!ctx) return new THREE.MeshStandardMaterial({ color: new THREE.Color(def.color), roughness: 0.8 });
   ctx.fillStyle = def.color;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  let fontPx = canvas.height * TEXT_HEIGHT;
+  // Under a lid image, the text takes a band along the near edge.
+  const band = def.image ? canvas.height * TEXT_BAND : canvas.height;
+  let fontPx = Math.min(canvas.height * TEXT_HEIGHT, band * 0.8);
   ctx.font = `700 ${fontPx}px system-ui, sans-serif`;
   const room = canvas.width * (1 - 2 * TEXT_MARGIN);
   const measured = ctx.measureText(def.text).width;
@@ -119,7 +124,7 @@ function sideMaterial(def, sideWidth, sideHeight) {
   ctx.fillStyle = darkText(def.color) ? "#1d1d1f" : "#f6f3ec";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(def.text, canvas.width / 2, canvas.height / 2);
+  ctx.fillText(def.text, canvas.width / 2, def.image ? canvas.height - band / 2 : canvas.height / 2);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   return new THREE.MeshStandardMaterial({ map: texture, roughness: 0.8 });

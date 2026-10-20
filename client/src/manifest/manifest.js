@@ -4,7 +4,7 @@
 
 import { BUILT_IN_DICE, D4_SCALE, DIE_SIDES } from "../state/dice";
 import { HALF_SIDES, SEAT_ORDER, SIDES } from "../state/seats";
-import { DEFAULT_SPLAY, SPLAY_DIRECTIONS, canStack, stackKey } from "../state/objects";
+import { DEFAULT_SPLAY, SPLAY_DIRECTIONS, STACK_SHOWN, canStack, stackKey } from "../state/objects";
 import { MEEPLE_DEPTH, PAWN_HEIGHTS, PAWN_SHAPES } from "../state/pawnShapes";
 
 export const DEFAULT_TABLE_COLOR = "#2e6b3f";
@@ -90,7 +90,15 @@ export function normalizeManifest(raw, baseUrl) {
     }),
     labels: (raw.labels || []).map((label, i) => normalizeLabel(label, i, layers)),
     documents: normalizeDocuments(raw.documents, resolve),
+    maxStackShown: normalizeStackShown(raw.maxStackShown),
   };
+}
+
+// How many pieces tall a stack grows before it shows a count instead.
+function normalizeStackShown(shown) {
+  if (shown == null) return STACK_SHOWN;
+  if (!Number.isInteger(shown) || shown < 2 || shown > 20) throw new ManifestError("maxStackShown must be a whole number from 2 to 20.");
+  return shown;
 }
 
 // Rulebooks and other files that go with the game, as [{ name, url }]. The

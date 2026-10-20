@@ -19,7 +19,7 @@ export const DEFAULT_SPLAY = 2; // cm between cards in a splayed deck, unless th
 // Which way each splay direction runs, in a deck's own frame: x to its
 // right, y away from its near edge.
 export const SPLAY_DIRECTIONS = { left: [-1, 0], right: [1, 0], away: [0, 1], toward: [0, -1] };
-export const STACK_SHOWN = 5; // a stack grows up to this many pieces tall, then shows a count instead
+export const STACK_SHOWN = 5; // how many pieces tall a stack grows, then shows a count instead, unless the module says
 const STACKABLE = ["tile", "chip", "token"];
 
 const pieceIndexes = new WeakMap();
@@ -102,6 +102,7 @@ function stackDef(manifest, state, id, fromManifest) {
     layer: piece.layer,
     thickness: piece.thickness,
     stackKey: stackKey(piece),
+    shown: manifest.maxStackShown ?? STACK_SHOWN,
     image: null,
     accepts: null,
     fixed: fromManifest?.fixed || false,
@@ -268,9 +269,9 @@ export function deckHeight(count) {
   return MIN_DECK_HEIGHT + (MAX_DECK_HEIGHT - MIN_DECK_HEIGHT) * (1 - Math.exp(-extra / DECK_GROWTH));
 }
 
-// A stack grows a piece taller per piece, up to STACK_SHOWN.
+// A stack grows a piece taller per piece, up to its module's maxStackShown.
 export function stackHeight(stackDef, count) {
-  return stackDef.thickness * Math.min(count, STACK_SHOWN);
+  return stackDef.thickness * Math.min(count, stackDef.shown ?? STACK_SHOWN);
 }
 
 export function bagHeight(bagDef) {

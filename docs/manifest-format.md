@@ -92,6 +92,7 @@ Modules are data only. They place pieces and describe how they look. They can't 
 | `containers`    | no       | decks, bags, bowls, and trays                            |
 | `labels`        | no       | text drawn on the table; see [Labels](#labels)           |
 | `documents`     | no       | rulebooks and other files to link to; see [Documents](#documents) |
+| `maxStackShown` | no       | how many pieces tall a stack draws before showing a count, 2 to 20; defaults to 5 |
 
 ## Table
 
@@ -329,7 +330,7 @@ Without `accepts`, decks take pieces of their members' type, trays take dice, an
 - **stack:** tiles, chips, or tokens piled up. Chips of the same size pile together whatever is on them, like
   poker chips; tiles and tokens only pile with ones just like them. It needs at least two `members`, top first,
   and takes its size and look from them. Pieces are alike when they share a piece type, or, without one, the
-  same kind, shape, size, and images. Its side shows a band per piece in that piece's `edge` color. A stack grows one piece taller per piece up to five, then shows a count
+  same kind, shape, size, and images. Its side shows a band per piece in that piece's `edge` color. A stack grows one piece taller per piece up to `maxStackShown` (five unless the module says), then shows a count
   on top instead. Players draw from the top, and a stack down to one piece turns back into that piece.
   Dropping a piece on a loose one just like it makes a new stack.
 - **bowl:** contents sit visible in a pile. Players pick any member.

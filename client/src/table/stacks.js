@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { STACK_SHOWN, stackHeight } from "../state/objects";
+import { stackHeight } from "../state/objects";
 import { tableRotationToThree, tableToThree } from "./coordinates";
 import { EDGE_COLOR, HELD_LIFT, restingTurn } from "./pieces";
 
@@ -15,7 +15,7 @@ const BLOCKED_SHADOW_COLOR = 0xd0302a;
 const GHOST_OPACITY = 0.35;
 
 // A stack looks like its pieces piled up: their shape, each one's own edge
-// color with a line between them, and the top piece's up side on top. Past STACK_SHOWN pieces it stops
+// color with a line between them, and the top piece's up side on top. Past its module's maxStackShown pieces it stops
 // growing and shows a count on top instead. Every pickable mesh carries the
 // stack's id in userData.objectId.
 export function buildStack(id, def) {
@@ -82,8 +82,8 @@ export function applyStackPlacement(group, def, state, edges, { blocked = false,
 
   body.scale.y = height;
   body.position.y = height / 2;
-  showSides(group, edges.slice(0, STACK_SHOWN).map((edge) => edge || EDGE_COLOR));
-  showCount(group, count);
+  showSides(group, edges.slice(0, def.shown).map((edge) => edge || EDGE_COLOR));
+  showCount(group, count, def.shown);
   counter.position.y = height + COUNTER_LIFT;
 
   const lift = held ? floor + HELD_LIFT : state.z || 0;
@@ -124,9 +124,9 @@ export function setStackTop(group, texture) {
 }
 
 // "x6" in white with a black outline, once there are more pieces than show.
-function showCount(group, count) {
+function showCount(group, count, shown) {
   const { counter } = group.userData;
-  counter.visible = count > STACK_SHOWN;
+  counter.visible = count > shown;
   if (!counter.visible || group.userData.count === count) return;
   group.userData.count = count;
   const canvas = document.createElement("canvas");

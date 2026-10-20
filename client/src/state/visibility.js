@@ -4,7 +4,7 @@
 // a deck shows its top. A die shows { die, value } instead of an image, a
 // pawn { pawn: { shape, color } }, and a bag what's in it (see bagContents).
 
-import { findObject, pieceDef } from "./objects";
+import { backOf, faceOf, findObject, pieceDef } from "./objects";
 
 // Whether Alt or a magnify tap works on an object: only things on the top
 // layer, not boards.
@@ -25,7 +25,8 @@ export function visibleSide(manifest, state, id, viewerSeat) {
     if (object.def.image) return { image: object.def.image, size: object.def.size };
     if (!top) return null;
     const card = pieceDef(manifest, top);
-    return { image: object.state.faceUp ? card.face : card.back, size: object.def.size };
+    const cardState = state.pieces[top];
+    return { image: object.state.faceUp ? faceOf(card, cardState) : backOf(card, cardState), size: object.def.size };
   }
 
   const { def, state: piece } = object;
@@ -33,11 +34,11 @@ export function visibleSide(manifest, state, id, viewerSeat) {
   if (def.kind === "pawn") return { pawn: { shape: def.shape, color: def.color } };
   if (piece.containerId) {
     const container = findObject(manifest, state, piece.containerId);
-    if (container.def.kind === "stack") return { image: piece.faceUp ? def.face : def.back, size: def.size };
+    if (container.def.kind === "stack") return { image: piece.faceUp ? faceOf(def, piece) : backOf(def, piece), size: def.size };
     if (container.def.kind !== "hand") return null;
-    return { image: container.def.seatId === viewerSeat ? def.face : def.back, size: def.size };
+    return { image: container.def.seatId === viewerSeat ? faceOf(def, piece) : backOf(def, piece), size: def.size };
   }
-  return { image: piece.faceUp ? def.face : def.back, size: def.size };
+  return { image: piece.faceUp ? faceOf(def, piece) : backOf(def, piece), size: def.size };
 }
 
 // The distinct things in a bag: { title, contents: [{ key, name, count,

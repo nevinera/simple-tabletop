@@ -86,6 +86,7 @@ One row per piece the manifest defines, including fixed board pieces.
 | `rotation`       | degrees around the vertical axis                              |
 | `face_up`        | boolean                                                       |
 | `value`          | dice only: index of the face showing up                       |
+| `stateIndex`     | in `extras`: cards with states only: which state it's in; 0 or missing for the first |
 | `stack_order`    | draw order among loose pieces on the same layer               |
 | `z`              | in `extras`: how high it rests on what's under it; 0 or missing on the table |
 | `carrying`       | in `extras`: while held, what rode on it when it was picked up |
@@ -171,6 +172,7 @@ There's no free-form multi-select. To move or roll several things together, put 
 | `draw`     | take a deck's top card, a bag's `pick`, or a new piece from an infinite bag; the drawing player holds it, or with `toHand` it goes in their hand |
 | `makeDeck` | turn a loose card into a new deck holding just that card        |
 | `splay`    | fan a deck's cards out in a `direction`, or close it with null, and set its `distance` |
+| `changeState` | put a card in one of its states, by `index`               |
 | `release`  | let go without changing anything                               |
 
 `flip`, `rotate`, and `lock` also work on things nobody holds, so players can act on what they're pointing at.

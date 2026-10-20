@@ -147,6 +147,21 @@ export function fanBox(object, x, y, rotation) {
   };
 }
 
+// A card's current state (see normalizeStates in manifest.js), from its
+// stateIndex, or null for a piece without states.
+export function cardState(def, piece) {
+  return def.states ? def.states[piece?.stateIndex || 0] : null;
+}
+
+// The images on a piece's two sides in its current state.
+export function faceOf(def, piece) {
+  return cardState(def, piece)?.face ?? def.face;
+}
+
+export function backOf(def, piece) {
+  return cardState(def, piece)?.back ?? def.back;
+}
+
 // Whether a piece dropped on a loose one makes a pile with it: cards of the
 // same type and size make a deck, and tiles, chips, and tokens that are
 // alike make a stack.

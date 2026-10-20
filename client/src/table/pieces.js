@@ -36,7 +36,25 @@ export async function buildPiece(piece, textures) {
   for (const material of [edge, top, bottom]) material.polygonOffset = true;
   mesh.userData.shadow = buildShadow(piece);
   mesh.userData.ghost = buildGhost(mesh);
+  mesh.userData.stateIndex = 0;
   return mesh;
+}
+
+// Shows the images of a card's current state, once they've loaded. Cards
+// are boxes, so their top and bottom are materials 2 and 3.
+export function applyCardState(mesh, def, piece, textures) {
+  const index = piece.stateIndex || 0;
+  if (!def.states || mesh.userData.stateIndex === index) return;
+  mesh.userData.stateIndex = index;
+  const { face, back } = def.states[index];
+  Promise.all([textures.get(face), textures.get(back)]).then(([faceTexture, backTexture]) => {
+    if (mesh.userData.stateIndex !== index) return;
+    for (const { material } of [mesh, mesh.userData.ghost]) {
+      material[2].map = faceTexture;
+      material[3].map = backTexture;
+      material[2].needsUpdate = material[3].needsUpdate = true;
+    }
+  });
 }
 
 // Three maps a cylinder's cap images turned a quarter clockwise, so turn the

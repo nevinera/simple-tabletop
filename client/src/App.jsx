@@ -11,7 +11,7 @@ import { sameIds, useStoreValue } from "./useStoreValue";
 import { useMagnifyKey } from "./useMagnifyKey";
 import { TableSounds, soundFor } from "./sound/sounds";
 import { handId, openSeats, playerColor, seatName, seatOf, seatView } from "./state/seats";
-import { pieceDef } from "./state/objects";
+import { faceOf, pieceDef } from "./state/objects";
 import { initialState } from "./state/actions";
 import { fetchGameState, joinGame, startGame } from "./server/api";
 import { connectGame } from "./server/sync";
@@ -300,7 +300,7 @@ export default function App({ manifestUrl, game = null }) {
         <ReorderPanel
           cards={store.getState().containers[reordering].members.map((id) => {
             const def = pieceDef(manifest, id);
-            return { id, label: def.id, side: { image: def.face, size: def.size } };
+            return { id, label: def.id, side: { image: faceOf(def, store.getState().pieces[id]), size: def.size } };
           })}
           onSave={(order) => interaction.reorder(reordering, order)}
           onClose={closeReorder}

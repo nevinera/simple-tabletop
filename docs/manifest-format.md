@@ -144,6 +144,7 @@ of them.
 | `face`     | yes*     | image for the up side; not used by dice or pawns              |
 | `color`    | no       | hex; tints built-in dice, and colors pawns                    |
 | `back`     | no       | image for the down side; defaults to `face`                   |
+| `states`   | no       | cards only: the looks a card can switch between; see [Card states](#card-states) |
 | `position` | no*      | required unless a container lists the piece                   |
 | `rotation` | no       | defaults to 0                                                 |
 | `faceUp`   | no       | defaults to true                                              |
@@ -175,6 +176,26 @@ A standee stands upright in a clear holder, its `face` toward the front and its 
 parts of its images are cut out. Its holder is what takes up room on the table. Turn it to face another way.
 
 Bags take every kind but boards. A board usually also sets `"fixed": true`.
+
+## Card states
+
+A card can switch between looks, like a normal and an upgraded version. List them in `states`, at least two,
+each with a `name` and the images it changes:
+
+```json
+"strike": {
+  "kind": "card", "size": [6.3, 8.8], "back": "assets/back.png",
+  "states": [
+    { "name": "Normal", "face": "assets/strike.png" },
+    { "name": "Upgraded", "face": "assets/strike-plus.png" }
+  ]
+}
+```
+
+- A state's `face` and `back` default to the card's own, and the card's `face` defaults to its first state's.
+- Every card starts in its first state. Players pick a state from the card's menu, or press U for the next one.
+- A card keeps its state wherever it goes, including into decks and hands. Players can change cards that are
+  loose, in their own hand, or in a splayed deck.
 
 ## Dice
 

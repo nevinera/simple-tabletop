@@ -326,6 +326,27 @@ function normalizeSheets(sheets, resolve) {
 
 // An image is either a path or { sheet, index }. Both come out as { url },
 // and sheet images also carry the grid cell to crop to.
+// A card's states, like normal and upgraded, as [{ name, face, back }], or
+// null for a card without them. A state without a face or back uses the
+// card's own, and a card's face defaults to its first state's.
+function normalizeStates(piece, where, image) {
+  if (piece.states == null) return null;
+  if (piece.kind !== "card") throw new ManifestError(`${where} isn't a card, so it can't have states.`);
+  if (!Array.isArray(piece.states) || piece.states.length < 2) throw new ManifestError(`${where} needs at least two states.`);
+  const face = piece.face && image(piece.face, `${where} face`);
+  const back = piece.back && image(piece.back, `${where} back`);
+  const names = new Set();
+  return piece.states.map((state, i) => {
+    const name = state?.name;
+    if (typeof name !== "string" || !name) throw new ManifestError(`${where} state ${i} needs a name.`);
+    if (names.has(name)) throw new ManifestError(`${where} has two states named "${name}".`);
+    names.add(name);
+    const stateFace = state.face ? image(state.face, `${where} state "${name}" face`) : face;
+    if (!stateFace) throw new ManifestError(`${where} state "${name}" needs a face image.`);
+    return { name, face: stateFace, back: state.back ? image(state.back, `${where} state "${name}" back`) : back || stateFace };
+  });
+}
+
 function normalizeImage(value, where, sheets, resolve) {
   if (typeof value === "string") return { url: resolve(value) };
   const sheet = sheets[value?.sheet];
@@ -375,7 +396,7 @@ function normalizePiece(rawPiece, raw, layers, image, contained, dieTypes) {
   piece.shape ??= shapes[0];
   if (!shapes.includes(piece.shape)) throw new ManifestError(`${where} is a ${piece.kind}, so it can't be a ${piece.shape}.`);
   if (!Array.isArray(piece.size) || !(piece.size[0] > 0)) throw new ManifestError(`${where} needs a size.`);
-  if (!piece.face && piece.shape !== "die" && piece.kind !== "pawn") throw new ManifestError(`${where} needs a face image.`);
+  if (!piece.face && !piece.states && piece.shape !== "die" && piece.kind !== "pawn") throw new ManifestError(`${where} needs a face image.`);
 
   const layer = findLayer(layers, piece.layer || (piece.kind === "board" ? "board" : "pieces"), where);
 
@@ -431,7 +452,9 @@ function normalizePiece(rawPiece, raw, layers, image, contained, dieTypes) {
     };
   }
 
-  const face = image(piece.face, `${where} face`);
+  const states = normalizeStates(piece, where, image);
+  const face = states ? states[0].face : image(piece.face, `${where} face`);
+  const back = states ? states[0].back : piece.back ? image(piece.back, `${where} back`) : face;
   if (piece.thickness != null && !(piece.thickness > 0)) throw new ManifestError(`${where} thickness must be positive.`);
   return {
     id: piece.id,
@@ -445,7 +468,8 @@ function normalizePiece(rawPiece, raw, layers, image, contained, dieTypes) {
     categories: [...new Set([...(type.categories || []), ...(rawPiece.categories || [])])],
     layer,
     face,
-    back: piece.back ? image(piece.back, `${where} back`) : face,
+    back,
+    states,
     position: inContainer ? null : piece.position,
     rotation: piece.rotation || 0,
     faceUp: piece.faceUp ?? true,

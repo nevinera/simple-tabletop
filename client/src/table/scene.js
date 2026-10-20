@@ -16,7 +16,7 @@ import { FELT_TILE_CM, feltTexture } from "./felt";
 import { buildTray, placeTray } from "./hands";
 import { buildLabel } from "./labels";
 import { buildNameTag, disposeNameTag, placeNameTag } from "./nameTags";
-import { HELD_LIFT, applyHandSlot, applyPlacement, buildPiece, stackRanks } from "./pieces";
+import { HELD_LIFT, applyCardState, applyHandSlot, applyPlacement, buildPiece, stackRanks } from "./pieces";
 import { applyStackPlacement, buildStack, faceCamera, setStackTop } from "./stacks";
 import { buildPawn } from "./pawns";
 import { buildStandee } from "./standees";
@@ -128,6 +128,7 @@ export class TableScene {
         this.#buildSpawned(def);
         continue;
       }
+      applyCardState(mesh, def, state.pieces[def.id], this.textures);
       if (def.kind === "die") this.#placeLooseDie(mesh, def, state);
       else if (def.kind === "standee" || def.kind === "pawn") {
         applyUprightPlacement(mesh, def, state.pieces[def.id], this.#hover(def.id));
@@ -620,7 +621,7 @@ export class TableScene {
 
   #updateDeckTop(group, deck) {
     const top = deck.state.members[0];
-    this.#updateTop(group, deckTopImage(deck.def, deck.state, top && pieceDef(this.manifest, top)), setDeckTop);
+    this.#updateTop(group, deckTopImage(deck.def, deck.state, top && pieceDef(this.manifest, top), this.state.pieces[top]), setDeckTop);
   }
 
   // Loads the image for a deck's or stack's top when it changes.

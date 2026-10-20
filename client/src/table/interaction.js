@@ -92,6 +92,8 @@ export class PieceInteraction {
       canFlip: container ? object.def.kind === "deck" : !["die", "board", "standee", "pawn"].includes(object.def.kind),
       splay: object.def.kind === "deck" ? object.state.splay : null,
       splayDistance: object.def.kind === "deck" ? object.state.splayDistance ?? object.def.splayDistance ?? DEFAULT_SPLAY : null,
+      states: object.def.states?.map((state) => state.name) || null,
+      stateIndex: object.def.states ? object.state.stateIndex || 0 : null,
       inHand,
       inDeck,
       inTray: die && Boolean(object.state.containerId),
@@ -120,6 +122,17 @@ export class PieceInteraction {
 
   flip(id = this.actionTarget()) {
     if (id) this.#dispatch("flip", id);
+  }
+
+  // Puts a card in one of its states.
+  changeState(index, id = this.actionTarget()) {
+    if (id) this.#dispatch("changeState", id, { index });
+  }
+
+  // Moves a card on to its next state, back to the first after the last.
+  nextState(id = this.actionTarget()) {
+    const states = id && this.#object(id)?.def.states;
+    if (states) this.changeState(((this.#object(id).state.stateIndex || 0) + 1) % states.length, id);
   }
 
   // degrees: positive is clockwise.

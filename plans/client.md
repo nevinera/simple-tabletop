@@ -58,6 +58,7 @@ Keys check the physical key (`event.code`), and are ignored while focus is in on
 | G                      | draw from the hovered deck or bag, to place  |
 | Shift+G                | draw from the hovered deck or bag into your hand |
 | L                      | lock or unlock the selected or hovered thing |
+| U                      | switch the selected or hovered card to its next state |
 | hold Alt               | magnify the hovered or selected card         |
 | X                      | roll the hovered or selected die             |
 | Shift+X                | roll every die in the hovered tray           |

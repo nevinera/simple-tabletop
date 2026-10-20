@@ -3,7 +3,9 @@
 // flip,
 // bags and stacks draw,
 // pieces flip and can become decks, locked things only unlock, and cards in
-// your hand or a deck's fan only magnify. Decks also splay, locked or not. onDone runs after any action, so a menu can close.
+// your hand or a deck's fan only magnify and change state. Cards with states
+// list them. Decks also splay, locked or not. onDone runs after any action,
+// so a menu can close.
 export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onDone = () => {} }) {
   const object = interaction.describe(objectId);
   if (!object) return <p className="menu-note">{interaction.holderName(objectId) || "Someone else"} has that.</p>;
@@ -23,11 +25,25 @@ export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onD
       Magnify <kbd>Alt</kbd>
     </button>
   );
-  if (object.inHand || object.inDeck) return <div className="piece-actions">{magnify}</div>;
+  const states = object.states && !object.locked && (
+    <>
+      <p className="menu-label">State <kbd>U</kbd></p>
+      <div className="piece-actions-row">
+        {object.states.map((name, index) => (
+          <button key={name} type="button" className="menu-item" aria-pressed={object.stateIndex === index}
+            onClick={act(() => interaction.changeState(index, objectId))}>
+            {name}
+          </button>
+        ))}
+      </div>
+    </>
+  );
+  if (object.inHand || object.inDeck) return <div className="piece-actions">{magnify}{states}</div>;
 
   return (
     <div className="piece-actions">
       {!die && !tray && magnify}
+      {states}
       {deck && <p className="menu-title">{deckTitle(object.count)}</p>}
       {bag && <p className="menu-title">{bagTitle(object)}</p>}
       {stack && <p className="menu-title">Stack of {object.count}</p>}

@@ -37,6 +37,7 @@ describe("normalizeManifest", () => {
       thickness: 0.03,
       face: { url: "https://example.com/games/aces/assets/AS.svg" },
       back: { url: "https://example.com/games/aces/assets/back.svg" },
+      states: null,
       position: [45, 57],
       rotation: 0,
       faceUp: true,

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { deckHeight, fanBox } from "../state/objects";
+import { backOf, deckHeight, faceOf, fanBox } from "../state/objects";
 import { tableRotationToThree, tableToThree } from "./coordinates";
 import { HELD_LIFT, restingTurn } from "./pieces";
 
@@ -70,11 +70,11 @@ export function buildDeck(id, def) {
 }
 
 // The image the deck's top should show: its own image, or the top card's
-// face or back, depending on which way the deck faces.
-export function deckTopImage(def, deckState, cardDef) {
+// face or back in its current state, depending on which way the deck faces.
+export function deckTopImage(def, deckState, cardDef, cardState) {
   if (def.image) return def.image;
   if (!cardDef) return null;
-  return deckState.faceUp ? cardDef.face : cardDef.back;
+  return deckState.faceUp ? faceOf(cardDef, cardState) : backOf(cardDef, cardState);
 }
 
 // Places the deck for its state. floor lifts a held deck over whatever is

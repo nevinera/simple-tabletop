@@ -7,7 +7,8 @@
 //   seating:    "four" or "eight"; see state/seats.js
 //   players:    { [playerId]: { seatId } }
 //   pieces:     { [id]: { x, y, z, rotation, faceUp, stackOrder, containerId, heldBy, drag, locked } },
-//               plus { value, rolls } for dice
+//               plus { value, rolls } for dice, and { stateIndex } for cards
+//               with states, which state they're in, 0 or missing for the first
 //   containers: { [id]: { x, y, z, rotation, faceUp, members, heldBy, drag, locked, spec } },
 //               plus { spots } for trays (see state/trays.js), and { spawned }
 //               for infinite bags, counting the pieces they've handed out
@@ -121,6 +122,7 @@ export function initialState(manifest) {
 //   makeDeck: { deckId }, the id for the new deck
 //   splay:    { direction }, a SPLAY_DIRECTIONS key or null to close the
 //             deck up, plus { distance } in cm to change its spacing
+//   changeState: { index }, which of a card's states to put it in
 export function applyAction(manifest, state, action) {
   if (SEAT_HANDLERS[action.type]) return SEAT_HANDLERS[action.type]({ manifest, state, action });
   const handler = HANDLERS[action.type];
@@ -140,14 +142,16 @@ export function applyAction(manifest, state, action) {
 }
 
 const MEMBER_ACTIONS = ["grab", "drag", "drop", "release"];
+// Cards in your hand or a splayed deck can also change state.
+const CARD_ACTIONS = [...MEMBER_ACTIONS, "changeState"];
 
 function reachableMember(state, object, action) {
   const containerId = object.state.containerId;
-  if (containerId === ownHand(state, action.playerId)) return MEMBER_ACTIONS.includes(action.type);
+  if (containerId === ownHand(state, action.playerId)) return CARD_ACTIONS.includes(action.type);
   const container = state.containers[containerId];
   const tray = object.def.shape === "die" && container.spots;
   const free = !container.heldBy || container.heldBy === action.playerId;
-  if (container.splay && free) return MEMBER_ACTIONS.includes(action.type);
+  if (container.splay && free) return CARD_ACTIONS.includes(action.type);
   return Boolean(tray && free && [...MEMBER_ACTIONS, "roll"].includes(action.type));
 }
 
@@ -370,6 +374,17 @@ const HANDLERS = {
     };
     const withDeck = { ...state, containers: { ...state.containers, [action.deckId]: deck } };
     return addToContainer(manifest, withDeck, object, action.deckId, { heldBy: null, drag: null, locked: false });
+  },
+
+  // Puts a card in one of its states, like upgraded. It keeps that state
+  // wherever it goes.
+  changeState({ state, action, def, object }) {
+    if (!def.states) return reject(state, "That has no states.");
+    if (object.state.locked) return reject(state, "That's locked.");
+    if (!Number.isInteger(action.index) || action.index < 0 || action.index >= def.states.length) {
+      return reject(state, "changeState needs one of the card's states.");
+    }
+    return save(state, object, { stateIndex: action.index });
   },
 
   // Fans a deck's cards out, or closes them up. It works on a locked deck,

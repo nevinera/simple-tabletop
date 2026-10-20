@@ -11,6 +11,8 @@
 //   hold moves as a group with whichever piece of it you drag or place.
 // - Right-click an object, or tap and hold it on touch, for its context menu.
 // - In magnify mode (touch), a tap magnifies what it hits instead.
+// - In select mode (touch), everything works as if Shift were held: taps add
+//   and take out, and dragging the table draws a box.
 // - Anything else (empty table, locked pieces) goes to the camera.
 //
 // Cards in your own hand, and in a splayed deck, move like loose pieces,
@@ -58,6 +60,7 @@ export class PieceInteraction {
     });
     this.nameOf = () => null; // player id -> name
     this.magnifyMode = false;
+    this.selectMode = false;
     this.relocateOnTrayRoll = true; // whether rolling a tray scatters its dice
     // Wrapped, since the browser's timer functions throw when called as methods.
     this.schedule = (fn, ms) => schedule(fn, ms);
@@ -309,7 +312,8 @@ export class PieceInteraction {
       return false;
     }
 
-    if (event.shiftKey && !(hit && this.#canMove(hit))) {
+    const adding = event.shiftKey || this.selectMode;
+    if (adding && !(hit && this.#canMove(hit))) {
       // Shift-drag over the table draws a box to select what's inside.
       this.setCameraEnabled(false);
       this.gesture = { ...base, kind: "box" };
@@ -318,7 +322,7 @@ export class PieceInteraction {
 
     if (hit && this.#canMove(hit)) {
       this.setCameraEnabled(false);
-      const gesture = { ...base, kind: "object", objectId: hit, toggle: event.shiftKey };
+      const gesture = { ...base, kind: "object", objectId: hit, toggle: adding };
       this.gesture = gesture;
       if (pointerType === "touch") gesture.timer = this.#later(gesture, () => this.#openMenu(hit, start, pointerType));
       return true;

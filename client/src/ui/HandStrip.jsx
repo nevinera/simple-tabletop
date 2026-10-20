@@ -4,10 +4,11 @@ import { imageStyle } from "./cardImage";
 const DRAG_THRESHOLD_PX = 6;
 
 // Your hand along the bottom of the screen. Tap a card to select it, then
-// place it on the table as usual, or shift-click to select several. Drag a
+// place it on the table as usual, or shift-click (or tap in select mode) to
+// select several. Drag a
 // card along the strip to reorder it, onto the table to play it (with the
 // rest of what you selected), or anywhere else to put it back.
-export function HandStrip({ cards, selectedIds, interaction, canvas }) {
+export function HandStrip({ cards, selectedIds, selectMode = false, interaction, canvas }) {
   const selected = new Set(selectedIds);
   const stripRef = useRef(null);
   const drag = useRef(null);
@@ -15,7 +16,7 @@ export function HandStrip({ cards, selectedIds, interaction, canvas }) {
   const onPointerDown = (event, id) => {
     if (event.button !== 0) return;
     event.currentTarget.setPointerCapture(event.pointerId);
-    drag.current = { id, startX: event.clientX, startY: event.clientY, moved: false, shift: event.shiftKey };
+    drag.current = { id, startX: event.clientX, startY: event.clientY, moved: false, shift: event.shiftKey || selectMode };
   };
 
   const onPointerMove = (event) => {

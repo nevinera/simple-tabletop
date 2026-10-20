@@ -65,6 +65,7 @@ export default function App({ manifestUrl, game = null }) {
   const [soundOn, setSoundOn] = useStoredFlag(SOUND_SETTING, true);
   const [hovered, setHovered] = useState(null);
   const [magnifyMode, setMagnifyMode] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
   const [magnified, setMagnified] = useState(null);
   const altHeld = useMagnifyKey();
   const showActionBar = layout !== "desktop" || desktopActionBar;
@@ -171,8 +172,8 @@ export default function App({ manifestUrl, game = null }) {
     if (sounds) sounds.enabled = soundOn;
   }, [sounds, soundOn]);
   useEffect(() => {
-    if (interaction) interaction.magnifyMode = magnifyMode;
-  }, [interaction, magnifyMode]);
+    if (interaction) Object.assign(interaction, { magnifyMode, selectMode });
+  }, [interaction, magnifyMode, selectMode]);
   useEffect(() => {
     if (interaction) interaction.nameOf = nameOf;
   }, [interaction, nameOf]);
@@ -267,7 +268,8 @@ export default function App({ manifestUrl, game = null }) {
           onError={setError}
         />
         {showHandStrip && interaction && (
-          <HandStrip cards={handCards} selectedIds={selectedObjects} interaction={interaction} canvas={scene?.canvas} />
+          <HandStrip cards={handCards} selectedIds={selectedObjects} selectMode={selectMode} interaction={interaction}
+            canvas={scene?.canvas} />
         )}
         {store && player && !seated && !replaced && <SeatPicker seats={seats || []} onPick={sit} />}
         {replaced && (
@@ -317,6 +319,8 @@ export default function App({ manifestUrl, game = null }) {
           selectedObject={selectedObject}
           magnifyMode={magnifyMode}
           setMagnifyMode={setMagnifyMode}
+          selectMode={selectMode}
+          setSelectMode={setSelectMode}
           cameraPoints={cameraPoints}
           menus={menus}
           onReorder={startReorder}

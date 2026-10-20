@@ -497,6 +497,17 @@ describe("group selection", () => {
     expect(piece("AH")).toMatchObject({ x: 30, y: 30 });
   });
 
+  it("works as if Shift were held in select mode", () => {
+    interaction.selectMode = true;
+    click(10, 10, { pointerType: "touch" });
+    click(30, 30, { pointerType: "touch" });
+    expect(interaction.selectedIds()).toEqual(["AS", "AH"]);
+    click(10, 10, { pointerType: "touch" });
+    expect(interaction.selectedIds()).toEqual(["AH"]);
+    drag([0, 0], [15, 15], { pointerType: "touch" });
+    expect(interaction.selectedIds()).toEqual(["AS", "AH"]);
+  });
+
   it("flips everything it holds", () => {
     click(10, 10);
     click(30, 30, { shiftKey: true });

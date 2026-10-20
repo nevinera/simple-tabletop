@@ -4,9 +4,9 @@ import { HandStrip } from "../ui/HandStrip";
 
 const cards = ["c1", "c2"].map((id) => ({ id, side: { image: null, size: [6, 9] } }));
 
-function renderStrip(selectedIds = []) {
+function renderStrip(selectedIds = [], selectMode = false) {
   const interaction = { handGrab: vi.fn(() => true), toggleSelect: vi.fn(), cancelSelection: vi.fn() };
-  render(<HandStrip cards={cards} selectedIds={selectedIds} interaction={interaction} canvas={null} />);
+  render(<HandStrip cards={cards} selectedIds={selectedIds} selectMode={selectMode} interaction={interaction} canvas={null} />);
   return interaction;
 }
 
@@ -31,5 +31,13 @@ describe("HandStrip", () => {
     expect(interaction.handGrab).toHaveBeenCalledWith("c2");
     tap("c1");
     expect(interaction.cancelSelection).toHaveBeenCalled();
+  });
+
+  it("adds cards with a plain tap in select mode", () => {
+    const interaction = renderStrip(["c1"], true);
+    tap("c2");
+    tap("c1");
+    expect(interaction.toggleSelect.mock.calls).toEqual([["c2"], ["c1"]]);
+    expect(interaction.handGrab).not.toHaveBeenCalled();
   });
 });

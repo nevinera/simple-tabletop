@@ -148,7 +148,8 @@ A piece or container can only move while one player holds it.
   members until it's released.
 
 A player can hold several things at once, as a group: shift-click adds or removes one, and shift-drag over the
-table adds everything in a box. Cards in their hand group only with other cards in their hand. Dropping one
+table adds everything in a box. On touch, the action bar's select toggle makes taps and table drags work that
+way. Cards in their hand group only with other cards in their hand. Dropping one
 thing in the group moves the rest with it, keeping their places around it, and lets go of it all. Over a
 container, the whole group goes in if the container takes every piece, or the drop is refused. Cards from a
 hand played on the table lay out in a row beside the one dropped. Turning one swings the rest around it, and

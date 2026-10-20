@@ -32,6 +32,7 @@ const TOUCH = [
   ["Roll a die or tray", "Tap and hold it, then Roll"],
   ["Flip, rotate, or lock", "Select it, then the action bar's ⟳ button"],
   ["Change a card's state, like upgraded", "Tap and hold it, then pick a state"],
+  ["Select several", "Action bar, ☑ button, then tap them or drag a box"],
   ["Orbit", "Drag the table"],
   ["Pan", "Two-finger drag"],
   ["Zoom", "Pinch"],

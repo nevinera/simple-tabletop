@@ -6,8 +6,18 @@ const SLOTS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
 const ZOOM_STEP = 0.8;
 
 export function ActionBar({
-  scene, interaction, selectedObject, cameraPoints, menus, magnifyMode, setMagnifyMode, onReorder,
+  scene, interaction, selectedObject, cameraPoints, menus, magnifyMode, setMagnifyMode, selectMode, setSelectMode,
+  onReorder,
 }) {
+  // Magnify and select modes each change what a tap does, so only one is on.
+  const toggleMagnify = () => {
+    setMagnifyMode(!magnifyMode);
+    setSelectMode(false);
+  };
+  const toggleSelect = () => {
+    setSelectMode(!selectMode);
+    setMagnifyMode(false);
+  };
   return (
     <nav className="action-bar" aria-label="Action bar">
       <Menu id="camera-points" label="Views" icon="🎥" {...menus}>
@@ -35,9 +45,19 @@ export function ActionBar({
         aria-label="Magnify"
         aria-pressed={magnifyMode}
         title="Tap a card to see it up close"
-        onClick={() => setMagnifyMode(!magnifyMode)}
+        onClick={toggleMagnify}
       >
         <span aria-hidden="true">🔍</span>
+      </button>
+      <button
+        type="button"
+        className={`bar-button${selectMode ? " active" : ""}`}
+        aria-label="Select several"
+        aria-pressed={selectMode}
+        title="Tap things to add them to your selection, or drag the table to box them in"
+        onClick={toggleSelect}
+      >
+        <span aria-hidden="true">☑</span>
       </button>
     </nav>
   );

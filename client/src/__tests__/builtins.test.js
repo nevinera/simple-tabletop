@@ -95,6 +95,34 @@ describe("chess", () => {
   });
 });
 
+describe("global domination", () => {
+  const raw = JSON.parse(readFileSync(join(BUILTINS, "global-domination", "manifest.json"), "utf8"));
+  const manifest = normalizeManifest(raw, "https://example.com/builtins/global-domination/manifest.json");
+  const act = (state, action) => applyAction(manifest, state, { playerId: "me", ...action });
+
+  it("seats six, and deals from 42 territory cards and two wilds", () => {
+    const state = initialState(manifest);
+    expect(manifest.seats).toHaveLength(6);
+    expect(state.containers.deck.members).toHaveLength(44);
+    expect(manifest.snaps[0].points).toHaveLength(42);
+  });
+
+  it("piles armies of one color on the territory they're dropped near", () => {
+    const [x, y] = manifest.snaps[0].points[0];
+    let state = initialState(manifest);
+    const placed = [];
+    for (let i = 0; i < 2; i++) {
+      state = act(state, { type: "draw", id: "red-armies" }).state;
+      const id = Object.keys(state.pieces).find((piece) => piece.startsWith("red-armies#") && !placed.includes(piece));
+      placed.push(id);
+      state = act(state, { type: "drop", id, x: x + 1, y: y - 1 }).state;
+    }
+    const pile = Object.values(state.containers).find((container) => container.spec?.kind === "stack");
+    expect(pile.members.sort()).toEqual(placed.sort());
+    expect(pile).toMatchObject({ x, y });
+  });
+});
+
 describe("snapping on boards", () => {
   const load = (slug) => normalizeManifest(JSON.parse(readFileSync(join(BUILTINS, slug, "manifest.json"), "utf8")),
     `https://example.com/builtins/${slug}/manifest.json`);

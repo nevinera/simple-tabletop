@@ -47,10 +47,11 @@ describe("Home", () => {
     expect(localStorage.getItem("simple-tabletop:player-name")).toBe("Sam");
   });
 
-  it("offers modules you played, newest first, and picks the newest", () => {
+  it("offers modules you played, newest first, and picks the newest, but not old built-ins", () => {
     rememberModule({ url: "https://a.test/old.json", name: "Old", version: "1.0" }, localStorage, 1);
     rememberModule({ url: "https://b.test/new.json", name: "New", version: "2.0" }, localStorage, 2);
     rememberModule({ url: "http://localhost/builtins/checkers/manifest.json", name: "Checkers" }, localStorage, 0);
+    rememberModule({ url: "http://localhost/builtins/aces/manifest.json", name: "Four Aces" }, localStorage, 3);
     render(<Home tables={[]} builtIns={BUILT_INS} />);
     const radios = screen.getAllByRole("radio");
     expect(radios.map((radio) => radio.closest("label").textContent)).toEqual([

@@ -12,8 +12,10 @@ import { readSave, restoreState } from "../state/saveFile";
 // [{ url, name, description, thumbnailUrl }] from config/builtins.yml.
 export function Home({ tables, builtIns }) {
   const absolute = (url) => new URL(url, window.location.href).href;
-  const builtInUrls = new Set(builtIns.map((module) => absolute(module.url)));
-  const [recent] = useState(() => recentModules().filter((module) => !builtInUrls.has(module.url)));
+  // Built-ins are offered on their own, and a built-in that's no longer
+  // offered is gone.
+  const builtInRoot = absolute("/builtins/");
+  const [recent] = useState(() => recentModules().filter((module) => !module.url.startsWith(builtInRoot)));
   const [selected, setSelected] = useState(() => recent[0]?.url || builtIns[0]?.url || "");
   const [pasted, setPasted] = useState("");
   const [gameName, setGameName] = useState("");

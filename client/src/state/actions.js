@@ -117,7 +117,8 @@ export function initialState(manifest) {
 //   draw:     { toHand: true } to draw into the player's hand, plus { pick },
 //             the member to take, for a bag that isn't infinite or a deck
 //             someone searched, or
-//             { count } for how many to draw from a deck or stack into the
+//             { faceDown: true } to take a deck's card face down whichever way
+//             the deck faces, or { count } for how many to draw from a deck or stack into the
 //             hand, which stops early if it runs out
 //   roll:     { values } for a die or a tray's dice, { [dieId]: face index },
 //             plus { spots } for a tray
@@ -302,7 +303,7 @@ const HANDLERS = {
       heldBy: action.playerId,
       drag: null,
     };
-    if (def.kind === "deck") changes.faceUp = from.faceUp;
+    if (def.kind === "deck") changes.faceUp = action.faceDown ? false : from.faceUp;
     return settleStack(manifest, save(withoutMember(next, piece), piece, changes), object.id);
   },
 

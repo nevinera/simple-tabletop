@@ -66,6 +66,11 @@ export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onS
           Draw <kbd>G</kbd>
         </button>
       )}
+      {deck && object.count > 0 && (
+        <button type="button" className="menu-item" onClick={act(() => interaction.draw(objectId, { faceDown: true }))}>
+          Draw face down <kbd>Shift drag</kbd>
+        </button>
+      )}
       {(deck || stack) && object.hasHand && object.count > 1 && (
         <CountAction label="Draw several into your hand" verb="Draw" name="draw" fallback={5} most={object.count}
           onAct={(count) => act(() => interaction.draw(objectId, { count }))()} />

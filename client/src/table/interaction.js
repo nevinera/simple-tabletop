@@ -218,7 +218,8 @@ export class PieceInteraction {
   // the selected one. Returns the drawn piece's id, or null.
   // count draws that many from a deck or stack into your hand.
   // pick takes that member of a deck or bag, as from a search.
-  draw(containerId = this.#drawTarget(), { toHand = false, count = null, pick = null } = {}) {
+  // faceDown takes a deck's card face down whichever way the deck faces.
+  draw(containerId = this.#drawTarget(), { toHand = false, count = null, pick = null, faceDown = false } = {}) {
     const container = containerId && this.#object(containerId);
     if (!container || !this.#hasSomething(container)) return null;
     if (count != null) return this.#dispatch("draw", containerId, { toHand: true, count }).ok;
@@ -235,6 +236,7 @@ export class PieceInteraction {
       extra.pick = pieceId;
     }
     if (toHand) return this.#dispatch("draw", containerId, { ...extra, toHand }).ok ? pieceId : null;
+    if (faceDown) extra.faceDown = true;
     this.#releaseAll();
     return this.#dispatch("draw", containerId, extra).ok ? pieceId : null;
   }
@@ -343,6 +345,14 @@ export class PieceInteraction {
       return false;
     }
 
+    // Shift-drag on a deck draws its top card face down, so nobody sees it on
+    // the way. A shift-click still adds a movable deck to what you hold.
+    if (event.shiftKey && hit && this.#object(hit)?.def.kind === "deck" && this.#canDrawFrom(hit)) {
+      this.setCameraEnabled(false);
+      this.gesture = { ...base, kind: "deck", deckId: hit, faceDown: true, toggle: this.#canMove(hit) };
+      return true;
+    }
+
     const adding = event.shiftKey || this.selectMode;
     if (adding && !(hit && this.#canMove(hit))) {
       // Shift-drag over the table draws a box to select what's inside.
@@ -407,7 +417,7 @@ export class PieceInteraction {
       this.unschedule(gesture.timer);
       if (gesture.kind === "deck") {
         // Dragging a locked deck or bag pulls something out.
-        const card = this.draw(gesture.deckId);
+        const card = this.draw(gesture.deckId, { faceDown: Boolean(gesture.faceDown) });
         if (!card) return this.#end();
         Object.assign(gesture, { kind: "object", objectId: card });
       }
@@ -443,6 +453,8 @@ export class PieceInteraction {
     } else if (gesture.kind === "box") {
       this.onSelectBox(null);
       if (gesture.moved) this.#selectBox(boxBetween(gesture.start, { x: event.clientX, y: event.clientY }));
+    } else if (gesture.kind === "deck" && gesture.toggle && !gesture.moved) {
+      this.toggleSelect(gesture.deckId);
     } else if (gesture.kind === "object" && gesture.toggle && !gesture.moved) {
       this.toggleSelect(gesture.objectId);
     } else if (gesture.kind === "object") {

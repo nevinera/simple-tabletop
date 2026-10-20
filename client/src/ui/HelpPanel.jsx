@@ -26,6 +26,7 @@ const TOUCH = [
   ["Splay a deck", "Pick a direction in its menu, then drag any card out"],
   ["Put a deck in order", "Reorder… in its menu, then drag the cards"],
   ["Look at the top few cards of a deck", "Look at in its menu"],
+  ["Find and take out a particular card or piece", "Search… in a deck's or bag's menu"],
   ["Stack chips, tokens, or tiles", "Drop one on another just like it"],
   ["Put a card in a hand", "Drop it on the hand's tray, or on your hand strip"],
   ["Menu", "Tap and hold a piece or deck"],

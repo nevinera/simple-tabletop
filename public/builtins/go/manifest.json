@@ -1,0 +1,129 @@
+{
+  "formatVersion": 1,
+  "id": "go",
+  "name": "Go",
+  "version": "1.0.0",
+  "table": {
+    "size": [
+      72,
+      72
+    ],
+    "color": "#2e6b3f"
+  },
+  "layers": [
+    {
+      "id": "board",
+      "thickness": 0.1
+    },
+    {
+      "id": "pieces",
+      "thickness": 0.4
+    }
+  ],
+  "seats": [
+    {
+      "id": "black",
+      "name": "Black",
+      "side": "south",
+      "color": "#141414"
+    },
+    {
+      "id": "white",
+      "name": "White",
+      "side": "north",
+      "color": "#f2efe8"
+    }
+  ],
+  "snaps": [
+    {
+      "radius": 1.1,
+      "grid": {
+        "origin": [
+          16.2,
+          16.2
+        ],
+        "step": [
+          2.2,
+          2.2
+        ],
+        "count": [
+          19,
+          19
+        ]
+      }
+    }
+  ],
+  "pieceTypes": {
+    "black-stone": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        2.1
+      ],
+      "thickness": 0.4,
+      "face": "assets/black.svg",
+      "edge": "#141414"
+    },
+    "white-stone": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        2.1
+      ],
+      "thickness": 0.4,
+      "face": "assets/white.svg",
+      "edge": "#d8d4ca"
+    }
+  },
+  "pieces": [
+    {
+      "id": "board",
+      "kind": "board",
+      "size": [
+        43.6,
+        43.6
+      ],
+      "face": "assets/board.svg",
+      "position": [
+        36,
+        36
+      ],
+      "fixed": true
+    }
+  ],
+  "containers": [
+    {
+      "id": "black-bowl",
+      "kind": "bag",
+      "position": [
+        63.8,
+        20.2
+      ],
+      "size": [
+        8,
+        8
+      ],
+      "infinite": "black-stone",
+      "text": "Black",
+      "color": "#3a2a18",
+      "fixed": true
+    },
+    {
+      "id": "white-bowl",
+      "kind": "bag",
+      "position": [
+        8.2,
+        51.8
+      ],
+      "size": [
+        8,
+        8
+      ],
+      "rotation": 180,
+      "infinite": "white-stone",
+      "text": "White",
+      "color": "#3a2a18",
+      "fixed": true
+    }
+  ]
+}

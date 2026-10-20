@@ -329,7 +329,7 @@ label. A locked counter stays put but still counts.
 | `size`     | decks, trays, bags | `[width, depth]`                                    |
 | `layer`    | no       | defaults to `pieces`                                          |
 | `image`    | no       | decks: shown on top instead of the top card; bags: shown in a circle on the lid |
-| `text`     | no       | bags: up to 16 characters, printed along each side            |
+| `text`     | no       | bags: up to 16 characters, printed on the lid                 |
 | `color`    | no       | bags: the box's color                                         |
 | `infinite` | no       | bags: a piece type the bag hands out without end              |
 | `fixed`    | no       | starts locked; players can still take from it                 |

@@ -38,3 +38,6 @@
 node_modules/
 /public/client
 /coverage
+
+# Gems installed with bundle config path vendor/bundle.
+/vendor/bundle

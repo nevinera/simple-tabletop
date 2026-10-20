@@ -164,6 +164,31 @@ describe("rolling from the table", () => {
     expect(store.getState().pieces.green).toMatchObject({ value: 9, rolls: 1 });
   });
 
+  it("rolls every die you hold, from X or any one of their menus", () => {
+    const loose = normalizeManifest(raw({
+      pieces: [
+        { id: "red", kind: "die", die: "d6", size: [2], position: [10, 10] },
+        { id: "white", kind: "die", die: "d6", size: [2], position: [20, 10] },
+        { id: "black", kind: "die", die: "d6", size: [2], position: [30, 10] },
+      ],
+      containers: [],
+    }), "https://example.com/m.json");
+    const store = createTableStore(loose);
+    const interaction = new PieceInteraction({
+      store, manifest: loose, playerId: "me", pick: () => null, tablePoint: () => null, clampToTable: (p) => p,
+      setCameraEnabled: () => {}, setCursor: () => {}, random: () => 0.99,
+    });
+    const rolls = () => ["red", "white", "black"].map((id) => store.getState().pieces[id].rolls);
+    interaction.toggleSelect("red");
+    interaction.toggleSelect("white");
+    interaction.roll();
+    expect(rolls()).toEqual([1, 1, 0]);
+    interaction.roll("white");
+    expect(rolls()).toEqual([2, 2, 0]);
+    interaction.roll("black");
+    expect(rolls()).toEqual([2, 2, 1]);
+  });
+
   it("leaves tray dice where they are when relocateOnTrayRoll is off", () => {
     const store = createTableStore(manifest);
     const interaction = makeInteraction(store, { tray: [60, 30] });

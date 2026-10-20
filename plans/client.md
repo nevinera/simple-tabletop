@@ -63,7 +63,7 @@ Keys check the physical key (`event.code`), and are ignored while focus is in on
 | L                      | lock or unlock the selected or hovered thing |
 | U                      | switch the selected or hovered card to its next state |
 | hold Alt               | magnify the hovered or selected card         |
-| X                      | roll the hovered or selected die             |
+| X                      | roll every selected die, or the hovered one  |
 | Shift+X                | roll every die in the hovered tray           |
 
 Camera keys work while holding a piece. Every camera point starts at the starting view.

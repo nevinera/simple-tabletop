@@ -184,11 +184,15 @@ export class PieceInteraction {
     if (this.#dispatch("rotate", id, { degrees }).blocked) this.onBlockedRotate(id, degrees);
   }
 
-  // Rolls one die where it sits.
-  roll(id = this.actionTarget()) {
-    const object = id && this.#object(id);
-    if (object?.def.shape !== "die") return;
-    this.#dispatch("roll", id, { values: rollValues([object.def], this.random) });
+  // Rolls dice where they sit: every die you hold, when the one given is one
+  // of them or none is given, or else just the one given or hovered.
+  roll(id) {
+    const selected = this.selectedIds().filter((other) => this.#object(other).def.shape === "die");
+    const dice = (id === undefined || selected.includes(id)) && selected.length ? selected : [id ?? this.hoveredId];
+    for (const die of dice) {
+      const object = die && this.#object(die);
+      if (object?.def.shape === "die") this.#dispatch("roll", die, { values: rollValues([object.def], this.random) });
+    }
   }
 
   // Rolls every die in a tray, scattering them if relocateOnTrayRoll is on.

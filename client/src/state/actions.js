@@ -128,6 +128,7 @@ export function initialState(manifest) {
 //   splay:    { direction }, a SPLAY_DIRECTIONS key or null to close the
 //             deck up, plus { distance } in cm to change its spacing
 //   changeState: { index }, which of a card's states to put it in
+//   deal:     { count }, how many cards each seated player gets from a deck
 //   stackUp:  { others }, the pieces to pile on top of this one, bottom first
 export function applyAction(manifest, state, action) {
   if (SEAT_HANDLERS[action.type]) return SEAT_HANDLERS[action.type]({ manifest, state, action });
@@ -401,6 +402,27 @@ const HANDLERS = {
     return save(state, object, { stateIndex: action.index });
   },
 
+  // Deals `count` cards from a deck into every seated player's hand, one at
+  // a time around the table (see dealOrder). Stops early if the deck runs out.
+  deal({ manifest, state, action, def, object }) {
+    if (def.kind !== "deck") return reject(state, "Only decks deal.");
+    if (!Number.isInteger(action.count) || action.count < 1) return reject(state, "deal needs a count, 1 or more.");
+    const hands = dealOrder(manifest, state, action.playerId);
+    if (!hands.length) return reject(state, "Nobody has a hand to deal to.");
+    if (!object.state.members.length) return reject(state, "That deck is empty.");
+    let next = state;
+    for (let round = 0; round < action.count; round++) {
+      for (const hand of hands) {
+        const cardId = next.containers[object.id].members[0];
+        if (!cardId) return { ok: true, state: { ...next, sequence: state.sequence + 1 } };
+        const card = findObject(manifest, next, cardId);
+        if (!accepts(findObject(manifest, next, hand).def, card.def)) return reject(state, "That can't go in a hand.");
+        next = addToContainer(manifest, next, card, hand, {}, next.containers[hand].members.length).state;
+      }
+    }
+    return { ok: true, state: { ...next, sequence: state.sequence + 1 } };
+  },
+
   // Fans a deck's cards out, or closes them up. It works on a locked deck,
   // but not when the fan would run into something.
   splay({ manifest, state, action, def, object }) {
@@ -549,6 +571,26 @@ function letGoOf(object) {
 
 function objectState(state, id) {
   return state.pieces[id] || state.containers[id];
+}
+
+// The hands of seated players in the order a dealer deals: clockwise around
+// the table as seen from above, starting at the dealer's left and ending with
+// the dealer. Without a dealer at the table, from the near edge.
+export function dealOrder(manifest, state, dealerId) {
+  const [width, depth] = manifest.table.size;
+  const turn = (hand) => {
+    const [x, y] = findObject(manifest, state, hand).def.position;
+    // 0 at the near edge, growing clockwise: left, far, right.
+    const angle = Math.atan2(-(x - width / 2), -(y - depth / 2));
+    return (angle + 2 * Math.PI) % (2 * Math.PI);
+  };
+  const hands = Object.values(state.players)
+    .map((player) => handId(player.seatId))
+    .filter((hand) => state.containers[hand])
+    .sort((a, b) => turn(a) - turn(b));
+  const dealerSeat = seatOf(state, dealerId);
+  const dealer = dealerSeat ? hands.indexOf(handId(dealerSeat)) : -1;
+  return dealer === -1 ? hands : [...hands.slice(dealer + 1), ...hands.slice(0, dealer + 1)];
 }
 
 function sameMembers(members, order) {

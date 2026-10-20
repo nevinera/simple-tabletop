@@ -218,3 +218,38 @@ describe("playing several cards from a hand", () => {
     expect(hand(state, "south-left")).toEqual(["c2"]);
   });
 });
+
+describe("dealing", () => {
+  const cards = ["c1", "c2", "c3", "c4", "c5", "c6", "c7"];
+  const table = normalizeManifest(raw({
+    pieces: cards.map((id) => ({ id, type: "card", face: `${id}.svg` })),
+    containers: [{ id: "deck", kind: "deck", position: [45, 30], size: [6, 9], members: cards }],
+  }), "https://example.com/m.json");
+  const step = (state, action) => {
+    const result = applyAction(table, state, { playerId: "me", ...action });
+    if (!result.ok) throw new Error(`${action.type}: ${result.reason}`);
+    return result.state;
+  };
+  // Me at the near edge, then players to my left (west) and across (north).
+  const seated = () => [["me", "south-left"], ["lefty", "west-left"], ["across", "north-left"]]
+    .reduce((state, [playerId, seatId]) => step(state, { type: "join", playerId, seatId }), initialState(table));
+
+  it("deals one at a time clockwise from the dealer's left, the dealer last", () => {
+    const state = step(seated(), { type: "deal", id: "deck", count: 2 });
+    expect(hand(state, "west-left")).toEqual(["c1", "c4"]);
+    expect(hand(state, "north-left")).toEqual(["c2", "c5"]);
+    expect(hand(state, "south-left")).toEqual(["c3", "c6"]);
+    expect(state.containers.deck.members).toEqual(["c7"]);
+  });
+
+  it("stops when the deck runs out", () => {
+    const state = step(seated(), { type: "deal", id: "deck", count: 5 });
+    expect([hand(state, "west-left"), hand(state, "north-left"), hand(state, "south-left")].flat()).toHaveLength(7);
+    expect(state.containers.deck.members).toEqual([]);
+  });
+
+  it("refuses with nobody seated, or a bad count", () => {
+    expect(applyAction(table, initialState(table), { type: "deal", id: "deck", count: 1, playerId: "me" }).ok).toBe(false);
+    expect(applyAction(table, seated(), { type: "deal", id: "deck", count: 0, playerId: "me" }).ok).toBe(false);
+  });
+});

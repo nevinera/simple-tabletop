@@ -26,6 +26,7 @@
 // The scene supplies hit testing through `pick` and `tablePoint`, so this
 // runs without WebGL in tests.
 
+import { dealOrder } from "../state/actions";
 import { rollValues } from "../state/dice";
 import { DEFAULT_SPLAY, fanSpots, findObject, pieceDef, pilesWith, spawnedId } from "../state/objects";
 import { scatter } from "../state/trays";
@@ -139,6 +140,7 @@ export class PieceInteraction {
       states: object.def.states?.map((state) => state.name) || null,
       stateIndex: object.def.states ? object.state.stateIndex || 0 : null,
       hasHand: Boolean(this.#ownHand()),
+      dealHands: object.def.kind === "deck" ? dealOrder(this.manifest, this.store.getState(), this.playerId).length : 0,
       inHand,
       inDeck,
       inTray: die && Boolean(object.state.containerId),
@@ -167,6 +169,11 @@ export class PieceInteraction {
 
   flip(id) {
     for (const target of this.#actionTargets(id)) this.#dispatch("flip", target);
+  }
+
+  // Deals count cards from a deck to every seated player's hand.
+  deal(deckId, count) {
+    return this.#dispatch("deal", deckId, { count }).ok;
   }
 
   // Puts a card in one of its states.

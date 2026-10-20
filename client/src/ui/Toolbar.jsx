@@ -3,6 +3,7 @@ import { Menu } from "./Menu";
 export function Toolbar({
   title, layout, menus, showActionBar, setShowActionBar, seatName, onLeaveSeat, handsEnabled, handStripVisible,
   setHandStripVisible, soundOn, setSoundOn, trayRollScatters, setTrayRollScatters, helpOpen, setHelpOpen, game, onHost,
+  documents = [],
 }) {
   const inviteUrl = game && `${window.location.origin}/tables/${game.token}`;
   return (
@@ -40,6 +41,14 @@ export function Toolbar({
         <span aria-hidden="true">🂠</span>
         <span className="bar-button-label">Hand</span>
       </button>
+      {documents.length > 0 && (
+        <Menu id="documents" label="Docs" icon="📄" {...menus}>
+          <p className="menu-note">Opens in a new tab.</p>
+          {documents.map(({ name, url }) => (
+            <a key={url} className="menu-item" href={url} target="_blank" rel="noopener noreferrer">{name}</a>
+          ))}
+        </Menu>
+      )}
       <Menu id="options" label="Options" icon="⚙" {...menus}>
         {layout === "desktop" && (
           <label className="menu-row">

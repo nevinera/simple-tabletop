@@ -211,3 +211,21 @@ describe("normalizeManifest", () => {
     expect(() => normalizeManifest(manifest(overrides), BASE)).toThrow(message);
   });
 });
+
+describe("documents", () => {
+  it("resolves each document's url against the manifest", () => {
+    const { documents } = normalizeManifest(manifest({
+      documents: [{ name: "Rulebook", url: "docs/rules.pdf" }, { name: "FAQ", url: "https://other.example/faq" }],
+    }), BASE);
+    expect(documents).toEqual([
+      { name: "Rulebook", url: "https://example.com/games/aces/docs/rules.pdf" },
+      { name: "FAQ", url: "https://other.example/faq" },
+    ]);
+    expect(normalizeManifest(manifest(), BASE).documents).toEqual([]);
+  });
+
+  it("refuses unnamed documents and urls that aren't http or https", () => {
+    expect(() => normalizeManifest(manifest({ documents: [{ url: "a.pdf" }] }), BASE)).toThrow(/needs a name/);
+    expect(() => normalizeManifest(manifest({ documents: [{ name: "x", url: "javascript:alert(1)" }] }), BASE)).toThrow(/http/);
+  });
+});

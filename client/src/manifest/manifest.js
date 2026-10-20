@@ -89,7 +89,24 @@ export function normalizeManifest(raw, baseUrl) {
       return normalizePiece({ id, type }, raw, layers, image, new Set([id]), dieTypes);
     }),
     labels: (raw.labels || []).map((label, i) => normalizeLabel(label, i, layers)),
+    documents: normalizeDocuments(raw.documents, resolve),
   };
+}
+
+// Rulebooks and other files that go with the game, as [{ name, url }]. The
+// table only links to them, so they open in a new tab. Links must be http
+// or https, so a module can't sneak in a script URL.
+function normalizeDocuments(documents, resolve) {
+  if (documents == null) return [];
+  if (!Array.isArray(documents)) throw new ManifestError("documents must be a list.");
+  return documents.map((document, i) => {
+    const where = `Document ${i}`;
+    if (typeof document?.name !== "string" || !document.name) throw new ManifestError(`${where} needs a name.`);
+    if (typeof document.url !== "string" || !document.url) throw new ManifestError(`${where} needs a url.`);
+    const url = resolve(document.url);
+    if (!/^https?:$/.test(new URL(url).protocol)) throw new ManifestError(`${where} url must be http or https.`);
+    return { name: document.name, url };
+  });
 }
 
 // template(bagId, type) makes the piece an infinite bag hands out.

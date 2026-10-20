@@ -91,6 +91,7 @@ Modules are data only. They place pieces and describe how they look. They can't 
 | `pieces`        | yes      | every piece in the game                                  |
 | `containers`    | no       | decks, bags, bowls, and trays                            |
 | `labels`        | no       | text drawn on the table; see [Labels](#labels)           |
+| `documents`     | no       | rulebooks and other files to link to; see [Documents](#documents) |
 
 ## Table
 
@@ -336,6 +337,20 @@ Without `accepts`, decks take pieces of their members' type, trays take dice, an
 A piece belongs to at most one container, and containers never go inside each other. Ids can't contain `#`,
 since pieces drawn from infinite bags use it. Hands are containers too, but each seat creates its own, so the
 manifest doesn't list them.
+
+## Documents
+
+Rulebooks, reference sheets, and other files that go with the game. The table doesn't show them itself: a
+Docs menu in the toolbar links to each one, and it opens in a new tab.
+
+```json
+"documents": [
+  { "name": "Rulebook", "url": "docs/rulebook.pdf" },
+  { "name": "FAQ", "url": "https://example.com/game-faq" }
+]
+```
+
+A `url` resolves relative to the manifest, like images, and must be http or https.
 
 ## Labels
 

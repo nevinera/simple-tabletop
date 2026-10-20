@@ -303,6 +303,7 @@ body,
 }
 
 .menu-item:hover { background: rgba(255, 255, 255, 0.1); }
+a.menu-item { text-decoration: none; }
 
 kbd {
   padding: 1px 5px;
@@ -502,7 +503,6 @@ kbd {
 .home-module-name { font-weight: 600; }
 .home-module-detail { color: var(--muted); font-size: 12px; }
 .home .piece-actions-row { justify-content: flex-end; }
-.home a.menu-item { text-decoration: none; }
 .home-builtin { padding: 6px; border-radius: 8px; }
 .home-builtin:has(input:checked) { background: rgba(255, 255, 255, 0.06); }
 .home-builtin > span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }

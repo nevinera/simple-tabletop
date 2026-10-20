@@ -236,6 +236,7 @@ export default function App({ manifestUrl, game = null }) {
     <div className={`app layout-${layout}`}>
       <Toolbar
         title={manifest?.name || "Simple Tabletop"}
+        documents={manifest?.documents}
         layout={layout}
         menus={menus}
         showActionBar={desktopActionBar}

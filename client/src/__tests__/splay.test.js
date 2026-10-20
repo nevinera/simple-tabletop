@@ -23,7 +23,7 @@ const raw = (overrides = {}) => ({
     card("b", [30, 10]),
     { id: "huge", type: "big", position: [50, 10] },
     card("d1"), card("d2"), card("d3"),
-    { id: "wall", kind: "tile", size: [4, 4], face: "w.svg", position: [72, 60] },
+    { id: "wall", kind: "pawn", size: [4], position: [72, 60] },
   ],
   containers: [{ id: "deck", kind: "deck", position: [60, 60], size: [6, 9], members: ["d1", "d2", "d3"] }],
   ...overrides,
@@ -43,9 +43,9 @@ describe("card piles", () => {
     expect(state.pieces.a).toMatchObject({ containerId: id, faceUp: false });
   });
 
-  it("won't pile cards of a different type", () => {
+  it("rests a card on a card of a different type, instead of piling them", () => {
     const state = act(initialState(manifest), { type: "grab", id: "a" }).state;
-    expect(landing(manifest, state, "a", 50, 10, 0, "me")).toEqual({ blocked: ["huge"] });
+    expect(landing(manifest, state, "a", 50, 10, 0, "me")).toEqual({ z: 0.03 });
   });
 });
 

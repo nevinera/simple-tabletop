@@ -55,7 +55,7 @@ export function applyUprightPlacement(group, def, state, { blocked = false, floo
 
   const { x, y } = state.drag || state;
   const rotation = tableRotationToThree(state.rotation);
-  const lift = held ? floor + HELD_LIFT : 0;
+  const lift = held ? floor + HELD_LIFT : state.z || 0;
   group.position.fromArray(tableToThree([x, def.layer.base + lift, y]));
   group.rotation.set(0, rotation, 0);
 
@@ -65,7 +65,7 @@ export function applyUprightPlacement(group, def, state, { blocked = false, floo
     shadow.material.color.set(blocked ? BLOCKED_SHADOW_COLOR : color);
   }
   if (ghost.visible) {
-    ghost.position.fromArray(tableToThree([state.x, def.layer.base, state.y]));
+    ghost.position.fromArray(tableToThree([state.x, def.layer.base + (state.z || 0), state.y]));
     ghost.rotation.set(0, tableRotationToThree(rest.rotation), 0);
   }
 }

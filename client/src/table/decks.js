@@ -106,7 +106,7 @@ export function applyDeckPlacement(group, def, state, { blocked = false, floor =
   placeholder.position.y = OUTLINE_LIFT;
   fitSideLines(box.material[0].map, height);
 
-  const lift = held ? floor + HELD_LIFT : 0;
+  const lift = held ? floor + HELD_LIFT : state.z || 0;
   group.position.fromArray(tableToThree([x, layer.base + lift, y]));
   group.rotation.set(0, rotation, 0);
 
@@ -124,7 +124,7 @@ export function applyDeckPlacement(group, def, state, { blocked = false, floor =
   ghost.visible = held && Boolean(state.drag) && !empty && !splayed;
   if (ghost.visible) {
     ghost.scale.copy(box.scale);
-    ghost.position.fromArray(tableToThree([state.x, layer.base + height / 2, state.y]));
+    ghost.position.fromArray(tableToThree([state.x, layer.base + (state.z || 0) + height / 2, state.y]));
     ghost.rotation.set(0, tableRotationToThree(rest.rotation), 0);
   }
 }

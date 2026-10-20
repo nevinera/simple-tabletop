@@ -17,6 +17,7 @@ const manifest = normalizeManifest({
     { id: "AH", type: "card", face: "AH.svg", position: [30, 30] },
     { id: "KS", type: "card", face: "KS.svg" },
     { id: "QS", type: "card", face: "QS.svg" },
+    { id: "pawn", kind: "pawn", size: [4], position: [30, 50] },
   ],
   containers: [{ id: "deck", kind: "deck", position: [60, 60], size: [6.3, 8.8], members: ["KS", "QS"] }],
 }, "https://example.com/manifest.json");
@@ -114,18 +115,18 @@ describe("PieceInteraction", () => {
     expect(piece("AS")).toMatchObject({ x: 10, y: 10, heldBy: null });
   });
 
-  it("keeps holding a piece dropped onto another, until you place it somewhere open", () => {
-    drag([10, 10], [25, 31]);
-    expect(piece("AS")).toMatchObject({ x: 10, y: 10, heldBy: "me", drag: { x: 25, y: 31 } });
+  it("keeps holding a piece dropped onto something it can't rest on, until you place it somewhere open", () => {
+    drag([10, 10], [31, 51]);
+    expect(piece("AS")).toMatchObject({ x: 10, y: 10, heldBy: "me", drag: { x: 31, y: 51 } });
     click(70, 20);
     expect(piece("AS")).toMatchObject({ x: 70, y: 20, heldBy: null });
   });
 
   it("drags a floating piece from where you catch it", () => {
-    drag([10, 10], [25, 31]); // blocked by AH, so it floats there
-    HITS.AS = [25, 31];
+    drag([10, 10], [31, 51]); // blocked by the pawn, so it floats there
+    HITS.AS = [31, 51];
     try {
-      drag([25, 31], [75, 75]);
+      drag([31, 51], [75, 75]);
     } finally {
       HITS.AS = [10, 10];
     }
@@ -133,10 +134,15 @@ describe("PieceInteraction", () => {
   });
 
   it("reports a rotation blocked by a neighbor", () => {
-    drag([10, 10], [23, 30]); // just left of AH, which spans x 26.85 to 33.15
+    drag([10, 10], [24.5, 50]); // just left of the pawn, which spans x 28 to 32
     interaction.rotate(90, "AS");
     expect(piece("AS").rotation).toBe(0);
     expect(wiggles).toEqual([["AS", 90]]);
+  });
+
+  it("rests a piece on another card", () => {
+    drag([10, 10], [25, 31]);
+    expect(piece("AS")).toMatchObject({ x: 25, y: 31, z: 0.03, heldBy: null });
   });
 
   it("puts the first piece back when you select another", () => {

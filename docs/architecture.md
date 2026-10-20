@@ -87,6 +87,8 @@ One row per piece the manifest defines, including fixed board pieces.
 | `face_up`        | boolean                                                       |
 | `value`          | dice only: index of the face showing up                       |
 | `stack_order`    | draw order among loose pieces on the same layer               |
+| `z`              | in `extras`: how high it rests on what's under it; 0 or missing on the table |
+| `carrying`       | in `extras`: while held, what rode on it when it was picked up |
 | `container_id`   | null when the piece sits loose on the table                   |
 | `held_by_id`     | player holding it, or null                                    |
 | `locked`         | boolean; starts as the manifest's `fixed`                     |
@@ -109,6 +111,7 @@ Decks, bags, bowls, and hands.
 | `member_keys`  | ordered JSON array of piece keys; index 0 is the top          |
 | `held_by_id`   |                                                               |
 | `locked`       | boolean; starts as the manifest's `fixed`                     |
+| `z`, `carrying` | in `extras`: the same as for pieces                          |
 | `spec`         | JSON for containers made during play: decks have `kind` and the `card` they were made from; stacks have `kind: "stack"` |
 
 A piece inside a container has no position of its own. The container's `member_keys` holds the order, so
@@ -176,9 +179,20 @@ still be drawn from, shuffled, and reordered. Reordering shows the player every 
 deck. Flipping a deck turns it over: `face_up` toggles and `member_keys` reverses,
 so the bottom card comes out on top.
 
-Objects on the same layer can't overlap. A drop, rotation, or splay that would overlap something is refused,
-except that a piece dropped with its center over a container that accepts it goes in. A splayed deck's
-footprint is its whole fan.
+Objects on the same layer can rest on each other, with no tilting or physics. A dropped object sits level on
+the tallest thing under its footprint, at a height kept in its `z`. Only flat things hold others up: cards,
+boards, tiles, chips, tokens, decks, and stacks. A drop, rotation, or splay that would overlap anything else
+(a pawn, a die, a bag, a hand, or something another player holds) is refused, and boards never rest on
+anything. A splayed deck's footprint is its whole fan.
+
+Whatever is on top under a dropped piece's center decides what happens: a container that accepts the piece
+takes it, and a loose piece it piles with (see [Data model](#data-model)) makes a deck or stack with it.
+Otherwise it rests on top.
+
+Moving or turning an object carries what rests on it, swinging it around the object's center for a turn.
+Picking something up records what's riding on it in its `carrying`, so a card drawn out from under a token
+leaves the token behind. After every saved change, anything whose support moved, shrank, or grew settles
+onto what's under it now. Locked things don't get carried; they stay put and drop to what's left under them.
 
 Players can pull any card out of a splayed deck nobody else holds, the way they take cards from their hand. A
 card pulled out faces the way the deck does. A locked deck can still splay.

@@ -86,7 +86,7 @@ function buildShadow(piece) {
 export function placement(def, state, floor = 0) {
   if (state.containerId) return null;
   const { x, y } = state.drag || state;
-  const lift = state.heldBy ? floor + HELD_LIFT : 0;
+  const lift = state.heldBy ? floor + HELD_LIFT : state.z || 0;
   return {
     position: tableToThree([x, def.layer.base + def.thickness / 2 + lift, y]),
     // Euler XYZ applies z first: turn the slab over along its length, then

@@ -85,7 +85,7 @@ export function applyStackPlacement(group, def, state, { blocked = false, floor 
   showCount(group, count);
   counter.position.y = height + COUNTER_LIFT;
 
-  const lift = held ? floor + HELD_LIFT : 0;
+  const lift = held ? floor + HELD_LIFT : state.z || 0;
   group.position.fromArray(tableToThree([x, def.layer.base + lift, y]));
   group.rotation.set(0, rotation, 0);
 
@@ -98,7 +98,7 @@ export function applyStackPlacement(group, def, state, { blocked = false, floor 
   ghost.visible = held && Boolean(state.drag);
   if (ghost.visible) {
     ghost.scale.copy(body.scale);
-    ghost.position.fromArray(tableToThree([state.x, def.layer.base + height / 2, state.y]));
+    ghost.position.fromArray(tableToThree([state.x, def.layer.base + (state.z || 0) + height / 2, state.y]));
     ghost.rotation.set(0, tableRotationToThree(rest.rotation), 0);
   }
 }

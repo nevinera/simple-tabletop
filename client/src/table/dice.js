@@ -82,7 +82,7 @@ export function applyDiePlacement(group, def, state, spot, { blocked = false, fl
   const sides = def.die.sides;
   const size = def.size[0];
   const held = Boolean(state.heldBy);
-  const lift = held ? floor + HELD_LIFT : 0;
+  const lift = held ? floor + HELD_LIFT : state.z || 0;
   const center = restHeight(sides) * size;
   const turn = orientation(sides, state.value, tableRotationToThree(state.rotation));
 

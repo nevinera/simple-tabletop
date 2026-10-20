@@ -120,7 +120,7 @@ Update docs/manifest-format.md before building on them.
 2. **Local state store.** One module holds piece and container state and takes the actions the server will
    take later: `grab`, `drag`, `drop`, `release`, `flip`, `rotate`. The scene renders from it.
 3. **Select and move pieces.** Select, then drag or place, with the lift and landing shadow. Fixed pieces
-   can't be selected. A placed piece lands on top, and draw order breaks ties between overlapping pieces.
+   can't be selected. A placed piece lands on top of what's under it (see docs/architecture.md).
 4. **Flip and rotate.** Keys on selected and hovered pieces, the action bar, and the context menu.
 5. **Containers.** Decks as one stack, drawing by drag, G, and the menu, adding by drop with `accepts`,
    shuffling, empty placeholders, locking, and making a deck from a card.

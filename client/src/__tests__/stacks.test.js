@@ -47,14 +47,14 @@ describe("stacks", () => {
     let state = initialState(manifest);
     expect(landing(manifest, act(state, { type: "grab", id: "plain-a" }).state, "plain-a", 44, 10, 0, "me")).toEqual({ onto: "plain-b" });
     state = act(state, { type: "grab", id: "g1" }).state;
-    expect(landing(manifest, state, "g1", 30, 10, 0, "me")).toEqual({ blocked: ["s1"] });
+    expect(landing(manifest, state, "g1", 30, 10, 0, "me").z).toBeGreaterThan(0);
   });
 
-  it("takes more of the same on top, and nothing else", () => {
+  it("takes more of the same on top, and holds anything else up", () => {
     let state = move(initialState(manifest), "g1", 10, 40).state;
     expect(state.containers.pile.members).toEqual(["g1", "g3", "g4", "g5", "g6", "g7", "g8"]);
     state = act(state, { type: "grab", id: "s1" }).state;
-    expect(landing(manifest, state, "s1", 10, 40, 0, "me")).toEqual({ blocked: ["pile"] });
+    expect(landing(manifest, state, "s1", 10, 40, 0, "me").z).toBeCloseTo(objectHeight(findObject(manifest, state, "pile")));
   });
 
   it("grows a piece taller per piece, up to five", () => {

@@ -6,9 +6,9 @@
 //   sequence:   bumped on every saved change; drag doesn't count
 //   seating:    "four" or "eight"; see state/seats.js
 //   players:    { [playerId]: { seatId } }
-//   pieces:     { [id]: { x, y, rotation, faceUp, stackOrder, containerId, heldBy, drag, locked } },
+//   pieces:     { [id]: { x, y, z, rotation, faceUp, stackOrder, containerId, heldBy, drag, locked } },
 //               plus { value, rolls } for dice
-//   containers: { [id]: { x, y, rotation, faceUp, members, heldBy, drag, locked, spec } },
+//   containers: { [id]: { x, y, z, rotation, faceUp, members, heldBy, drag, locked, spec } },
 //               plus { spots } for trays (see state/trays.js), and { spawned }
 //               for infinite bags, counting the pieces they've handed out
 //
@@ -27,11 +27,17 @@
 // { kind: "hand", seatId }. A card dropped on a card like it makes a deck
 // with the id "#deck-<sequence>".
 //
+// z is how high a loose object rests on whatever is under it, or 0 or missing
+// on the table (see state/footprint.js). Moving or turning something carries
+// what rests on it along, and after every saved change, things whose support
+// moved settle onto what's under them now. A held object's carrying lists
+// what rested on it when it was picked up, which goes where it goes.
+//
 // Decks also carry splay, the way their cards fan out (see SPLAY_DIRECTIONS)
 // or null, and splayDistance, a player's spacing for the fan or null for the
 // deck's own.
 
-import { landing } from "./footprint";
+import { carried, elevation, landing, riders, settle, stackUp } from "./footprint";
 import { SPLAY_DIRECTIONS, accepts, fanSpots, findObject, handIndex, handSlots, pieceDef, spawnedId } from "./objects";
 import { nearestFree, scatter, seededRandom, toTray } from "./trays";
 import { handId, openSeats, seatOf } from "./seats";
@@ -93,7 +99,7 @@ export function initialState(manifest) {
     }
   }
 
-  return { sequence: 0, seating: "four", players: {}, pieces, containers };
+  return stackUp(manifest, { sequence: 0, seating: "four", players: {}, pieces, containers });
 }
 
 // Applies one action. Returns { ok: true, state } with a new state object, or
@@ -128,7 +134,9 @@ export function applyAction(manifest, state, action) {
   if (object.state.containerId && !reachableMember(state, object, action)) return reject(state, "That's in a container.");
   if (object.state.heldBy && object.state.heldBy !== action.playerId) return reject(state, "Someone else is holding that.");
 
-  return handler({ manifest, state, action, object, kind: object.kind, def: object.def });
+  const result = handler({ manifest, state, action, object, kind: object.kind, def: object.def });
+  if (!result.ok || result.state.sequence === state.sequence) return result;
+  return { ...result, state: settle(manifest, result.state) };
 }
 
 const MEMBER_ACTIONS = ["grab", "drag", "drop", "release"];
@@ -169,9 +177,12 @@ const SEAT_HANDLERS = {
 };
 
 const HANDLERS = {
-  grab({ state, action, object }) {
+  grab({ manifest, state, action, object }) {
     if (object.state.locked) return reject(state, "That's locked.");
-    return save(state, object, { heldBy: action.playerId });
+    const changes = { heldBy: action.playerId };
+    const ids = riders(manifest, state, object.id);
+    if (ids.length) changes.carrying = ids;
+    return save(state, object, changes);
   },
 
   drag({ state, action, object }) {
@@ -181,7 +192,7 @@ const HANDLERS = {
 
   drop({ manifest, state, action, object }) {
     if (object.state.heldBy !== action.playerId) return reject(state, "Grab it first.");
-    const letGo = { heldBy: null, drag: null };
+    const letGo = letGoOf(object);
     if (action.into) {
       if (action.into !== ownHand(state, action.playerId)) return reject(state, "That isn't your hand.");
       return addToContainer(manifest, state, object, action.into, letGo, action.index);
@@ -194,7 +205,7 @@ const HANDLERS = {
       return addToTray(manifest, state, object, target.into, letGo, [action.x, action.y]);
     }
     if (target.into) return addToContainer(manifest, state, object, target.into, letGo, null, [action.x, action.y]);
-    const changes = { ...letGo, x: action.x, y: action.y };
+    const changes = { ...letGo, x: action.x, y: action.y, z: target.z };
     if (object.kind === "piece") changes.stackOrder = topOfLayer(manifest, state, object.def.layer.id);
     if (object.state.containerId) {
       // Played from a hand, a card lands facing the way the hand does, and
@@ -205,12 +216,15 @@ const HANDLERS = {
       if (from.def.kind === "deck") Object.assign(changes, { rotation: from.state.rotation, faceUp: from.state.faceUp });
       return save(withoutMember(state, object), object, changes);
     }
-    return save(state, object, changes);
+    const from = object.state;
+    return carryAlong(manifest, state, save(state, object, changes), object.id, action.playerId, {
+      dx: action.x - from.x, dy: action.y - from.y, dz: target.z - elevation(object),
+    });
   },
 
   release({ state, action, object }) {
     if (object.state.heldBy !== action.playerId) return reject(state, "You aren't holding that.");
-    return save(state, object, { heldBy: null, drag: null });
+    return save(state, object, letGoOf(object));
   },
 
   // Flip, rotate, and lock also work on an object nobody holds, for hover keys.
@@ -233,16 +247,20 @@ const HANDLERS = {
     if (object.state.locked) return reject(state, "That's locked.");
     if (!Number.isFinite(action.degrees)) return reject(state, "rotate needs degrees.");
     const rotation = normalizeDegrees(object.state.rotation + action.degrees);
-    // A held object is off the table; dropping it checks for overlap instead.
-    if (!object.state.heldBy && landing(manifest, state, object.id, object.state.x, object.state.y, rotation, action.playerId).blocked) {
-      return blocked(state);
+    const changes = { rotation };
+    // A held object is off the table; dropping it checks where it lands instead.
+    if (!object.state.heldBy) {
+      const target = landing(manifest, state, object.id, object.state.x, object.state.y, rotation, action.playerId);
+      if (target.blocked) return blocked(state);
+      if (target.z != null) changes.z = target.z;
     }
-    return save(state, object, { rotation });
+    const dz = (changes.z ?? elevation(object)) - elevation(object);
+    return carryAlong(manifest, state, save(state, object, changes), object.id, action.playerId, { dz, degrees: action.degrees });
   },
 
   // Locking something you hold puts it back where it was first.
   lock({ state, object }) {
-    return save(state, object, { locked: !object.state.locked, heldBy: null, drag: null });
+    return save(state, object, { ...letGoOf(object), locked: !object.state.locked });
   },
 
   // Takes a piece out of a deck, bag, or stack, held by the player who drew
@@ -286,6 +304,7 @@ const HANDLERS = {
       containerId: null,
       x,
       y,
+      z: elevation(object),
       rotation: from.rotation,
       stackOrder: topOfLayer(manifest, state, piece.def.layer.id),
       heldBy: action.playerId,
@@ -338,6 +357,7 @@ const HANDLERS = {
     const deck = {
       x: card.x,
       y: card.y,
+      z: card.z || 0,
       rotation: card.rotation,
       faceUp: card.faceUp,
       members: [],
@@ -365,10 +385,51 @@ const HANDLERS = {
     }
     const result = save(state, object, changes);
     const { x, y, rotation, heldBy } = result.state.containers[object.id];
-    if (!heldBy && landing(manifest, result.state, object.id, x, y, rotation, action.playerId).blocked) return blocked(state);
-    return result;
+    if (heldBy) return result;
+    const target = landing(manifest, result.state, object.id, x, y, rotation, action.playerId);
+    if (target.blocked) return blocked(state);
+    return { ...result, state: withObject(result.state, object, { z: target.z }) };
   },
 };
+
+// After an object moved or turned: moves what was riding on it along, shifted
+// by (dx, dy), raised by dz, and turned `degrees` clockwise about the object's
+// center. Refused if anything carried would land somewhere it can't go.
+function carryAlong(manifest, before, result, id, playerId, { dx = 0, dy = 0, dz = 0, degrees = 0 }) {
+  const ids = carried(manifest, before, id);
+  if (!ids.length) return result;
+  const { x: cx, y: cy } = objectState(result.state, id);
+  const radians = (degrees * Math.PI) / 180;
+  const [cos, sin] = [Math.cos(radians), Math.sin(radians)];
+  let next = result.state;
+  for (const riderId of ids) {
+    const rider = findObject(manifest, before, riderId);
+    const ox = rider.state.x + dx - cx;
+    const oy = rider.state.y + dy - cy;
+    next = withObject(next, rider, {
+      x: cx + ox * cos + oy * sin,
+      y: cy - ox * sin + oy * cos,
+      z: elevation(rider) + dz,
+      rotation: normalizeDegrees(rider.state.rotation + degrees),
+    });
+  }
+  for (const riderId of ids) {
+    const { x, y, rotation } = objectState(next, riderId);
+    if (landing(manifest, next, riderId, x, y, rotation, playerId).blocked) return blocked(before);
+  }
+  return { ...result, state: next };
+}
+
+// What changes when a player lets go of something.
+function letGoOf(object) {
+  const changes = { heldBy: null, drag: null };
+  if (object.state.carrying) changes.carrying = null;
+  return changes;
+}
+
+function objectState(state, id) {
+  return state.pieces[id] || state.containers[id];
+}
 
 function sameMembers(members, order) {
   return Array.isArray(order) && order.length === members.length &&
@@ -389,6 +450,7 @@ function formDeck(manifest, state, card, underId, changes) {
   const deck = {
     x: under.x,
     y: under.y,
+    z: under.z || 0,
     rotation: under.rotation,
     faceUp: under.faceUp,
     members: [],
@@ -441,6 +503,7 @@ function formStack(state, piece, underId, changes) {
   const stack = {
     x: under.x,
     y: under.y,
+    z: under.z || 0,
     rotation: under.rotation,
     faceUp: true,
     members: [piece.id, underId],
@@ -467,6 +530,7 @@ function settleStack(manifest, result, containerId) {
     containerId: null,
     x: stack.x,
     y: stack.y,
+    z: stack.z || 0,
     rotation: stack.rotation,
     stackOrder: topOfLayer(manifest, result.state, lastDef.layer.id),
   });

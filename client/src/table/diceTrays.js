@@ -40,6 +40,6 @@ export function buildDiceTray(id, def) {
 // floor lifts a held tray over what's under it.
 export function placeDiceTray(group, def, state, { floor = 0, lift = 0 } = {}) {
   const { x, y } = state.drag || state;
-  group.position.fromArray(tableToThree([x, def.layer.base + (state.heldBy ? floor + lift : 0), y]));
+  group.position.fromArray(tableToThree([x, def.layer.base + (state.heldBy ? floor + lift : state.z || 0), y]));
   group.rotation.set(0, tableRotationToThree(state.rotation), 0);
 }

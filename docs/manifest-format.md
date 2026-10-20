@@ -152,6 +152,10 @@ of them.
 
 \* Can come from the piece type.
 
+Pieces can start resting on each other, like a token on a card. Overlapping pieces stack up in the order the
+manifest lists them, on top of any decks and stacks under them. Only cards, boards, tiles, chips, tokens,
+decks, and stacks hold others up.
+
 ### Kinds
 
 A piece's kind decides what it does:

@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { landing, reachBounds } from "../state/footprint";
+import { carried, landing, reachBounds, topOf } from "../state/footprint";
 import {
-  DICE_TRAY_FLOOR, HAND_TRAY_HEIGHT, fanSpots, findObject, handSlots, looseObjects, objectHeight, pieceDef,
+  DICE_TRAY_FLOOR, HAND_TRAY_HEIGHT, fanSpots, findObject, handSlots, looseObjects, pieceDef,
 } from "../state/objects";
 import { fromTray } from "../state/trays";
 import { playerColor } from "../state/seats";
@@ -46,6 +46,7 @@ export class TableScene {
     this.swirls = new Map(); // die id -> start time
     this.viewerSeat = null; // whose hand shows face-up
     this.wiggles = new Map(); // object id -> { start, direction }
+    this.carriedByMe = new Set(); // ids riding on what this browser drags
     this.easing = new Easing();
     this.tags = new Map(); // object id -> name tag, for what others hold
     this.playerId = null; // whose holds are this browser's own
@@ -115,9 +116,10 @@ export class TableScene {
   }
 
   // Moves meshes to match table state (see state/actions.js).
-  render(state) {
-    this.state = state;
+  render(real) {
+    this.state = real;
     if (!this.manifest || !this.shown) return;
+    const state = this.#carriedView(real);
     const defs = Object.keys(state.pieces).map((id) => pieceDef(this.manifest, id));
     const ranks = stackRanks(defs, state.pieces);
     for (const def of defs) {
@@ -128,9 +130,9 @@ export class TableScene {
       }
       if (def.kind === "die") this.#placeLooseDie(mesh, def, state);
       else if (def.kind === "standee" || def.kind === "pawn") {
-        applyUprightPlacement(mesh, def, state.pieces[def.id], this.#hover(def.id, state));
+        applyUprightPlacement(mesh, def, state.pieces[def.id], this.#hover(def.id));
       }
-      else applyPlacement(mesh, def, state.pieces[def.id], ranks.get(def.id) || 0, this.#hover(def.id, state));
+      else applyPlacement(mesh, def, state.pieces[def.id], ranks.get(def.id) || 0, this.#hover(def.id));
     }
     // Pieces that went into an infinite bag are gone.
     for (const [id, mesh] of this.pieceMeshes) {
@@ -140,16 +142,16 @@ export class TableScene {
       const container = findObject(this.manifest, state, id);
       if (container.def.kind === "tray") this.#renderDiceTray(container, state);
       if (container.def.kind === "bag") {
-        applyBagPlacement(this.#bagGroup(container), container.def, container.state, this.#hover(id, state));
+        applyBagPlacement(this.#bagGroup(container), container.def, container.state, this.#hover(id));
       }
       if (container.def.kind === "stack") {
         const group = this.#stackGroup(container);
-        applyStackPlacement(group, container.def, container.state, this.#hover(id, state));
+        applyStackPlacement(group, container.def, container.state, this.#hover(id));
         this.#updateTop(group, this.#stackTopImage(container, state), setStackTop);
       }
       if (container.def.kind !== "deck") continue;
       const group = this.#deckGroup(container);
-      const hover = this.#hover(id, state);
+      const hover = this.#hover(id);
       applyDeckPlacement(group, container.def, container.state, hover);
       this.#updateDeckTop(group, container);
       if (container.state.splay) this.#renderFan(container, state, hover);
@@ -159,7 +161,7 @@ export class TableScene {
       if (!state.containers[id]) group.visible = group.userData.ghost.visible = group.userData.shadow.visible = false;
     }
     this.#renderHands(state);
-    this.#settle(state);
+    this.#settle(real);
     this.#renderTags(state);
   }
 
@@ -330,7 +332,8 @@ export class TableScene {
   // For a held object: whether it can land where it hovers, and how high it
   // has to float to clear what's under it. Someone else's hold shows their
   // seat color instead of whether it can land.
-  #hover(id, state) {
+  #hover(id) {
+    const state = this.state;
     const object = findObject(this.manifest, state, id);
     const holder = object.state.heldBy;
     if (!holder) return {};
@@ -338,9 +341,33 @@ export class TableScene {
     if (x == null) return {};
     const target = landing(this.manifest, state, id, x, y, object.state.rotation, holder);
     const under = [...(target.blocked || []), target.into, target.onto].filter(Boolean);
-    const floor = Math.max(0, ...under.map((other) => objectHeight(findObject(this.manifest, state, other))));
+    const floor = target.z ?? Math.max(0, ...under.map((other) => topOf(findObject(this.manifest, state, other))));
     if (holder !== this.playerId) return { floor, color: playerColor(this.manifest, state, holder) || undefined };
     return { blocked: Boolean(target.blocked), floor };
+  }
+
+  // The table as drawn: what rides on a held object that's being dragged
+  // moves along with it, as far above it as it rests. Remembers what rides
+  // on this browser's holds, so it follows without easing.
+  #carriedView(state) {
+    let view = state;
+    this.carriedByMe = new Set();
+    for (const kind of ["pieces", "containers"]) {
+      for (const [id, object] of Object.entries(state[kind])) {
+        if (!object.heldBy || !object.drag || object.containerId || object.x == null) continue;
+        const ids = carried(this.manifest, state, id);
+        if (!ids.length) continue;
+        const lift = (this.#hover(id).floor || 0) + HELD_LIFT - (object.z || 0);
+        const [dx, dy] = [object.drag.x - object.x, object.drag.y - object.y];
+        for (const riderId of ids) {
+          const key = state.pieces[riderId] ? "pieces" : "containers";
+          const rider = view[key][riderId];
+          view = { ...view, [key]: { ...view[key], [riderId]: { ...rider, x: rider.x + dx, y: rider.y + dy, z: (rider.z || 0) + lift } } };
+          if (object.heldBy === this.playerId) this.carriedByMe.add(riderId);
+        }
+      }
+    }
+    return view;
   }
 
   #object3d(id) {
@@ -353,7 +380,7 @@ export class TableScene {
     const mine = (object) => Boolean(object?.heldBy) && object.heldBy === this.playerId;
     const direct = (id) => {
       const object = state.pieces[id] || state.containers[id];
-      return mine(object) || mine(state.containers[object?.containerId]);
+      return mine(object) || mine(state.containers[object?.containerId]) || this.carriedByMe.has(id);
     };
     for (const [id, object3d] of [...this.pieceMeshes, ...this.deckGroups, ...this.diceTrays]) {
       this.easing.settle(object3d, direct(id));
@@ -398,8 +425,8 @@ export class TableScene {
       return;
     }
     const { x, y } = die.drag || die;
-    const rest = die.drag ? { x: die.x, y: die.y, base: def.layer.base } : null;
-    applyDiePlacement(mesh, def, die, { x, y, base: def.layer.base }, { ...this.#hover(def.id, state), rest });
+    const rest = die.drag ? { x: die.x, y: die.y, base: def.layer.base + (die.z || 0) } : null;
+    applyDiePlacement(mesh, def, die, { x, y, base: def.layer.base }, { ...this.#hover(def.id), rest });
   }
 
   #renderDiceTray(tray, state) {
@@ -409,11 +436,11 @@ export class TableScene {
       this.diceTrays.set(tray.id, group);
       this.content.add(group);
     }
-    const hover = this.#hover(tray.id, state);
+    const hover = this.#hover(tray.id);
     placeDiceTray(group, tray.def, tray.state, { floor: hover.floor, lift: HELD_LIFT });
     // The dice ride along with the tray, wherever it floats.
     const pose = { ...tray.state, ...(tray.state.drag || {}) };
-    const trayLift = tray.state.heldBy ? (hover.floor || 0) + HELD_LIFT : 0;
+    const trayLift = tray.state.heldBy ? (hover.floor || 0) + HELD_LIFT : tray.state.z || 0;
     const base = tray.def.layer.base + DICE_TRAY_FLOOR;
     for (const id of tray.state.members) {
       const mesh = this.pieceMeshes.get(id);
@@ -423,7 +450,7 @@ export class TableScene {
       const [restX, restY] = fromTray(pose, tray.state.spots[id]);
       const rest = { x: restX, y: restY, base: base + trayLift };
       if (die.heldBy && die.drag) {
-        applyDiePlacement(mesh, def, die, { ...die.drag, base: def.layer.base }, { ...this.#hover(id, state), rest });
+        applyDiePlacement(mesh, def, die, { ...die.drag, base: def.layer.base }, { ...this.#hover(id), rest });
       } else {
         applyDiePlacement(mesh, def, die, rest);
       }
@@ -478,7 +505,7 @@ export class TableScene {
           // Dragged out of the hand: it floats like a loose piece, with its
           // ghost left in its spot.
           const loose = { ...member.state, containerId: null, x: slot.x, y: slot.y, rotation: hand.def.rotation, faceUp: mine };
-          applyPlacement(mesh, member.def, loose, i, this.#hover(member.id, state));
+          applyPlacement(mesh, member.def, loose, i, this.#hover(member.id));
           return;
         }
         applyHandSlot(mesh, member.def, {
@@ -498,7 +525,7 @@ export class TableScene {
   // for a wiggle.
   #renderFan(deck, state, { floor = 0 }, turn = 0) {
     const pose = { ...deck.state, ...(deck.state.drag || {}), rotation: deck.state.rotation + turn };
-    const lift = deck.state.heldBy ? floor + HELD_LIFT : 0;
+    const lift = deck.state.heldBy ? floor + HELD_LIFT : deck.state.z || 0;
     const moved = { ...deck, state: pose };
     const spots = fanSpots(moved);
     const rests = fanSpots({ ...deck, state: { ...deck.state, rotation: pose.rotation } });
@@ -513,7 +540,7 @@ export class TableScene {
         // Pulled out of the fan: it floats like a loose card, with its ghost
         // left in its place.
         const loose = { ...card, containerId: null, ...rests[i], rotation: deck.state.rotation, faceUp: deck.state.faceUp };
-        applyPlacement(mesh, def, loose, rank, this.#hover(id, state));
+        applyPlacement(mesh, def, loose, rank, this.#hover(id));
         return;
       }
       applyHandSlot(mesh, def, {

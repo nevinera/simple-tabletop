@@ -1,11 +1,24 @@
-// Footprints of objects on the table, for keeping objects on one layer from
-// overlapping. Objects whose edges touch don't count as overlapping.
+// Footprints of objects on the table, for working out where objects on one
+// layer can go. Objects whose edges touch don't count as overlapping.
+//
+// Things can rest on each other. An object's z is how far its base sits
+// above its layer's base: 0 on the table, or the top of what it rests on.
+// Only flat things hold others up (see isSupport), and there's no tilting:
+// something resting partway over an edge stays level at the height of the
+// tallest thing under it.
 
-import { accepts, fanBox, findObject, looseObjects, pieceDef, pilesWith, restingSpot } from "./objects";
+import {
+  accepts, fanBox, findObject, looseObjects, objectHeight, pieceDef, pilesWith, restingSpot,
+} from "./objects";
 import { hasRoom } from "./trays";
 import { seatOf } from "./seats";
 
 const TOUCH_CM = 0.01; // overlaps shallower than this are just touching
+const SAME_HEIGHT = 1e-6; // cm; heights closer than this are the same
+
+// What other things can rest on: flat pieces, and decks and stacks.
+const SUPPORT_PIECES = ["card", "board", "tile", "chip", "token"];
+const SUPPORT_CONTAINERS = ["deck", "stack"];
 
 // The piece's outline on the table at (x, y) with the given rotation:
 // { circle: { x, y, r } } or { polygon: [[x, y], ...] }.
@@ -42,29 +55,166 @@ export function overlaps(a, b) {
 // `playerId` lets go of it:
 //   { into: containerId }  a piece over a container that takes it
 //   { onto: pieceId }      a piece over a loose one it piles with (see pilesWith)
-//   { blocked: [ids] }     overlapping other objects on its layer, or off
-//                          the table (with no ids)
-//   {}                     open table
-// Held objects count at their resting spot.
+//   { blocked: [ids] }     overlapping things it can't rest on, or off the
+//                          table (with no ids)
+//   { z }                  open table, or resting on what's under it, z up
+// What's on top where the piece's center lands decides whether it goes into
+// a container or piles up. A deck or stack that won't take a piece holds it
+// up instead. Held objects count at their resting spot, but nothing rests
+// on what someone else holds. What the object carries (see carried) doesn't
+// count.
 export function landing(manifest, state, id, x, y, rotation, playerId) {
   const object = findObject(manifest, state, id);
   const mine = outline(object, x, y, rotation);
-  const others = looseObjects(manifest, state)
-    .filter((other) => other.id !== id && other.def.layer.id === object.def.layer.id)
-    .map((other) => ({ ...other, outline: outline(other, ...spot(other)) }));
+  const along = new Set(carried(manifest, state, id));
+  const others = layerMates(manifest, state, object).filter((other) => !along.has(other.id));
 
   if (object.kind === "piece") {
-    const under = others.find((other) => CONTAINER_TARGETS.includes(other.def.kind) && inside(other.outline, x, y));
-    if (under) return takes(manifest, state, under, object, playerId) ? { into: under.id } : { blocked: [under.id] };
-    const twin = others.find((other) => other.kind === "piece" && !other.state.heldBy &&
-      pilesWith(object.def, other.def) && inside(other.outline, x, y));
-    if (twin) return { onto: twin.id };
+    const [top] = others.filter((other) => inside(other.outline, x, y)).sort((a, b) => elevation(b) - elevation(a));
+    if (top && CONTAINER_TARGETS.includes(top.def.kind)) {
+      if (takes(manifest, state, top, object, playerId)) return { into: top.id };
+      if (!holdsUp(top, playerId)) return { blocked: [top.id] };
+    } else if (top && top.kind === "piece" && !top.state.heldBy && pilesWith(object.def, top.def)) {
+      return { onto: top.id };
+    }
   }
 
   const [width, depth] = manifest.table.size;
   if (x < 0 || y < 0 || x > width || y > depth) return { blocked: [] };
-  const blocked = others.filter((other) => overlaps(mine, other.outline)).map((other) => other.id);
-  return blocked.length ? { blocked } : {};
+  const touching = others.filter((other) => overlaps(mine, other.outline));
+  const blocked = canRest(object) ? touching.filter((other) => !holdsUp(other, playerId)) : touching;
+  if (blocked.length) return { blocked: blocked.map((other) => other.id) };
+  return { z: Math.max(0, ...touching.map(topOf)) };
+}
+
+// Whether other things can rest on an object.
+export function isSupport(object) {
+  if (object.kind === "piece") return SUPPORT_PIECES.includes(object.def.kind);
+  return SUPPORT_CONTAINERS.includes(object.def.kind);
+}
+
+// Boards and hands never rest on anything.
+function canRest(object) {
+  return object.def.kind !== "board" && object.def.kind !== "hand";
+}
+
+// Whether something landing now can rest on an object: a support nobody
+// else is holding.
+function holdsUp(object, playerId) {
+  return isSupport(object) && (!object.state.heldBy || object.state.heldBy === playerId);
+}
+
+// How far an object's base sits above its layer's base.
+export function elevation(object) {
+  return object.state.z || 0;
+}
+
+// The height of an object's top above its layer's base. An empty deck is
+// only an outline, so things rest on the table through it.
+export function topOf(object) {
+  const empty = object.kind === "container" && object.def.kind === "deck" && !object.state.members.length;
+  return elevation(object) + (empty ? 0 : objectHeight(object));
+}
+
+// What moves along with object `id`: for a held object, what rode on it when
+// it was picked up (its carrying list), and otherwise what rides on it now.
+// A piece drawn from a deck or bag carries nothing.
+export function carried(manifest, state, id) {
+  const object = findObject(manifest, state, id);
+  if (!object?.state.heldBy) return riders(manifest, state, id);
+  return (object.state.carrying || []).filter((riderId) => {
+    const rider = state.pieces[riderId] || state.containers[riderId];
+    return rider && !rider.containerId && !rider.locked && !rider.heldBy;
+  });
+}
+
+// What rides on object `id`: loose things on its layer, above it, that
+// overlap it or something else riding on it. Locked things and things
+// someone holds stay put, and settle (below) lets them down.
+export function riders(manifest, state, id) {
+  const object = findObject(manifest, state, id);
+  if (!object || object.state.containerId || object.def.kind === "hand") return [];
+  const base = elevation(object);
+  const above = layerMates(manifest, state, object)
+    .filter((other) => elevation(other) > base + SAME_HEIGHT && !other.state.locked && !other.state.heldBy)
+    .sort((a, b) => elevation(a) - elevation(b));
+  const carried = [outline(object, ...spot(object))];
+  const ids = [];
+  for (const other of above) {
+    if (!carried.some((shape) => overlaps(shape, other.outline))) continue;
+    carried.push(other.outline);
+    ids.push(other.id);
+  }
+  return ids;
+}
+
+// Lets everything off the table's surface sit on whatever is under it now:
+// something whose support went away drops, and something on a deck that
+// grew rises. Lowest first, so each one settles on things already settled.
+// Held things are off the table: they hold nothing up, and they and what
+// they carry stay as they are until they're put down. Gives back the same
+// state when nothing moves.
+export function settle(manifest, state) {
+  const loose = restingOutlines(manifest, state);
+  const held = loose.filter((object) => object.state.heldBy);
+  const keep = new Set(held.flatMap((object) => [object.id, ...carried(manifest, state, object.id)]));
+  const raised = loose.filter((object) => elevation(object) > 0 && !keep.has(object.id))
+    .sort((a, b) => elevation(a) - elevation(b));
+  const tops = new Map(); // id -> top, once settled
+  const topNow = (object) => (tops.has(object.id) ? tops.get(object.id) : topOf(object));
+  let next = state;
+  for (const object of raised) {
+    const was = elevation(object);
+    const under = loose.filter((other) => other.id !== object.id && other.def.layer.id === object.def.layer.id &&
+      elevation(other) < was - SAME_HEIGHT && isSupport(other) && !other.state.heldBy &&
+      overlaps(other.outline, object.outline));
+    const z = Math.max(0, ...under.map(topNow));
+    tops.set(object.id, topOf(object) - was + z);
+    if (Math.abs(z - was) > SAME_HEIGHT) next = withZ(next, object, z);
+  }
+  return next;
+}
+
+// Stacks up a starting table: decks and stacks first, then pieces in the
+// order the manifest lists them, then other containers, each resting on
+// whatever was placed under it before.
+export function stackUp(manifest, state) {
+  const loose = restingOutlines(manifest, state);
+  const rank = (object) => {
+    if (object.kind === "container") return SUPPORT_CONTAINERS.includes(object.def.kind) ? -1 : Infinity;
+    return object.state.stackOrder;
+  };
+  const order = [...loose].sort((a, b) => rank(a) - rank(b));
+  const placed = [];
+  let next = state;
+  for (const object of order) {
+    const under = placed.filter((other) => other.def.layer.id === object.def.layer.id && other.support &&
+      overlaps(other.outline, object.outline));
+    const z = Math.max(0, ...under.map((other) => other.top));
+    if (z > 0) next = withZ(next, object, z);
+    placed.push({ ...object, support: isSupport(object), top: z + topOf(object) - elevation(object) });
+  }
+  return next;
+}
+
+// Every loose object but hands, with its footprint where it rests.
+function restingOutlines(manifest, state) {
+  return looseObjects(manifest, state)
+    .filter((object) => object.def.kind !== "hand")
+    .map((object) => ({ ...object, outline: outline(object, ...spot(object)) }));
+}
+
+// The other loose objects on an object's layer, with their footprints where
+// they rest.
+function layerMates(manifest, state, object) {
+  return looseObjects(manifest, state)
+    .filter((other) => other.id !== object.id && other.def.layer.id === object.def.layer.id)
+    .map((other) => ({ ...other, outline: outline(other, ...spot(other)) }));
+}
+
+function withZ(state, { kind, id }, z) {
+  const key = kind === "piece" ? "pieces" : "containers";
+  return { ...state, [key]: { ...state[key], [id]: { ...state[key][id], z } } };
 }
 
 const CONTAINER_TARGETS = ["deck", "bag", "hand", "tray", "stack"];

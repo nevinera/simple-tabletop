@@ -63,34 +63,38 @@ export function ActionBar({
   );
 }
 
+// Views to jump to, and below them the same slots to save the current view
+// into, so saving is its own tap and never a mode to forget about.
 function CameraPointsPanel({ cameraPoints }) {
-  const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState(null);
 
-  const choose = (slot) => {
-    if (saving) {
-      cameraPoints.save(slot);
-      setStatus(`Saved view ${slot}`);
-      setSaving(false);
-    } else {
-      cameraPoints.jump(slot);
-      setStatus(`Jumped to view ${slot}`);
-    }
+  const jump = (slot) => {
+    cameraPoints.jump(slot);
+    setStatus(`Jumped to view ${slot}`);
+  };
+  const save = (slot) => {
+    cameraPoints.save(slot);
+    setStatus(`Saved view ${slot}`);
   };
 
   return (
     <div className="camera-points">
+      <p className="camera-points-heading">Go to a view</p>
       <div className="camera-points-grid">
         {SLOTS.map((slot) => (
-          <button key={slot} type="button" className="slot-button" onClick={() => choose(slot)}>
+          <button key={slot} type="button" className="slot-button" aria-label={`Go to view ${slot}`} onClick={() => jump(slot)}>
             {slot}
           </button>
         ))}
       </div>
-      <label className="menu-row">
-        <input type="checkbox" checked={saving} onChange={(event) => setSaving(event.target.checked)} />
-        Save the current view
-      </label>
+      <p className="camera-points-heading">Save this view as</p>
+      <div className="camera-points-grid">
+        {SLOTS.map((slot) => (
+          <button key={slot} type="button" className="slot-button slot-save" aria-label={`Save view ${slot}`} onClick={() => save(slot)}>
+            {slot}
+          </button>
+        ))}
+      </div>
       {status && <p className="menu-note" role="status">{status}</p>}
     </div>
   );

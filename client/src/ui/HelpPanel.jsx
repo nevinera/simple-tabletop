@@ -57,6 +57,7 @@ const KEYS = [
   ["Draw from the deck, bag, or stack under the mouse", "G"],
   ["Draw it into your hand", "Shift + G"],
   ["Draw a deck's top card face down, unseen", "Shift + drag the deck"],
+  ["Tuck a card under a deck or pile", "Hold Shift as you drop it"],
   ["See a card or die up close, or what's in a bag", "Hold Alt"],
   ["Lock or unlock", "L"],
   ["Select several, or take one back out", "Shift + click"],

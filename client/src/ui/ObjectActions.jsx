@@ -160,6 +160,11 @@ export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onS
           Stack up <kbd>K</kbd>
         </button>
       )}
+      {object.canTuck && (
+        <button type="button" className="menu-item" onClick={act(() => interaction.tuck(objectId))}>
+          Tuck what you hold under it
+        </button>
+      )}
       {object.canMakeDeck && (
         <button type="button" className="menu-item" onClick={act(() => interaction.makeDeck(objectId))}>
           Make a deck

@@ -213,7 +213,8 @@ Whatever is on top under a dropped piece's center decides what happens: a contai
 takes it, and a loose piece it piles with (see [Data model](#data-model)) makes a deck or stack with it.
 Otherwise it rests on top. A deck dropped with its center over a deck that takes all its cards puts them on
 top of it, in order, facing that deck's way. A deck made during play is then gone, and a module's deck stays
-behind, empty, where it was.
+behind, empty, where it was. A drop with `tuck` puts what's dropped under the deck, stack, or loose piece instead
+of on top.
 
 Nothing is let go of off the table except into a hand. A drop with its center off the table is refused, and
 one that would hang over an edge, along with whatever it carries, is nudged in to lie wholly on the table.

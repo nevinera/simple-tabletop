@@ -11,6 +11,8 @@ const DECK_GROWTH = 30; // cards; how fast a deck approaches its full height
 export const HAND_TRAY_HEIGHT = 0.15; // cm
 export const DICE_TRAY_FLOOR = 0.2; // cm
 export const DICE_TRAY_WALL = 1.2; // cm above the table
+export const BOWL_FLOOR = 0.15; // cm
+export const BOWL_RIM = 0.9; // cm above the table
 const DIE_HEIGHT = 0.85; // times its size, roughly, whatever its shape
 const HAND_MARGIN = 0.5; // cm kept clear at each end of a hand tray
 const HAND_SPACING = 1.08; // times the card width, when there's room
@@ -61,7 +63,7 @@ export function containerDef(manifest, state, id) {
   if (fromManifest?.kind === "stack" || state.containers[id]?.spec?.kind === "stack") {
     return stackDef(manifest, state, id, fromManifest);
   }
-  if (fromManifest) return { ...fromManifest, shape: "rect" };
+  if (fromManifest) return { ...fromManifest, shape: fromManifest.shape || "rect" };
   const { spec } = state.containers[id];
   if (spec.kind === "hand") {
     const seat = manifest.seats.find((s) => s.id === spec.seatId);
@@ -252,6 +254,7 @@ const CONTAINER_TAKES = {
   deck: ["card"],
   hand: ["card", "tile"],
   bag: ["card", "tile", "chip", "token", "die", "standee", "pawn", "counter"],
+  bowl: ["card", "tile", "chip", "token", "die", "standee", "pawn", "counter"],
 };
 
 export function accepts(containerDef, pieceDef) {
@@ -290,6 +293,7 @@ export function objectHeight(object) {
   }
   if (object.def.kind === "hand") return HAND_TRAY_HEIGHT;
   if (object.def.kind === "tray") return DICE_TRAY_WALL;
+  if (object.def.kind === "bowl") return BOWL_RIM;
   if (object.def.kind === "bag") return bagHeight(object.def);
   if (object.def.kind === "stack") return stackHeight(object.def, object.state.members.length);
   if (splayOf(object)) return object.def.layer.thickness * object.state.members.length;

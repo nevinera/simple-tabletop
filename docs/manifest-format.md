@@ -345,11 +345,11 @@ label. A locked counter stays put but still counts.
 | `kind`     | yes      | `deck`, `bag`, `bowl`, `tray`, or `stack`                     |
 | `position` | yes      |                                                               |
 | `rotation` | no       | defaults to 0                                                 |
-| `size`     | decks, trays, bags | `[width, depth]`                                    |
+| `size`     | decks, trays, bags, bowls | `[width, depth]`; a bowl can take one number, its diameter |
 | `layer`    | no       | defaults to `pieces`                                          |
 | `image`    | no       | decks: shown on top instead of the top card; bags: shown in a circle on the lid |
 | `text`     | no       | bags: up to 16 characters, printed on the lid                 |
-| `color`    | no       | bags: the box's color                                         |
+| `color`    | no       | bags: the box's color; bowls: the dish's                      |
 | `infinite` | no       | bags: a piece type the bag hands out without end              |
 | `fixed`    | no       | starts locked; players can still take from it                 |
 | `faceUp`   | no       | decks only: which way every card in it faces; defaults to false |
@@ -394,7 +394,9 @@ Without `accepts`, decks take pieces of their members' type, trays take dice, an
   same kind, shape, size, and images. Its side shows a band per piece in that piece's `edge` color. A stack grows one piece taller per piece up to `maxStackShown` (five unless the module says), then shows a count
   on top instead. Players draw from the top, and a stack down to one piece turns back into that piece.
   Dropping a piece on a loose one just like it makes a new stack.
-- **bowl:** contents sit visible in a pile. Players pick any member.
+- **bowl:** a shallow dish, round with one `size` or oval with two. What's in it lies in the open on its floor,
+  never overlapping, and players drag out any one piece or drop one in, until it's about three-fifths full. Its
+  count shows by the rim. Bowls take anything but boards, like bags, and suit games that sow seeds, like Mancala.
 - **tray:** dice only. Dice sit at random spots inside it, never overlapping, and can fill at most an eighth
   of its area. Rolling the tray rolls them all and scatters them to new spots.
 

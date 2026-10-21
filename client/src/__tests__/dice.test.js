@@ -202,13 +202,17 @@ describe("rolling from the table", () => {
     expect(store.getState().containers.tray.spots).not.toEqual(before);
   });
 
-  it("takes a die out of a tray by dragging it", () => {
+  it("takes a die out of a tray by dragging it, from where it's caught", () => {
     const store = createTableStore(manifest);
+    const [spotX, spotY] = traySpot(store.getState(), "blue");
     const interaction = makeInteraction(store, { blue: [61, 31] });
     interaction.pointerDown(pointer(61, 31));
     interaction.pointerMove(pointer(70, 31));
     interaction.pointerMove(pointer(30, 50));
     interaction.pointerUp(pointer(30, 50));
-    expect(store.getState().pieces.blue).toMatchObject({ containerId: null, x: 30, y: 50 });
+    const die = store.getState().pieces.blue;
+    expect(die.containerId).toBeNull();
+    expect(die.x).toBeCloseTo(30 + spotX - 61);
+    expect(die.y).toBeCloseTo(50 + spotY - 31);
   });
 });

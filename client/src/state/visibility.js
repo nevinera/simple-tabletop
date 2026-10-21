@@ -35,7 +35,7 @@ export function visibleSide(manifest, state, id, viewerSeat) {
   if (def.kind === "counter") return { counter: { label: piece.label, value: piece.value, color: def.color } };
   if (piece.containerId) {
     const container = findObject(manifest, state, piece.containerId);
-    if (container.def.kind === "stack") return { image: piece.faceUp ? faceOf(def, piece) : backOf(def, piece), size: def.size };
+    if (container.def.kind === "stack" || container.def.kind === "bowl") return { image: piece.faceUp ? faceOf(def, piece) : backOf(def, piece), size: def.size };
     if (container.def.kind !== "hand") return null;
     return { image: container.def.seatId === viewerSeat ? faceOf(def, piece) : backOf(def, piece), size: def.size };
   }

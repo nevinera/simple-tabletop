@@ -29,7 +29,7 @@
 import { dealOrder } from "../state/actions";
 import { rollValues } from "../state/dice";
 import { DEFAULT_SPLAY, fanSpots, findObject, pieceDef, pilesWith, spawnedId } from "../state/objects";
-import { scatter } from "../state/trays";
+import { fromTray, scatter } from "../state/trays";
 import { snapSpot } from "../state/snaps";
 import { handId, seatOf } from "../state/seats";
 
@@ -628,9 +628,14 @@ export class PieceInteraction {
     return true;
   }
 
+  // Where a card in a fan, or a die or piece lying in a tray or bowl, sits.
   #fanSpot(id) {
     const containerId = this.#object(id).state.containerId;
     const deck = containerId && this.#object(containerId);
+    if (deck?.state.spots?.[id]) {
+      const [x, y] = fromTray(deck.state, deck.state.spots[id]);
+      return { x, y };
+    }
     if (!deck?.state.splay) return null;
     return fanSpots(deck)[deck.state.members.indexOf(id)];
   }

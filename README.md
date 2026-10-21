@@ -8,7 +8,8 @@ hosted anywhere. Players move pieces by hand, with no physics and no rules engin
 | Doc | Description |
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | Server, client, data model, and sync |
-| [docs/manifest-format.md](docs/manifest-format.md) | How to write a game module |
+| [docs/making-a-module.md](docs/making-a-module.md) | Building a game module, step by step, with recipes |
+| [docs/manifest-format.md](docs/manifest-format.md) | Every manifest field, in full |
 
 ## Development
 

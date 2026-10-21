@@ -1,5 +1,8 @@
 # Manifest format
 
+This is the reference for every field. To build a module step by step, start with
+[making-a-module.md](making-a-module.md).
+
 A game module is a JSON manifest plus the images it lists. Every asset path resolves relative to the manifest's
 URL, so you can host a module anywhere that serves static files.
 
@@ -135,17 +138,17 @@ of them.
 
 | field      | required | notes                                                         |
 |------------|----------|---------------------------------------------------------------|
-| `id`       | yes      | unique within the manifest                                    |
+| `id`       | yes      | unique among pieces and containers; can't contain `#` or start with `hand-` |
 | `type`     | no       | a key in `pieceTypes`                                         |
-| `kind`     | yes*     | `card`, `board`, `tile`, `chip`, `token`, `die`, `standee`, `pawn`, or `counter`; see below |
+| `kind`     | yes*     | `card`, `board`, `tile`, `chip`, `token`, `die`, `standee`, `pawn`, `counter`, `note`, or `scoresheet`; see below |
 | `layer`    | no       | defaults to `board` for boards and `pieces` for everything else |
 | `shape`    | boards, tokens, pawns | `rect` or `circle`, or for pawns one of the [pawn shapes](#pawns) |
 | `size`     | yes*     | `[width, depth]`, or for standees `[width, height]`; circles and dice use the first value only, and pawns take `[width]` or `[width, height]` |
-| `thickness`| no       | in cm; tiles, chips, tokens, and standees default to 0.2, and cards and boards to their layer's thickness |
+| `thickness`| no       | in cm; tiles, chips, tokens, and standees default to 0.2, counters, notes, and score sheets to 0.4, and cards and boards to their layer's thickness |
 | `categories`| no      | list of strings; combined with the type's categories          |
 | `die`      | dice     | a built-in die name, or a key in `dieTypes`                   |
-| `face`     | yes*     | image for the up side; not used by dice or pawns              |
-| `color`    | no       | hex; tints built-in dice, and colors pawns                    |
+| `face`     | yes*     | image for the up side; not used by dice, pawns, counters, notes, or score sheets |
+| `color`    | no       | hex; tints built-in dice, and colors pawns, counters, notes, and score sheets |
 | `outline`  | no       | tiles and boards: their shape, when it isn't a rectangle; see below |
 | `edge`     | no       | hex; the color of a flat piece's sides, and its band in a stack |
 | `back`     | no       | image for the down side; defaults to `face`                   |
@@ -153,7 +156,10 @@ of them.
 | `position` | no*      | required unless a container lists the piece                   |
 | `rotation` | no       | defaults to 0                                                 |
 | `faceUp`   | no       | defaults to true                                              |
-| `value`    | no       | dice only: index of the starting face; defaults to 0          |
+| `value`    | no       | dice: index of the starting face; counters: the starting number; defaults to 0 |
+| `label`    | no       | counters and score sheets: the title; see [Counters](#counters) |
+| `text`     | no       | notes: the starting text; see [Notes](#notes)                 |
+| `players`  | no       | score sheets: the column headings; see [Score sheets](#score-sheets) |
 | `fixed`    | no       | starts locked; players can unlock it; defaults to false       |
 
 \* Can come from the piece type.
@@ -503,4 +509,6 @@ Any static host works: a GitHub repository, GitHub Pages, S3, or your own server
 - The host must send `Access-Control-Allow-Origin` for the manifest and every image, or browsers will refuse to
   use them. GitHub's raw file host and GitHub Pages already do. S3 needs a CORS rule.
 - Use HTTPS.
+- To try a module alone, open `/sandbox?manifest=<manifest URL>` on the site, or paste the URL on the home page
+  and pick "Try it alone".
 - Assets only need to stay up while people are playing. Simple Tabletop never copies them.

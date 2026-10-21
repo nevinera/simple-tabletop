@@ -227,6 +227,16 @@ body,
 }
 .search-blank { width: 40px; background: rgba(255, 255, 255, 0.08); }
 
+.camera-points-heading {
+  margin: 4px 0 6px;
+  font-size: 0.85em;
+  color: var(--muted);
+}
+
+.slot-save {
+  border-style: dashed;
+}
+
 .camera-points-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);

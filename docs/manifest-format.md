@@ -378,6 +378,7 @@ Without `accepts`, decks take pieces of their members' type, trays take dice, an
   number of cards to every seated player, one at a time clockwise from the dealer's left. It starts 0.8cm tall and grows toward
   4.8cm as cards go in, showing its `image` or else the top card. An empty deck stays on the table
   as an outlined placeholder. Dropping a card on a loose card of the same type and size makes a new deck.
+  A card can also be tucked under a deck instead of going on top.
   Dropping a deck on a deck that takes its cards stacks them all on top, like shuffling a discard pile back in.
 - **splayed deck:** a deck with its cards fanned out, each `splayDistance` past the one under it. The bottom
   card stays at the deck's position, and the fan runs in the `splay` direction, turned with the deck: `away` runs

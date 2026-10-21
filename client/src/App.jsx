@@ -69,6 +69,7 @@ export default function App({ manifestUrl, game = null }) {
   const [hovered, setHovered] = useState(null);
   const [magnifyMode, setMagnifyMode] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
+  const [tuckMode, setTuckMode] = useState(false);
   const [magnified, setMagnified] = useState(null);
   const altHeld = useMagnifyKey();
   const showActionBar = layout !== "desktop" || desktopActionBar;
@@ -184,8 +185,8 @@ export default function App({ manifestUrl, game = null }) {
     if (sounds) sounds.enabled = soundOn;
   }, [sounds, soundOn]);
   useEffect(() => {
-    if (interaction) Object.assign(interaction, { magnifyMode, selectMode });
-  }, [interaction, magnifyMode, selectMode]);
+    if (interaction) Object.assign(interaction, { magnifyMode, selectMode, tuckMode });
+  }, [interaction, magnifyMode, selectMode, tuckMode]);
   useEffect(() => {
     if (interaction) interaction.nameOf = nameOf;
   }, [interaction, nameOf]);
@@ -345,6 +346,8 @@ export default function App({ manifestUrl, game = null }) {
           setMagnifyMode={setMagnifyMode}
           selectMode={selectMode}
           setSelectMode={setSelectMode}
+          tuckMode={tuckMode}
+          setTuckMode={setTuckMode}
           cameraPoints={cameraPoints}
           menus={menus}
           onReorder={startReorder}

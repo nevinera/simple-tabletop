@@ -146,6 +146,18 @@ describe("PieceInteraction", () => {
     expect(piece("AS")).toMatchObject({ x: 25, y: 31, z: 0.03, heldBy: null });
   });
 
+  it("tucks a card under a deck in tuck mode, or with Shift held as you drop it", () => {
+    interaction.tuckMode = true;
+    drag([10, 10], [60, 60]);
+    expect(store.getState().containers.deck.members).toEqual(["KS", "QS", "AS"]);
+    interaction.tuckMode = false;
+    interaction.pointerDown(pointer(30, 30));
+    interaction.pointerMove(pointer(30 + DRAG_THRESHOLD_PX, 30));
+    interaction.pointerMove(pointer(60, 60));
+    interaction.pointerUp(pointer(60, 60, { shiftKey: true }));
+    expect(store.getState().containers.deck.members.at(-1)).toBe("AH");
+  });
+
   it("puts the first piece back when you select another", () => {
     click(10, 10);
     click(30, 30);

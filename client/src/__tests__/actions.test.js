@@ -182,6 +182,12 @@ describe("decks", () => {
     expect(result.state.pieces.AS).toMatchObject({ containerId: "deck", x: null, y: null, faceUp: false, heldBy: null });
   });
 
+  it("tucks a card under itself when the drop says so", () => {
+    const result = act(held("AS"), { type: "drop", id: "AS", x: 61, y: 59, tuck: true });
+    expect(result.state.containers.deck.members).toEqual(["KS", "AS"]);
+    expect(result.state.pieces.AS).toMatchObject({ containerId: "deck", faceUp: false });
+  });
+
   it("holds up a piece it doesn't accept", () => {
     const coin = act(held("coin"), { type: "drop", id: "coin", x: 60, y: 60 });
     expect(coin.ok).toBe(true);
@@ -369,6 +375,15 @@ describe("dropping a deck on a deck", () => {
     state = move(state, made, 10, 30).state;
     expect(state.containers[made]).toBeUndefined();
     expect(state.containers.draw.members).toEqual(["loose1", "loose2", "a", "b"]);
+  });
+
+  it("tucks a whole deck underneath, and a card under a loose one", () => {
+    const grabbed = applyAction(decks, initialState(decks), { type: "grab", id: "discard", playerId: "p1" }).state;
+    const tucked = applyAction(decks, grabbed, { type: "drop", id: "discard", x: 11, y: 31, playerId: "p1", tuck: true }).state;
+    expect(tucked.containers.draw.members).toEqual(["a", "b", "c", "d"]);
+    const card = applyAction(decks, initialState(decks), { type: "grab", id: "loose1", playerId: "p1" }).state;
+    const pile = applyAction(decks, card, { type: "drop", id: "loose1", x: 70, y: 10, playerId: "p1", tuck: true }).state;
+    expect(Object.values(pile.containers).find((c) => c.spec).members).toEqual(["loose2", "loose1"]);
   });
 
   it("rests on a deck that won't take all its cards", () => {

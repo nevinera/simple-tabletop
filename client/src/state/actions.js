@@ -498,13 +498,15 @@ function dropGroup(manifest, state, action, object) {
     }
   }
   if (target.blocked) return blocked(state);
-  if (target.into && object.kind === "container") return mergeDeck(manifest, state, object, target.into, letGo);
-  if (target.onto && object.def.kind === "card") return formDeck(manifest, state, object, target.onto, letGo);
-  if (target.onto) return formStack(state, object, target.onto, letGo);
+  // Tucked, it goes under the deck or pile instead of on top.
+  const tuck = action.tuck === true;
+  if (target.into && object.kind === "container") return mergeDeck(manifest, state, object, target.into, letGo, tuck);
+  if (target.onto && object.def.kind === "card") return formDeck(manifest, state, object, target.onto, letGo, tuck);
+  if (target.onto) return formStack(state, object, target.onto, letGo, tuck);
   if (target.into && state.containers[target.into].spots) {
     return addToTray(manifest, state, object, target.into, letGo, [x, y]);
   }
-  if (target.into) return addAllToContainer(manifest, state, [...group, object.id], target.into, [x, y]);
+  if (target.into) return addAllToContainer(manifest, state, [...group, object.id], target.into, [x, y], tuck);
   const changes = { ...letGo, x, y, z: target.z };
   if (object.kind === "piece") changes.stackOrder = topOfLayer(manifest, state, object.def.layer.id);
   if (object.state.containerId) {
@@ -525,14 +527,16 @@ function dropGroup(manifest, state, action, object) {
 }
 
 // Puts several pieces in a container at once, the first one deepest, or
-// refuses if it won't take them all.
-function addAllToContainer(manifest, state, ids, containerId, point) {
+// refuses if it won't take them all. Tucked, they go under a deck or stack,
+// the last one at the very bottom.
+function addAllToContainer(manifest, state, ids, containerId, point, tuck = false) {
   const container = findObject(manifest, state, containerId);
   if (!ids.every((id) => state.pieces[id] && accepts(container.def, pieceDef(manifest, id)))) return blocked(state);
   let next = state;
   for (const id of ids) {
     const piece = findObject(manifest, next, id);
-    next = addToContainer(manifest, next, piece, containerId, letGoOf(piece), null, point).state;
+    const index = tuck ? next.containers[containerId].members.length : null;
+    next = addToContainer(manifest, next, piece, containerId, letGoOf(piece), index, point).state;
   }
   return { ok: true, state: { ...next, sequence: state.sequence + 1 } };
 }
@@ -645,8 +649,9 @@ function deckSpec(card) {
 }
 
 // Drops a card on a loose one like it: the two become a deck where the one
-// underneath was, facing its way, with the dropped one on top.
-function formDeck(manifest, state, card, underId, changes) {
+// underneath was, facing its way, with the dropped one on top, or under it
+// when tucked.
+function formDeck(manifest, state, card, underId, changes, tuck = false) {
   const under = state.pieces[underId];
   const deckId = `#deck-${state.sequence}`;
   const deck = {
@@ -666,7 +671,7 @@ function formDeck(manifest, state, card, underId, changes) {
   let next = withoutMember(state, card);
   next = { ...next, containers: { ...next.containers, [deckId]: deck } };
   next = withObject(next, { kind: "piece", id: underId }, { containerId: deckId, x: null, y: null });
-  next = withObject(next, { kind: "container", id: deckId }, { members: [card.id, underId] });
+  next = withObject(next, { kind: "container", id: deckId }, { members: tuck ? [underId, card.id] : [card.id, underId] });
   return save(next, card, { ...changes, faceUp: under.faceUp, containerId: deckId, x: null, y: null });
 }
 
@@ -693,13 +698,15 @@ function drawSeveral(manifest, state, action, def, object) {
   return settleStack(manifest, { ok: true, state: { ...next, sequence: state.sequence + 1 } }, object.id);
 }
 
-// Drops a deck on a deck that takes its cards: they all go on top, in their
-// order, turned to face the way that deck does. A deck made during play is
-// gone once it's empty, and a module's deck stays behind, empty, where it was.
-function mergeDeck(manifest, state, deck, intoId, changes) {
+// Drops a deck on a deck that takes its cards: they all go on top, or under
+// it when tucked, in their order, turned to face the way that deck does. A
+// deck made during play is gone once it's empty, and a module's deck stays
+// behind, empty, where it was.
+function mergeDeck(manifest, state, deck, intoId, changes, tuck = false) {
   const into = state.containers[intoId];
   const cards = deck.state.members;
-  let next = withObject(state, { kind: "container", id: intoId }, { members: [...cards, ...into.members] });
+  const members = tuck ? [...into.members, ...cards] : [...cards, ...into.members];
+  let next = withObject(state, { kind: "container", id: intoId }, { members });
   for (const id of cards) next = withObject(next, { kind: "piece", id }, { containerId: intoId, faceUp: into.faceUp });
   if (manifest.containers.some((container) => container.id === deck.id)) {
     next = withObject(next, deck, { ...changes, members: [] });
@@ -711,8 +718,8 @@ function mergeDeck(manifest, state, deck, intoId, changes) {
 }
 
 // Moves a piece into a container, out of any it was in. A deck takes it on
-// top, turned to face the way the deck does. A hand takes it face-up, at
-// `index` or where `point` falls among its cards, so it plays face-up. A bag
+// top, or at `index`, turned to face the way the deck does. A hand takes it
+// face-up, at `index` or where `point` falls among its cards. A bag
 // takes it as it is, and an infinite bag takes it off the table for good.
 function addToContainer(manifest, state, piece, containerId, changes, index = null, point = null) {
   const without = withoutMember(state, piece);
@@ -722,7 +729,7 @@ function addToContainer(manifest, state, piece, containerId, changes, index = nu
     return { ok: true, state: { ...without, pieces, sequence: state.sequence + 1 } };
   }
   const members = container.state.members;
-  let at = 0;
+  let at = Math.max(0, Math.min(index ?? 0, members.length));
   if (container.def.kind === "hand") {
     at = index ?? handIndex(container.def, handSlots(container.def, members.length, piece.def.size[0]), ...point);
     at = Math.max(0, Math.min(at, members.length));
@@ -738,8 +745,9 @@ function addToContainer(manifest, state, piece, containerId, changes, index = nu
 }
 
 // Drops a piece on a loose one just like it: the two become a stack where
-// the one underneath was, with the dropped one on top.
-function formStack(state, piece, underId, changes) {
+// the one underneath was, with the dropped one on top, or under it when
+// tucked.
+function formStack(state, piece, underId, changes, tuck = false) {
   const under = state.pieces[underId];
   const stackId = `#stack-${state.sequence}`;
   const stack = {
@@ -748,7 +756,7 @@ function formStack(state, piece, underId, changes) {
     z: under.z || 0,
     rotation: under.rotation,
     faceUp: true,
-    members: [piece.id, underId],
+    members: tuck ? [underId, piece.id] : [piece.id, underId],
     heldBy: null,
     drag: null,
     locked: false,

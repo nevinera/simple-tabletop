@@ -63,6 +63,7 @@ export class PieceInteraction {
     this.nameOf = () => null; // player id -> name
     this.magnifyMode = false;
     this.selectMode = false;
+    this.tuckMode = false; // drops on a deck or pile go underneath, as with Shift
     this.relocateOnTrayRoll = true; // whether rolling a tray scatters its dice
     // Wrapped, since the browser's timer functions throw when called as methods.
     this.schedule = (fn, ms) => schedule(fn, ms);
@@ -272,7 +273,7 @@ export class PieceInteraction {
   handDrop(cardId, { index = null, overTable = false } = {}) {
     const card = this.#object(cardId).state;
     if (index != null) this.#dispatch("drop", cardId, { into: this.#ownHand(), index });
-    else if (overTable && card.drag) this.#dispatch("drop", cardId, card.drag);
+    else if (overTable && card.drag) this.#drop(cardId, card.drag);
     else this.#dispatch("release", cardId);
   }
 
@@ -486,8 +487,9 @@ export class PieceInteraction {
         if (object.state.heldBy === this.playerId) this.#dispatch("release", gesture.objectId);
         else this.#select(gesture.objectId);
       } else if (gesture.moved || object.state.heldBy === this.playerId) {
+        // Shift as you let go over a deck or pile tucks it underneath.
         const { x, y } = object.state.drag || object.state;
-        this.#dispatch("drop", gesture.objectId, { x, y });
+        this.#drop(gesture.objectId, { x, y }, event.shiftKey);
       } else {
         this.#select(gesture.objectId);
       }
@@ -647,7 +649,13 @@ export class PieceInteraction {
     const point = this.tablePoint(clientX, clientY, id);
     if (!point) return;
     const [x, y] = this.clampToTable(point);
-    this.#dispatch("drop", id, { x, y });
+    this.#drop(id, { x, y });
+  }
+
+  // Drops at a table point, tucking it under a deck or pile there with Shift
+  // held or tuck mode on.
+  #drop(id, { x, y }, shift = false) {
+    return this.#dispatch("drop", id, shift || this.tuckMode ? { x, y, tuck: true } : { x, y });
   }
 
   #dispatch(type, id, extra = {}) {

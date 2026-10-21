@@ -3,6 +3,8 @@ import { applyAction, initialState } from "../state/actions";
 import { normalizeManifest } from "../manifest/manifest";
 import { findObject } from "../state/objects";
 import { fits, hasRoom } from "../state/trays";
+import * as THREE from "three";
+import { buildBowl, faceBowlCounter, placeBowl } from "../table/bowls";
 
 const manifest = normalizeManifest({
   formatVersion: 1,
@@ -53,5 +55,18 @@ describe("bowls", () => {
     const many = Array(80).fill(seed);
     expect(hasRoom(store, many.slice(0, 40), seed)).toBe(true);
     expect(hasRoom(store, many, seed)).toBe(false);
+  });
+
+  it("draws as a dish with its count on the camera's side of the rim", () => {
+    const state = initialState(manifest);
+    const pit = findObject(manifest, state, "pit");
+    const group = buildBowl("pit", pit.def);
+    placeBowl(group, pit.def, pit.state);
+    group.updateMatrixWorld();
+    expect(group.userData.counter.visible).toBe(true);
+    faceBowlCounter(group, new THREE.Vector3(15, 30, -5));
+    // The camera is toward the near edge, which is +z in three.
+    expect(group.userData.counter.position.z).toBeGreaterThan(3);
+    expect(Math.abs(group.userData.counter.position.x)).toBeLessThan(1e-9);
   });
 });

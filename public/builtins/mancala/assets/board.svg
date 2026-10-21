@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2100" height="720" viewBox="0 0 2100 720">
+<defs>
+  <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#b8834c"/><stop offset="0.5" stop-color="#a8743f"/><stop offset="1" stop-color="#93622f"/>
+  </linearGradient>
+</defs>
+<rect width="2100" height="720" rx="75" fill="url(#wood)"/>
+<path d="M0 25.714285714285715 C 630 19.714285714285715 1260 31.714285714285715 2100 22.714285714285715" fill="none"
+      stroke="#000000" stroke-opacity="0.07" stroke-width="3.5999999999999996"/>
+<path d="M0 77.14285714285714 C 630 77.14285714285714 1260 77.14285714285714 2100 77.14285714285714" fill="none"
+      stroke="#000000" stroke-opacity="0.07" stroke-width="3.5999999999999996"/>
+<path d="M0 128.57142857142858 C 630 134.57142857142858 1260 122.57142857142858 2100 131.57142857142858" fill="none"
+      stroke="#000000" stroke-opacity="0.07" stroke-width="3.5999999999999996"/>
+<path d="M0 180 C 630 174 1260 186 2100 177" fill="none"
+      stroke="#000000" stroke-opacity="0.07" stroke-width="3.5999999999999996"/>
+<path d="M0 231.42857142857144 C 630 231.42857142857144 1260 231.42857142857144 2100 231.42857142857144" fill="none"
+      stroke="#000000" stroke-opacity="0.07" stroke-width="3.5999999999999996"/>
+<path d="M0 282.8571428571429 C 630 288.8571428571429 1260 276.8571428571429 2100 285.8571428571429" fill="none"
+      stroke="#000000" stroke-opacity="0.07" stroke-width="3.5999999999999996"/>
+<path d="M0 334.2857142857143 C 630 328.2857142857143 1260 340.2857142857143 2100 331.2857142857143" fill="none"
+      stroke="#000000" stroke-opacity="0.07" stroke-width="3.5999999999999996"/>
+<path d="M0 385.7142857142857 C 630 385.7142857142857 1260 385.7142857142857 2100 385.7142857142857" fill="none"
+      stroke="#000000" stroke-opacity="0.07" stroke-width="3.5999999999999996"/>
+<path d="M0 437.14285714285717 C 630 443.14285714285717 1260 431.14285714285717 2100 440.14285714285717" fill="none"
+      stroke="#000000" stroke-opacity="0.07" stroke-width="3.5999999999999996"/>
+<path d="M0 488.5714285714286 C 630 482.5714285714286 1260 494.5714285714286 2100 485.5714285714286" fill="none"
+      stroke="#000000" stroke-opacity="0.07" stroke-width="3.5999999999999996"/>
+<path d="M0 540 C 630 540 1260 540 2100 540" fill="none"
+      stroke="#000000" stroke-opacity="0.07" stroke-width="3.5999999999999996"/>
+<path d="M0 591.4285714285714 C 630 597.4285714285714 1260 585.4285714285714 2100 594.4285714285714" fill="none"
+      stroke="#000000" stroke-opacity="0.07" stroke-width="3.5999999999999996"/>
+<path d="M0 642.8571428571429 C 630 636.8571428571429 1260 648.8571428571429 2100 639.8571428571429" fill="none"
+      stroke="#000000" stroke-opacity="0.07" stroke-width="3.5999999999999996"/>
+<path d="M0 694.2857142857143 C 630 694.2857142857143 1260 694.2857142857143 2100 694.2857142857143" fill="none"
+      stroke="#000000" stroke-opacity="0.07" stroke-width="3.5999999999999996"/>
+<ellipse cx="480" cy="228" rx="107.99999999999999" ry="107.99999999999999" fill="#5c3a1c" fill-opacity="0.45"/>
+<ellipse cx="480" cy="492" rx="107.99999999999999" ry="107.99999999999999" fill="#5c3a1c" fill-opacity="0.45"/>
+<ellipse cx="708" cy="228" rx="107.99999999999999" ry="107.99999999999999" fill="#5c3a1c" fill-opacity="0.45"/>
+<ellipse cx="708" cy="492" rx="107.99999999999999" ry="107.99999999999999" fill="#5c3a1c" fill-opacity="0.45"/>
+<ellipse cx="936" cy="228" rx="107.99999999999999" ry="107.99999999999999" fill="#5c3a1c" fill-opacity="0.45"/>
+<ellipse cx="936" cy="492" rx="107.99999999999999" ry="107.99999999999999" fill="#5c3a1c" fill-opacity="0.45"/>
+<ellipse cx="1164" cy="228" rx="107.99999999999999" ry="107.99999999999999" fill="#5c3a1c" fill-opacity="0.45"/>
+<ellipse cx="1164" cy="492" rx="107.99999999999999" ry="107.99999999999999" fill="#5c3a1c" fill-opacity="0.45"/>
+<ellipse cx="1392" cy="228" rx="107.99999999999999" ry="107.99999999999999" fill="#5c3a1c" fill-opacity="0.45"/>
+<ellipse cx="1392" cy="492" rx="107.99999999999999" ry="107.99999999999999" fill="#5c3a1c" fill-opacity="0.45"/>
+<ellipse cx="1620" cy="228" rx="107.99999999999999" ry="107.99999999999999" fill="#5c3a1c" fill-opacity="0.45"/>
+<ellipse cx="1620" cy="492" rx="107.99999999999999" ry="107.99999999999999" fill="#5c3a1c" fill-opacity="0.45"/>
+<ellipse cx="210.0000000000001" cy="360" rx="129" ry="294" fill="#5c3a1c" fill-opacity="0.45"/>
+<ellipse cx="1890" cy="360" rx="129" ry="294" fill="#5c3a1c" fill-opacity="0.45"/>
+<rect x="12" y="12" width="2076" height="696" rx="66" fill="none"
+  stroke="#5c3a1c" stroke-opacity="0.5" stroke-width="4.5"/>
+</svg>

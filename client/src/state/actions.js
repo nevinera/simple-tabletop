@@ -46,6 +46,7 @@ import {
 } from "./objects";
 import { nearestFree, scatter, seededRandom, toTray } from "./trays";
 import { snapSpot } from "./snaps";
+import { noteError, playersError, roundsError } from "./notes";
 import { handId, openSeats, seatOf } from "./seats";
 
 const LAID_OUT_GAP = 0.5; // cm between cards laid out from a hand
@@ -416,6 +417,30 @@ const HANDLERS = {
       changes.label = action.label;
     }
     if (!Object.keys(changes).length) return reject(state, "setCounter needs a value or a label.");
+    return save(state, object, changes);
+  },
+
+  // Rewrites a note. Locked notes still take writing.
+  setNote({ state, action, def, object }) {
+    if (def.kind !== "note") return reject(state, "Only notes take writing.");
+    const error = noteError(action.text);
+    if (error) return reject(state, error);
+    return save(state, object, { text: action.text });
+  },
+
+  // Changes a score sheet's headings and rounds, together, since a round
+  // has a score for each heading. Locked sheets still keep score.
+  setScores({ state, action, def, object }) {
+    if (def.kind !== "scoresheet") return reject(state, "Only score sheets keep scores.");
+    const error = playersError(action.players) || roundsError(action.rounds, action.players?.length);
+    if (error) return reject(state, error);
+    const changes = { players: action.players, rounds: action.rounds };
+    if (action.label !== undefined) {
+      if (typeof action.label !== "string" || action.label.length > MAX_COUNTER_LABEL) {
+        return reject(state, `A score sheet's title is at most ${MAX_COUNTER_LABEL} characters.`);
+      }
+      changes.label = action.label;
+    }
     return save(state, object, changes);
   },
 
@@ -795,6 +820,8 @@ function newPiece(def) {
   };
   if (def.shape === "die") Object.assign(piece, { value: def.value, rolls: 0 });
   if (def.kind === "counter") Object.assign(piece, { value: def.value, label: def.label });
+  if (def.kind === "note") piece.text = def.text;
+  if (def.kind === "scoresheet") Object.assign(piece, { label: def.label, players: [...def.players], rounds: [] });
   return piece;
 }
 

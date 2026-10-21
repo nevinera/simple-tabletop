@@ -193,6 +193,8 @@ rides on it, draws as moving with it.
 | `splay`    | fan a deck's cards out in a `direction`, or close it with null, and set its `distance` |
 | `changeState` | put a card in one of its states, by `index`               |
 | `setCounter` | change a counter's `value` or `label`                        |
+| `setNote`  | replace a note's `text`                                        |
+| `setScores` | replace a score sheet's `players` and `rounds`, and maybe its `label` |
 | `deal`     | deal `count` cards from a deck to every seated player's hand, one at a time clockwise from the dealer's left, the dealer last |
 | `stackUp`  | pile loose pieces (`others`) on this one: a deck for cards of a type, a stack for alike tiles, chips, or tokens |
 | `release`  | let go without changing anything                               |

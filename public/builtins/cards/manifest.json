@@ -91,6 +91,23 @@
       ],
       "label": "Score",
       "color": "#f4efe0"
+    },
+    "sheet": {
+      "kind": "scoresheet",
+      "size": [
+        12,
+        9
+      ],
+      "label": "Scores",
+      "color": "#f4efe0"
+    },
+    "note": {
+      "kind": "note",
+      "size": [
+        9,
+        7
+      ],
+      "color": "#fbf0b4"
     }
   },
   "pieces": [
@@ -856,7 +873,7 @@
       "id": "scores",
       "kind": "bag",
       "position": [
-        90,
+        94,
         44
       ],
       "size": [
@@ -866,6 +883,38 @@
       "infinite": "score",
       "text": "Scores",
       "color": "#8a6a3a",
+      "fixed": true
+    },
+    {
+      "id": "sheets",
+      "kind": "bag",
+      "position": [
+        94,
+        32
+      ],
+      "size": [
+        9,
+        9
+      ],
+      "infinite": "sheet",
+      "text": "Score sheets",
+      "color": "#5e6b8a",
+      "fixed": true
+    },
+    {
+      "id": "notes",
+      "kind": "bag",
+      "position": [
+        106,
+        44
+      ],
+      "size": [
+        9,
+        9
+      ],
+      "infinite": "note",
+      "text": "Notes",
+      "color": "#a08a2a",
       "fixed": true
     }
   ],

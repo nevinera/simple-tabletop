@@ -7,7 +7,7 @@ const ZOOM_STEP = 0.8;
 
 export function ActionBar({
   scene, interaction, selectedObject, cameraPoints, menus, magnifyMode, setMagnifyMode, selectMode, setSelectMode,
-  onReorder, onSearch,
+  onReorder, onSearch, onWrite,
 }) {
   // Magnify and select modes each change what a tap does, so only one is on.
   const toggleMagnify = () => {
@@ -31,7 +31,7 @@ export function ActionBar({
         title={selectedObject ? "Act on what you've selected" : "Select something to act on it"}
         {...menus}
       >
-        <ObjectActions interaction={interaction} objectId={selectedObject} onReorder={onReorder} onSearch={onSearch} />
+        <ObjectActions interaction={interaction} objectId={selectedObject} onReorder={onReorder} onSearch={onSearch} onWrite={onWrite} />
       </Menu>
       <button type="button" className="bar-button" aria-label="Zoom in" onClick={() => scene?.zoomBy(ZOOM_STEP)}>
         <span aria-hidden="true">＋</span>

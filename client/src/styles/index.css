@@ -214,6 +214,59 @@ body,
 .reorder-name { flex: 1; }
 .reorder-row .menu-item { min-height: 32px; padding: 0 8px; }
 .reorder .piece-actions-row { margin-top: 10px; }
+.note-face {
+  max-width: min(90vw, 560px);
+  max-height: 80vh;
+  overflow: hidden;
+  padding: 16px 18px;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-align: left;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+.scores-face { margin-top: 8px; border-collapse: collapse; }
+.scores-face th,
+.scores-face td { padding: 2px 10px; text-align: right; }
+.scores-face tfoot td { font-weight: 800; border-top: 1px solid currentColor; }
+.note-text,
+.sheet-title,
+.score-sheet input {
+  border: 1px solid var(--bar-border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font: inherit;
+}
+.note-text { width: 100%; min-height: 40vh; padding: 8px 10px; resize: vertical; }
+.sheet-title { width: 100%; min-height: 36px; margin-bottom: 8px; padding: 0 10px; }
+.writing-footer { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.writing-footer .menu-note { margin: 0 auto 0 0; }
+.sheet-scroll { overflow-x: auto; max-height: 50vh; overflow-y: auto; }
+.score-sheet { border-collapse: collapse; }
+.score-sheet th,
+.score-sheet td { padding: 2px; text-align: center; white-space: nowrap; }
+.score-sheet tbody th { color: var(--muted); font-weight: 500; }
+.score-sheet input { width: 4.5em; min-height: 32px; padding: 0 6px; text-align: right; }
+.score-sheet thead input { width: 7em; text-align: left; }
+.score-sheet input[aria-invalid="true"] { border-color: #d0302a; }
+.score-sheet tfoot td { font-weight: 800; padding-top: 6px; }
+.sheet-remove {
+  margin-left: 2px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
 .search-input {
   width: 100%;
   min-height: 36px;

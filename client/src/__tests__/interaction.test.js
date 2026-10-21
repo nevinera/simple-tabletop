@@ -91,9 +91,10 @@ describe("PieceInteraction", () => {
     expect(camera.enabled).toBe(true);
   });
 
-  it("keeps the table edge in bounds while dragging", () => {
+  it("keeps the table edge in bounds while dragging, and lands wholly on the table", () => {
     drag([10, 10], [-40, 200]);
-    expect(piece("AS")).toMatchObject({ x: 0, y: 90 });
+    expect(piece("AS").x).toBeCloseTo(6.3 / 2);
+    expect(piece("AS").y).toBeCloseTo(90 - 8.8 / 2);
   });
 
   it("ignores small wobbles during a click", () => {
@@ -484,9 +485,17 @@ describe("group selection", () => {
   it("moves the group with the one you drag", () => {
     click(10, 10);
     click(30, 30, { shiftKey: true });
+    drag([10, 10], [15, 60]);
+    expect(piece("AS")).toMatchObject({ x: 15, y: 60, heldBy: null });
+    expect(piece("AH")).toMatchObject({ x: 35, y: 80, heldBy: null });
+  });
+
+  it("nudges a group that would hang off the edge back onto the table", () => {
+    click(10, 10);
+    click(30, 30, { shiftKey: true });
     drag([10, 10], [15, 70]);
-    expect(piece("AS")).toMatchObject({ x: 15, y: 70, heldBy: null });
-    expect(piece("AH")).toMatchObject({ x: 35, y: 90, heldBy: null });
+    expect(piece("AH").y).toBeCloseTo(90 - 8.8 / 2);
+    expect(piece("AS").y).toBeCloseTo(70 - 8.8 / 2);
   });
 
   it("puts the whole group back with Esc", () => {

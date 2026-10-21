@@ -151,6 +151,24 @@ describe("a synced store", () => {
     expect(server.state.pieces.a.faceUp).toBe(false);
   });
 
+  it("keeps an action made before connecting, and sends it once connected", () => {
+    const server = fakeServer();
+    const sam = createTableStore(manifest, null, { synced: true });
+    sam.dispatch({ type: "grab", id: "a", playerId: "sam" });
+    server.join(sam, "sam");
+    server.deliver();
+    expect(server.state.pieces.a.heldBy).toBe("sam");
+    expect(sam.getState().pieces.a.heldBy).toBe("sam");
+  });
+
+  it("drops the action in flight when the connection drops, and goes on with the rest", () => {
+    const server = fakeServer();
+    const sam = player(server);
+    sam.dispatch({ type: "grab", id: "a", playerId: "sam" });
+    sam.disconnect();
+    expect(sam.getState().pieces.a.heldBy).toBeNull();
+  });
+
   it("tells listeners about others' actions, but not your own coming back", () => {
     const server = fakeServer();
     const sam = player(server);

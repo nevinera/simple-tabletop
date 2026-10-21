@@ -93,7 +93,7 @@ Modules are data only. They place pieces and describe how they look. They can't 
 | `labels`        | no       | text drawn on the table; see [Labels](#labels)           |
 | `documents`     | no       | rulebooks and other files to link to; see [Documents](#documents) |
 | `snaps`         | no       | spots pieces jump to when dropped near them; see [Snaps](#snaps) |
-| `maxStackShown` | no       | how many pieces tall a stack draws before showing a count, 2 to 20; defaults to 5 |
+| `maxStackShown` | no       | how many pieces tall a stack draws before showing a count, 1 to 20; defaults to 5. At 1, every stack shows its count |
 
 ## Table
 

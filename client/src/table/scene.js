@@ -29,6 +29,9 @@ import { buildCounter, showCount } from "./counters";
 const BACKGROUND = 0x1b1b1f;
 const TARGET_MARGIN = 0.1; // how far past the table edge the orbit target may go, as a fraction of its size
 const WIGGLE_MS = 250;
+const MIN_NEAR = 0.1; // cm
+const MAX_NEAR = 20; // cm
+const NEAR_PER_HEIGHT = 0.05; // of the camera's height over the table
 const WIGGLE_DEGREES = 8; // how far a blocked rotation turns before springing back
 const SWIRL_MS = 1000; // how long a rolled die shows as a swirl
 const UNSEATED_COLOR = "#555555"; // name tags for players without a seat
@@ -311,7 +314,18 @@ export class TableScene {
       if (group.visible && group.userData.counter) faceCamera(group, this.camera.position);
     }
     if (this.bounds) clampTarget(this.camera.position, this.controls.target, this.bounds);
+    this.#fitNearPlane();
     this.renderer.render(this.scene, this.camera);
+  }
+
+  // Moves the near plane out as the camera rises. Depth precision piles up
+  // just past the near plane, so a near plane far closer than anything on
+  // the table leaves too little to tell flat pieces from what they lie on.
+  #fitNearPlane() {
+    const near = Math.min(MAX_NEAR, Math.max(MIN_NEAR, this.camera.position.y * NEAR_PER_HEIGHT));
+    if (Math.abs(near - this.camera.near) < this.camera.near * 0.05) return;
+    this.camera.near = near;
+    this.camera.updateProjectionMatrix();
   }
 
   async #buildTable(table) {
@@ -323,9 +337,11 @@ export class TableScene {
       texture = feltTexture(table.color);
       texture.repeat.set(width / FELT_TILE_CM, depth / FELT_TILE_CM);
     }
+    // Pushed back in depth, so a board lying on it always wins, even from
+    // far off where the depth buffer can't tell a millimeter apart.
     const mesh = new THREE.Mesh(
       new THREE.PlaneGeometry(width, depth),
-      new THREE.MeshStandardMaterial({ map: texture, roughness: 1 })
+      new THREE.MeshStandardMaterial({ map: texture, roughness: 1, polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2 })
     );
     mesh.rotation.x = -Math.PI / 2;
     mesh.position.fromArray(tableToThree([width / 2, 0, depth / 2]));

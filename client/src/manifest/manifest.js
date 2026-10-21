@@ -135,7 +135,7 @@ function normalizeSnaps(snaps, index) {
 // How many pieces tall a stack grows before it shows a count instead.
 function normalizeStackShown(shown) {
   if (shown == null) return STACK_SHOWN;
-  if (!Number.isInteger(shown) || shown < 2 || shown > 20) throw new ManifestError("maxStackShown must be a whole number from 2 to 20.");
+  if (!Number.isInteger(shown) || shown < 1 || shown > 20) throw new ManifestError("maxStackShown must be a whole number from 1 to 20.");
   return shown;
 }
 

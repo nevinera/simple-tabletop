@@ -39,7 +39,7 @@
 // or null, and splayDistance, a player's spacing for the fan or null for the
 // deck's own.
 
-import { carried, elevation, landing, riders, setDown, settle, stackUp } from "./footprint";
+import { carried, elevation, keepOnTable, landing, riders, setDown, settle, stackUp } from "./footprint";
 import {
   MAX_COUNTER_LABEL, MAX_COUNTER_VALUE, SPLAY_DIRECTIONS, accepts, fanSpots, findObject, handIndex, handSlots, pieceDef, pilesWith,
   spawnedId,
@@ -485,8 +485,18 @@ function dropGroup(manifest, state, action, object) {
   }
   // A piece let go of near a snap point lands on it.
   const snapped = object.kind === "piece" ? snapSpot(manifest, object.def, action.x, action.y) : null;
-  const [x, y] = snapped ?? [action.x, action.y];
-  const target = landing(manifest, state, object.id, x, y, object.state.rotation, action.playerId);
+  let [x, y] = snapped ?? [action.x, action.y];
+  let target = landing(manifest, state, object.id, x, y, object.state.rotation, action.playerId);
+  // Let go of over the table, but not into a container, it lands wholly on
+  // the table, nudged in from any edge it hangs over.
+  const [width, depth] = manifest.table.size;
+  if (!target.into && x >= 0 && y >= 0 && x <= width && y <= depth) {
+    const [inX, inY] = keepOnTable(manifest, state, object, x, y);
+    if (inX !== x || inY !== y) {
+      [x, y] = [inX, inY];
+      target = landing(manifest, state, object.id, x, y, object.state.rotation, action.playerId);
+    }
+  }
   if (target.blocked) return blocked(state);
   if (target.into && object.kind === "container") return mergeDeck(manifest, state, object, target.into, letGo);
   if (target.onto && object.def.kind === "card") return formDeck(manifest, state, object, target.onto, letGo);

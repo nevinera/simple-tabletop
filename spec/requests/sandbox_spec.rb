@@ -1,10 +1,9 @@
 require "rails_helper"
 
 RSpec.describe "Sandbox", type: :request do
-  it "mounts the client on the Four Aces demo" do
+  it "sends a visit without a module to the home page" do
     get sandbox_path
-    expect(response).to have_http_status(:ok)
-    expect(response.body).to include('data-manifest-url="/builtins/aces/manifest.json"')
+    expect(response).to redirect_to(root_path)
   end
 
   it "mounts the client on a manifest from the query string" do

@@ -109,14 +109,17 @@ describe("stacks", () => {
 });
 
 describe("how tall a stack shows", () => {
-  it("defaults to five pieces, and takes a module's maxStackShown from 2 to 20", () => {
+  it("defaults to five pieces, and takes a module's maxStackShown from 1 to 20", () => {
     const height = (m, count) => objectHeight({ kind: "container", def: findObject(m, initialState(m), "pile").def, state: { members: Array(count) } });
     expect(height(manifest, 9)).toBeCloseTo(1);
     const tall = normalizeManifest(raw({ maxStackShown: 12 }), BASE);
     expect(height(tall, 9)).toBeCloseTo(1.8);
     expect(height(tall, 15)).toBeCloseTo(2.4);
-    expect(() => normalizeManifest(raw({ maxStackShown: 1 }), BASE)).toThrow(/2 to 20/);
-    expect(() => normalizeManifest(raw({ maxStackShown: 21 }), BASE)).toThrow(/2 to 20/);
+    // At 1, every stack is one piece tall with its count on top.
+    const flat = normalizeManifest(raw({ maxStackShown: 1 }), BASE);
+    expect(height(flat, 2)).toBeCloseTo(height(flat, 1));
+    expect(() => normalizeManifest(raw({ maxStackShown: 0 }), BASE)).toThrow(/1 to 20/);
+    expect(() => normalizeManifest(raw({ maxStackShown: 21 }), BASE)).toThrow(/1 to 20/);
   });
 });
 

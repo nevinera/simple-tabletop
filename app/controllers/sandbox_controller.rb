@@ -2,11 +2,8 @@
 class SandboxController < ApplicationController
   layout "client"
 
-  # Four Aces shows off what the table can do. It isn't a real game, so the
-  # home page doesn't offer it.
-  DEMO_MANIFEST = "/builtins/aces/manifest.json".freeze
-
   def show
-    @manifest_url = params[:manifest].presence || DEMO_MANIFEST
+    @manifest_url = params[:manifest].presence
+    redirect_to root_path unless @manifest_url
   end
 end

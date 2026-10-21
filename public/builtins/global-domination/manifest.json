@@ -21,7 +21,7 @@
     }
   ],
   "hands": true,
-  "maxStackShown": 10,
+  "maxStackShown": 1,
   "seats": [
     {
       "id": "red",

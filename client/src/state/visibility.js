@@ -33,6 +33,8 @@ export function visibleSide(manifest, state, id, viewerSeat) {
   if (def.shape === "die") return { die: def.die, value: piece.value };
   if (def.kind === "pawn") return { pawn: { shape: def.shape, color: def.color } };
   if (def.kind === "counter") return { counter: { label: piece.label, value: piece.value, color: def.color } };
+  if (def.kind === "note") return { note: { text: piece.text, color: def.color } };
+  if (def.kind === "scoresheet") return { scores: { label: piece.label, players: piece.players, rounds: piece.rounds, color: def.color } };
   if (piece.containerId) {
     const container = findObject(manifest, state, piece.containerId);
     if (container.def.kind === "stack" || container.def.kind === "bowl") return { image: piece.faceUp ? faceOf(def, piece) : backOf(def, piece), size: def.size };
@@ -65,6 +67,10 @@ function describeKind(def) {
   }
   if (def.kind === "pawn") {
     return { key: def.type || `pawn:${def.shape}:${def.color}`, name: def.type, side: { pawn: { shape: def.shape, color: def.color } } };
+  }
+  if (def.kind === "note") return { key: def.type || "note", name: def.type || "note", side: { note: { text: def.text, color: def.color } } };
+  if (def.kind === "scoresheet") {
+    return { key: def.type || "scoresheet", name: def.type || def.label, side: { scores: { label: def.label, players: def.players, rounds: [], color: def.color } } };
   }
   if (def.kind === "counter") {
     return { key: def.type || `counter:${def.label}`, name: def.type || def.label, side: { counter: { label: def.label, value: def.value, color: def.color } } };

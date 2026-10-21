@@ -8,6 +8,7 @@ import {
   DEFAULT_SPLAY, MAX_COUNTER_LABEL, MAX_COUNTER_VALUE, SPLAY_DIRECTIONS, STACK_SHOWN, canStack, stackKey,
 } from "../state/objects";
 import { MEEPLE_DEPTH, PAWN_HEIGHTS, PAWN_SHAPES } from "../state/pawnShapes";
+import { DEFAULT_SCORE_PLAYERS, noteError, playersError } from "../state/notes";
 
 export const DEFAULT_TABLE_COLOR = "#2e6b3f";
 const LAYER_IDS = ["board", "pieces"];
@@ -22,6 +23,8 @@ const KIND_SHAPES = {
   standee: ["rect"],
   pawn: PAWN_SHAPES,
   counter: ["rect"],
+  note: ["rect"],
+  scoresheet: ["rect"],
 };
 const HOLDER_MARGIN = 0.2; // cm the clear holder sticks out past a standee on each side
 const HOLDER_DEPTH = 0.35; // of a standee's width, front to back
@@ -37,6 +40,8 @@ const MAX_BAG_TEXT = 16;
 const SOLID_THICKNESS = 0.2; // cm; tiles, chips, tokens, and standees, unless they say otherwise
 const DEFAULT_PAWN_COLOR = "#f4f1ea";
 const DEFAULT_COUNTER_COLOR = "#f4f1ea";
+const DEFAULT_NOTE_COLOR = "#fbf0b4";
+const DEFAULT_SCORESHEET_LABEL = "Scores";
 const COUNTER_THICKNESS = 0.4; // cm
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 const SEAT_COLORS = ["#c0392b", "#2980b9", "#27ae60", "#8e44ad", "#d35400", "#16a085", "#c2185b", "#7f8c8d"];
@@ -399,24 +404,41 @@ function normalizeSheets(sheets, resolve) {
 
 // An image is either a path or { sheet, index }. Both come out as { url },
 // and sheet images also carry the grid cell to crop to.
-// A counter keeps a labeled number that players change, like a score.
-function normalizeCounter(piece, rawPiece, type, layer, where, inContainer) {
+// Plaques players write on: a counter keeps a labeled number, like a score;
+// a note keeps text; a score sheet keeps each player's score by round.
+const PLAQUES = ["counter", "note", "scoresheet"];
+
+function normalizePlaque(piece, rawPiece, type, layer, where, inContainer) {
   if (piece.color != null && !HEX_COLOR.test(piece.color)) throw new ManifestError(`${where} color must be a hex color like "#c0392b".`);
-  const label = piece.label ?? "";
-  if (typeof label !== "string" || label.length > MAX_COUNTER_LABEL) {
-    throw new ManifestError(`${where} label must be text, at most ${MAX_COUNTER_LABEL} characters.`);
+  if (piece.size.length < 2 || !(piece.size[1] > 0)) throw new ManifestError(`${where} needs a size: [width, depth].`);
+  const writing = {};
+  if (piece.kind === "note") {
+    writing.text = piece.text ?? "";
+    const error = noteError(writing.text);
+    if (error) throw new ManifestError(`${where}: ${error}`);
+  } else {
+    writing.label = piece.label ?? (piece.kind === "scoresheet" ? DEFAULT_SCORESHEET_LABEL : "");
+    if (typeof writing.label !== "string" || writing.label.length > MAX_COUNTER_LABEL) {
+      throw new ManifestError(`${where} label must be text, at most ${MAX_COUNTER_LABEL} characters.`);
+    }
   }
-  const value = piece.value ?? 0;
-  if (!Number.isInteger(value) || Math.abs(value) > MAX_COUNTER_VALUE) throw new ManifestError(`${where} value must be a whole number.`);
+  if (piece.kind === "counter") {
+    writing.value = piece.value ?? 0;
+    if (!Number.isInteger(writing.value) || Math.abs(writing.value) > MAX_COUNTER_VALUE) throw new ManifestError(`${where} value must be a whole number.`);
+  }
+  if (piece.kind === "scoresheet") {
+    writing.players = piece.players ?? DEFAULT_SCORE_PLAYERS;
+    const error = playersError(writing.players);
+    if (error) throw new ManifestError(`${where}: ${error}`);
+  }
   return {
     id: piece.id,
-    kind: "counter",
+    kind: piece.kind,
     shape: "rect",
     size: piece.size,
     thickness: piece.thickness ?? COUNTER_THICKNESS,
-    color: piece.color || DEFAULT_COUNTER_COLOR,
-    label,
-    value,
+    color: piece.color || (piece.kind === "note" ? DEFAULT_NOTE_COLOR : DEFAULT_COUNTER_COLOR),
+    ...writing,
     type: rawPiece.type || null,
     categories: [...new Set([...(type.categories || []), ...(rawPiece.categories || [])])],
     layer,
@@ -523,7 +545,7 @@ function normalizePiece(rawPiece, raw, layers, image, contained, dieTypes) {
   piece.shape ??= shapes[0];
   if (!shapes.includes(piece.shape)) throw new ManifestError(`${where} is a ${piece.kind}, so it can't be a ${piece.shape}.`);
   if (!Array.isArray(piece.size) || !(piece.size[0] > 0)) throw new ManifestError(`${where} needs a size.`);
-  if (!piece.face && !piece.states && piece.shape !== "die" && !["pawn", "counter"].includes(piece.kind)) {
+  if (!piece.face && !piece.states && piece.shape !== "die" && !["pawn", ...PLAQUES].includes(piece.kind)) {
     throw new ManifestError(`${where} needs a face image.`);
   }
 
@@ -556,7 +578,7 @@ function normalizePiece(rawPiece, raw, layers, image, contained, dieTypes) {
     };
   }
 
-  if (piece.kind === "counter") return normalizeCounter(piece, rawPiece, type, layer, where, inContainer);
+  if (PLAQUES.includes(piece.kind)) return normalizePlaque(piece, rawPiece, type, layer, where, inContainer);
 
   if (piece.kind === "pawn") {
     if (piece.color != null && !HEX_COLOR.test(piece.color)) throw new ManifestError(`${where} color must be a hex color like "#c0392b".`);

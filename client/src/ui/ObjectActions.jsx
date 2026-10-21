@@ -11,7 +11,7 @@ import { useStoreValue } from "../useStoreValue";
 // your hand or a deck's fan only magnify and change state. Cards with states
 // list them. Decks also splay, locked or not. onDone runs after any action,
 // so a menu can close.
-export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onSearch, onDone = () => {} }) {
+export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onSearch, onWrite, onDone = () => {} }) {
   const object = interaction.describe(objectId);
   if (!object) return <p className="menu-note">{interaction.holderName(objectId) || "Someone else"} has that.</p>;
 
@@ -45,11 +45,17 @@ export function ObjectActions({ interaction, objectId, onMagnify, onReorder, onS
   );
   if (object.inHand || object.inDeck) return <div className="piece-actions">{magnify}{states}</div>;
   const counter = object.counter && <CounterControls interaction={interaction} objectId={objectId} />;
+  const write = object.writable && onWrite && (
+    <button type="button" className="menu-item" onClick={act(() => onWrite(objectId))}>
+      {object.writable === "note" ? "Write on the note" : "Keep score"}
+    </button>
+  );
 
   return (
     <div className="piece-actions">
       {!die && !tray && magnify}
       {counter}
+      {write}
       {states}
       {deck && <p className="menu-title">{deckTitle(object.count)}</p>}
       {bag && <p className="menu-title">{bagTitle(object)}</p>}

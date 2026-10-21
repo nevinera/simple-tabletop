@@ -201,6 +201,9 @@ function manifest() {
       ...chipTypes,
       // Score keepers: each one a labeled number players count up and down.
       score: { kind: "counter", size: [7, 3.5], label: "Score", color: "#f4efe0" },
+      // A running score by round, and notes to jot on.
+      sheet: { kind: "scoresheet", size: [12, 9], label: "Scores", color: "#f4efe0" },
+      note: { kind: "note", size: [9, 7], color: "#fbf0b4" },
     },
     pieces: cards,
     containers: [
@@ -208,8 +211,16 @@ function manifest() {
       { id: "discard", kind: "deck", position: [TABLE / 2 + 5, TABLE / 2 + 4], size: CARD_SIZE, faceUp: true, members: [] },
       ...banks,
       {
-        id: "scores", kind: "bag", position: [TABLE / 2 + 30, TABLE / 2 - 16], size: [9, 9],
+        id: "scores", kind: "bag", position: [TABLE / 2 + 34, TABLE / 2 - 16], size: [9, 9],
         infinite: "score", text: "Scores", color: "#8a6a3a", fixed: true,
+      },
+      {
+        id: "sheets", kind: "bag", position: [TABLE / 2 + 34, TABLE / 2 - 28], size: [9, 9],
+        infinite: "sheet", text: "Score sheets", color: "#5e6b8a", fixed: true,
+      },
+      {
+        id: "notes", kind: "bag", position: [TABLE / 2 + 46, TABLE / 2 - 16], size: [9, 9],
+        infinite: "note", text: "Notes", color: "#a08a2a", fixed: true,
       },
     ],
     labels: [

@@ -253,8 +253,8 @@ const CONTAINER_TAKES = {
   tray: ["die"],
   deck: ["card"],
   hand: ["card", "tile"],
-  bag: ["card", "tile", "chip", "token", "die", "standee", "pawn", "counter"],
-  bowl: ["card", "tile", "chip", "token", "die", "standee", "pawn", "counter"],
+  bag: ["card", "tile", "chip", "token", "die", "standee", "pawn", "counter", "note", "scoresheet"],
+  bowl: ["card", "tile", "chip", "token", "die", "standee", "pawn", "counter", "note", "scoresheet"],
 };
 
 export function accepts(containerDef, pieceDef) {

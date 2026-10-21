@@ -5,7 +5,7 @@ const EDGE_GAP = 8; // px kept between the menu and the window edge
 
 // An object's menu: at the cursor for a right-click, or as a centered popover
 // for a touch hold (and on phone layouts).
-export function ContextMenu({ menu, interaction, popover, onMagnify, onReorder, onSearch, onClose }) {
+export function ContextMenu({ menu, interaction, popover, onMagnify, onReorder, onSearch, onWrite, onClose }) {
   const ref = useRef(null);
   const [position, setPosition] = useState({ left: menu.clientX, top: menu.clientY });
 
@@ -28,7 +28,7 @@ export function ContextMenu({ menu, interaction, popover, onMagnify, onReorder, 
       style={popover ? undefined : position}
       onContextMenu={(event) => event.preventDefault()}
     >
-      <ObjectActions interaction={interaction} objectId={menu.objectId} onMagnify={onMagnify} onReorder={onReorder} onSearch={onSearch} onDone={onClose} />
+      <ObjectActions interaction={interaction} objectId={menu.objectId} onMagnify={onMagnify} onReorder={onReorder} onSearch={onSearch} onWrite={onWrite} onDone={onClose} />
     </div>
   );
 }

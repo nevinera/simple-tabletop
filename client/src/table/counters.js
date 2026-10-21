@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { buildGhost, buildShadow } from "./pieces";
 
-const PIXELS_WIDE = 512;
+const PIXELS_WIDE = 768;
 const DARK_INK = "#1f1f1f";
 const LIGHT_INK = "#f7f5ef";
 
@@ -25,10 +25,25 @@ export function buildCounter(def) {
 
 // Draws the counter's label and number on its top, if they changed.
 export function showCount(mesh, def, state) {
-  const key = `${state.label}\n${state.value}`;
+  paintTop(mesh, def, `${state.label}\n${state.value}`, (ctx, w, h) => drawCount(ctx, w, h, state.label, state.value));
+}
+
+// Paints a plaque's top with draw(ctx, width, height) on its color, unless
+// key is what's there already. Used by counters, notes, and score sheets.
+export function paintTop(mesh, def, key, draw) {
   if (mesh.userData.countKey === key) return;
-  const texture = countTexture(def, state.label, state.value);
-  if (!texture) return;
+  const [width, depth] = def.size;
+  const canvas = document.createElement("canvas");
+  canvas.width = PIXELS_WIDE;
+  canvas.height = Math.round((PIXELS_WIDE * depth) / width);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  ctx.fillStyle = def.color;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = inkFor(def.color);
+  draw(ctx, canvas.width, canvas.height);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
   mesh.userData.countKey = key;
   const top = mesh.material[2];
   top.map?.dispose();
@@ -37,17 +52,7 @@ export function showCount(mesh, def, state) {
   top.needsUpdate = true;
 }
 
-function countTexture(def, label, value) {
-  const [width, depth] = def.size;
-  const canvas = document.createElement("canvas");
-  canvas.width = PIXELS_WIDE;
-  canvas.height = Math.round((PIXELS_WIDE * depth) / width);
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
-  const { width: w, height: h } = canvas;
-  ctx.fillStyle = def.color;
-  ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = inkFor(def.color);
+function drawCount(ctx, w, h, label, value) {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   const hasLabel = Boolean(label);
@@ -59,9 +64,6 @@ function countTexture(def, label, value) {
   }
   ctx.font = `800 ${Math.round(h * (hasLabel ? 0.5 : 0.62))}px system-ui, sans-serif`;
   ctx.fillText(String(value), w / 2, hasLabel ? h * 0.64 : h / 2, w * 0.92);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
 }
 
 // Dark text on light counters, light text on dark ones.

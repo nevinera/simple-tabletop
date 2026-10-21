@@ -177,6 +177,8 @@ A piece's kind decides what it does:
 | standee | rect         |              | no            | no    |
 | pawn  | see [Pawns](#pawns) |       | no            | no    |
 | counter | rect         |              | no            | no    |
+| note  | rect           |              | no            | no    |
+| scoresheet | rect      |              | no            | no    |
 
 A standee stands upright in a clear holder, its `face` toward the front and its `back` behind. Transparent
 parts of its images are cut out. Its holder is what takes up room on the table. Turn it to face another way.
@@ -336,6 +338,35 @@ label. A locked counter stays put but still counts.
 - `label` is up to 12 characters, and defaults to none. `value` is a whole number, and defaults to 0.
 - `color` defaults to an off-white. The writing comes out dark or light to suit it.
 - An infinite bag of counters hands out as many score keepers as players need.
+
+## Notes
+
+A note is a plaque players write on, up to 10,000 characters. The table shows as much of its text as fits,
+ending in "…" when there's more; magnifying shows more, and "Write on the note" in its menu shows and edits it
+all. A locked note stays put but still takes writing.
+
+```json
+"memo": { "kind": "note", "size": [9, 7], "text": "", "color": "#fbf0b4" }
+```
+
+- `size` is `[width, depth]`. The text's size follows the note's, so a bigger note shows more.
+- `text` defaults to none, and `color` to a pale yellow.
+
+## Score sheets
+
+A score sheet keeps each player's score round by round. The table shows its title and every player's running
+total; "Keep score" in its menu opens the whole sheet, where players name the columns, add rounds and
+players, and fill in scores. A locked sheet stays put but still keeps score.
+
+```json
+"sheet": { "kind": "scoresheet", "size": [12, 9], "label": "Scores", "players": ["Ann", "Bo"] }
+```
+
+- `label` is the title, up to 12 characters, and defaults to "Scores".
+- `players` are the column headings, 1 to 8 of them, each up to 16 characters. They default to four,
+  "Player 1" to "Player 4".
+- A sheet holds up to 100 rounds. Scores are whole numbers, and a blank counts as 0.
+- `color` defaults to an off-white.
 
 ## Containers
 

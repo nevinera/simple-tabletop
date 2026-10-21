@@ -7,6 +7,7 @@ const ZOOM_STEP = 0.8;
 
 export function ActionBar({
   scene, interaction, selectedObject, cameraPoints, menus, magnifyMode, setMagnifyMode, selectMode, setSelectMode,
+  tuckMode = false, setTuckMode = () => {},
   onReorder, onSearch,
 }) {
   // Magnify and select modes each change what a tap does, so only one is on.
@@ -58,6 +59,16 @@ export function ActionBar({
         onClick={toggleSelect}
       >
         <span aria-hidden="true">☑</span>
+      </button>
+      <button
+        type="button"
+        className={`bar-button${tuckMode ? " active" : ""}`}
+        aria-label="Tuck under"
+        aria-pressed={tuckMode}
+        title="Cards you drop on a deck or pile go underneath instead of on top"
+        onClick={() => setTuckMode(!tuckMode)}
+      >
+        <span aria-hidden="true">⤓</span>
       </button>
     </nav>
   );

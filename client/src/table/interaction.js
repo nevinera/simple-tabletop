@@ -26,7 +26,7 @@
 // The scene supplies hit testing through `pick` and `tablePoint`, so this
 // runs without WebGL in tests.
 
-import { applyAction, dealOrder } from "../state/actions";
+import { dealOrder } from "../state/actions";
 import { rollValues } from "../state/dice";
 import { DEFAULT_SPLAY, fanSpots, findObject, pieceDef, pilesWith, spawnedId } from "../state/objects";
 import { scatter } from "../state/trays";
@@ -63,6 +63,7 @@ export class PieceInteraction {
     this.nameOf = () => null; // player id -> name
     this.magnifyMode = false;
     this.selectMode = false;
+    this.tuckMode = false; // drops on a deck or pile go underneath, as with Shift
     this.relocateOnTrayRoll = true; // whether rolling a tray scatters its dice
     // Wrapped, since the browser's timer functions throw when called as methods.
     this.schedule = (fn, ms) => schedule(fn, ms);
@@ -136,7 +137,6 @@ export class PieceInteraction {
       canMakeDeck: !container && !object.state.containerId && object.def.kind === "card",
       searchable: ["deck", "bag"].includes(object.def.kind) && !infinite && object.state.members.length > 0,
       canStackUp: this.#stackable(id),
-      canTuck: Boolean(this.#tuckDrop(id)),
       canFlip: container ? object.def.kind === "deck" : !["die", "board", "standee", "pawn", "counter"].includes(object.def.kind),
       counter: object.def.kind === "counter" ? { label: object.state.label, value: object.state.value } : null,
       splay: object.def.kind === "deck" ? object.state.splay : null,
@@ -273,7 +273,7 @@ export class PieceInteraction {
   handDrop(cardId, { index = null, overTable = false } = {}) {
     const card = this.#object(cardId).state;
     if (index != null) this.#dispatch("drop", cardId, { into: this.#ownHand(), index });
-    else if (overTable && card.drag) this.#dispatch("drop", cardId, card.drag);
+    else if (overTable && card.drag) this.#drop(cardId, card.drag);
     else this.#dispatch("release", cardId);
   }
 
@@ -328,24 +328,6 @@ export class PieceInteraction {
   // Whether a menu for this object offers to stack up what you hold.
   #stackable(id) {
     return Boolean(this.#pileToStack()?.includes(id));
-  }
-
-  // Tucks what you hold under a deck or stack, if it takes it there.
-  tuck(id) {
-    const drop = this.#tuckDrop(id);
-    return drop ? this.store.dispatch(drop).ok : false;
-  }
-
-  // The drop that tucks what you hold under a deck or stack, or null if it
-  // wouldn't end up in there.
-  #tuckDrop(id) {
-    const target = this.#object(id);
-    const [lead] = this.selectedIds();
-    if (!target || !lead || lead === id || !["deck", "stack"].includes(target.def.kind) || target.state.x == null) return null;
-    const drop = { type: "drop", id: lead, playerId: this.playerId, x: target.state.x, y: target.state.y, tuck: true };
-    const result = applyAction(this.manifest, this.store.getState(), drop);
-    const landed = result.ok && (result.state.pieces[lead]?.containerId === id || result.state.containers[id]?.members.at(-1) === lead);
-    return landed ? drop : null;
   }
 
   makeDeck(id) {
@@ -507,7 +489,7 @@ export class PieceInteraction {
       } else if (gesture.moved || object.state.heldBy === this.playerId) {
         // Shift as you let go over a deck or pile tucks it underneath.
         const { x, y } = object.state.drag || object.state;
-        this.#dispatch("drop", gesture.objectId, event.shiftKey ? { x, y, tuck: true } : { x, y });
+        this.#drop(gesture.objectId, { x, y }, event.shiftKey);
       } else {
         this.#select(gesture.objectId);
       }
@@ -667,7 +649,13 @@ export class PieceInteraction {
     const point = this.tablePoint(clientX, clientY, id);
     if (!point) return;
     const [x, y] = this.clampToTable(point);
-    this.#dispatch("drop", id, { x, y });
+    this.#drop(id, { x, y });
+  }
+
+  // Drops at a table point, tucking it under a deck or pile there with Shift
+  // held or tuck mode on.
+  #drop(id, { x, y }, shift = false) {
+    return this.#dispatch("drop", id, shift || this.tuckMode ? { x, y, tuck: true } : { x, y });
   }
 
   #dispatch(type, id, extra = {}) {

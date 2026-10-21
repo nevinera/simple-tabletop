@@ -117,7 +117,7 @@ Decks, bags, bowls, and hands.
 | `x`, `y`       | table position; hands ignore these and follow their seat       |
 | `rotation`     |                                                               |
 | `face_up`      | decks: which way every card in the deck faces                 |
-| `spots`        | trays: JSON map of die key to `[x, y]` within the tray        |
+| `spots`        | trays and bowls: JSON map of piece key to `[x, y]` within it  |
 | `spawned`      | infinite bags: how many pieces the bag has handed out         |
 | `splay`        | decks: `left`, `right`, `away`, `toward`, or null when closed |
 | `splay_distance` | decks: a player's spacing for the fan in cm, or null for the deck's own |
@@ -245,6 +245,10 @@ die out of a tray nobody holds.
 
 X rolls the die you point at or hold. Shift+X rolls the whole tray you point at, so a slightly off aim can't
 roll a tray's worth of dice by accident.
+
+A bowl keeps spots the same way for any pieces, inside its oval, and fills up to three-fifths of it. The scene
+draws what's in a bowl as if it lay loose on the bowl's floor, so it's picked and dragged out like anything
+else.
 
 ## Hands
 

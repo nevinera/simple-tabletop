@@ -1,0 +1,549 @@
+{
+  "formatVersion": 1,
+  "id": "mancala",
+  "name": "Mancala",
+  "version": "1.0.0",
+  "table": {
+    "size": [
+      90,
+      60
+    ],
+    "color": "#2e6b3f"
+  },
+  "layers": [
+    {
+      "id": "board",
+      "thickness": 0.6
+    },
+    {
+      "id": "pieces",
+      "thickness": 0.5
+    }
+  ],
+  "seats": [
+    {
+      "id": "south",
+      "name": "South",
+      "side": "south",
+      "color": "#c77d12"
+    },
+    {
+      "id": "north",
+      "name": "North",
+      "side": "north",
+      "color": "#1f5fa8"
+    }
+  ],
+  "pieceTypes": {
+    "blue-seed": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        1.1
+      ],
+      "thickness": 0.5,
+      "face": "assets/blue.svg",
+      "back": "assets/blue.svg",
+      "edge": "#1f5fa8"
+    },
+    "green-seed": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        1.1
+      ],
+      "thickness": 0.5,
+      "face": "assets/green.svg",
+      "back": "assets/green.svg",
+      "edge": "#2e7d32"
+    },
+    "amber-seed": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        1.1
+      ],
+      "thickness": 0.5,
+      "face": "assets/amber.svg",
+      "back": "assets/amber.svg",
+      "edge": "#c77d12"
+    },
+    "ruby-seed": {
+      "kind": "token",
+      "shape": "circle",
+      "size": [
+        1.1
+      ],
+      "thickness": 0.5,
+      "face": "assets/ruby.svg",
+      "back": "assets/ruby.svg",
+      "edge": "#a3162f"
+    }
+  },
+  "pieces": [
+    {
+      "id": "board",
+      "kind": "board",
+      "size": [
+        70,
+        24
+      ],
+      "face": "assets/board.svg",
+      "position": [
+        45,
+        30
+      ],
+      "fixed": true
+    },
+    {
+      "id": "seed-1",
+      "type": "green-seed"
+    },
+    {
+      "id": "seed-2",
+      "type": "amber-seed"
+    },
+    {
+      "id": "seed-3",
+      "type": "ruby-seed"
+    },
+    {
+      "id": "seed-4",
+      "type": "blue-seed"
+    },
+    {
+      "id": "seed-5",
+      "type": "green-seed"
+    },
+    {
+      "id": "seed-6",
+      "type": "amber-seed"
+    },
+    {
+      "id": "seed-7",
+      "type": "ruby-seed"
+    },
+    {
+      "id": "seed-8",
+      "type": "blue-seed"
+    },
+    {
+      "id": "seed-9",
+      "type": "green-seed"
+    },
+    {
+      "id": "seed-10",
+      "type": "amber-seed"
+    },
+    {
+      "id": "seed-11",
+      "type": "ruby-seed"
+    },
+    {
+      "id": "seed-12",
+      "type": "blue-seed"
+    },
+    {
+      "id": "seed-13",
+      "type": "green-seed"
+    },
+    {
+      "id": "seed-14",
+      "type": "amber-seed"
+    },
+    {
+      "id": "seed-15",
+      "type": "ruby-seed"
+    },
+    {
+      "id": "seed-16",
+      "type": "blue-seed"
+    },
+    {
+      "id": "seed-17",
+      "type": "green-seed"
+    },
+    {
+      "id": "seed-18",
+      "type": "amber-seed"
+    },
+    {
+      "id": "seed-19",
+      "type": "ruby-seed"
+    },
+    {
+      "id": "seed-20",
+      "type": "blue-seed"
+    },
+    {
+      "id": "seed-21",
+      "type": "green-seed"
+    },
+    {
+      "id": "seed-22",
+      "type": "amber-seed"
+    },
+    {
+      "id": "seed-23",
+      "type": "ruby-seed"
+    },
+    {
+      "id": "seed-24",
+      "type": "blue-seed"
+    },
+    {
+      "id": "seed-25",
+      "type": "green-seed"
+    },
+    {
+      "id": "seed-26",
+      "type": "amber-seed"
+    },
+    {
+      "id": "seed-27",
+      "type": "ruby-seed"
+    },
+    {
+      "id": "seed-28",
+      "type": "blue-seed"
+    },
+    {
+      "id": "seed-29",
+      "type": "green-seed"
+    },
+    {
+      "id": "seed-30",
+      "type": "amber-seed"
+    },
+    {
+      "id": "seed-31",
+      "type": "ruby-seed"
+    },
+    {
+      "id": "seed-32",
+      "type": "blue-seed"
+    },
+    {
+      "id": "seed-33",
+      "type": "green-seed"
+    },
+    {
+      "id": "seed-34",
+      "type": "amber-seed"
+    },
+    {
+      "id": "seed-35",
+      "type": "ruby-seed"
+    },
+    {
+      "id": "seed-36",
+      "type": "blue-seed"
+    },
+    {
+      "id": "seed-37",
+      "type": "green-seed"
+    },
+    {
+      "id": "seed-38",
+      "type": "amber-seed"
+    },
+    {
+      "id": "seed-39",
+      "type": "ruby-seed"
+    },
+    {
+      "id": "seed-40",
+      "type": "blue-seed"
+    },
+    {
+      "id": "seed-41",
+      "type": "green-seed"
+    },
+    {
+      "id": "seed-42",
+      "type": "amber-seed"
+    },
+    {
+      "id": "seed-43",
+      "type": "ruby-seed"
+    },
+    {
+      "id": "seed-44",
+      "type": "blue-seed"
+    },
+    {
+      "id": "seed-45",
+      "type": "green-seed"
+    },
+    {
+      "id": "seed-46",
+      "type": "amber-seed"
+    },
+    {
+      "id": "seed-47",
+      "type": "ruby-seed"
+    },
+    {
+      "id": "seed-48",
+      "type": "blue-seed"
+    }
+  ],
+  "containers": [
+    {
+      "id": "south-pit-1",
+      "kind": "bowl",
+      "position": [
+        26,
+        25.6
+      ],
+      "size": [
+        6.6
+      ],
+      "color": "#7a4e27",
+      "fixed": true,
+      "members": [
+        "seed-1",
+        "seed-2",
+        "seed-3",
+        "seed-4"
+      ]
+    },
+    {
+      "id": "south-pit-2",
+      "kind": "bowl",
+      "position": [
+        33.6,
+        25.6
+      ],
+      "size": [
+        6.6
+      ],
+      "color": "#7a4e27",
+      "fixed": true,
+      "members": [
+        "seed-5",
+        "seed-6",
+        "seed-7",
+        "seed-8"
+      ]
+    },
+    {
+      "id": "south-pit-3",
+      "kind": "bowl",
+      "position": [
+        41.2,
+        25.6
+      ],
+      "size": [
+        6.6
+      ],
+      "color": "#7a4e27",
+      "fixed": true,
+      "members": [
+        "seed-9",
+        "seed-10",
+        "seed-11",
+        "seed-12"
+      ]
+    },
+    {
+      "id": "south-pit-4",
+      "kind": "bowl",
+      "position": [
+        48.8,
+        25.6
+      ],
+      "size": [
+        6.6
+      ],
+      "color": "#7a4e27",
+      "fixed": true,
+      "members": [
+        "seed-13",
+        "seed-14",
+        "seed-15",
+        "seed-16"
+      ]
+    },
+    {
+      "id": "south-pit-5",
+      "kind": "bowl",
+      "position": [
+        56.4,
+        25.6
+      ],
+      "size": [
+        6.6
+      ],
+      "color": "#7a4e27",
+      "fixed": true,
+      "members": [
+        "seed-17",
+        "seed-18",
+        "seed-19",
+        "seed-20"
+      ]
+    },
+    {
+      "id": "south-pit-6",
+      "kind": "bowl",
+      "position": [
+        64,
+        25.6
+      ],
+      "size": [
+        6.6
+      ],
+      "color": "#7a4e27",
+      "fixed": true,
+      "members": [
+        "seed-21",
+        "seed-22",
+        "seed-23",
+        "seed-24"
+      ]
+    },
+    {
+      "id": "south-store",
+      "kind": "bowl",
+      "position": [
+        73,
+        30
+      ],
+      "size": [
+        8,
+        19
+      ],
+      "color": "#7a4e27",
+      "fixed": true
+    },
+    {
+      "id": "north-pit-1",
+      "kind": "bowl",
+      "position": [
+        64,
+        34.4
+      ],
+      "size": [
+        6.6
+      ],
+      "color": "#7a4e27",
+      "fixed": true,
+      "members": [
+        "seed-25",
+        "seed-26",
+        "seed-27",
+        "seed-28"
+      ]
+    },
+    {
+      "id": "north-pit-2",
+      "kind": "bowl",
+      "position": [
+        56.4,
+        34.4
+      ],
+      "size": [
+        6.6
+      ],
+      "color": "#7a4e27",
+      "fixed": true,
+      "members": [
+        "seed-29",
+        "seed-30",
+        "seed-31",
+        "seed-32"
+      ]
+    },
+    {
+      "id": "north-pit-3",
+      "kind": "bowl",
+      "position": [
+        48.8,
+        34.4
+      ],
+      "size": [
+        6.6
+      ],
+      "color": "#7a4e27",
+      "fixed": true,
+      "members": [
+        "seed-33",
+        "seed-34",
+        "seed-35",
+        "seed-36"
+      ]
+    },
+    {
+      "id": "north-pit-4",
+      "kind": "bowl",
+      "position": [
+        41.2,
+        34.4
+      ],
+      "size": [
+        6.6
+      ],
+      "color": "#7a4e27",
+      "fixed": true,
+      "members": [
+        "seed-37",
+        "seed-38",
+        "seed-39",
+        "seed-40"
+      ]
+    },
+    {
+      "id": "north-pit-5",
+      "kind": "bowl",
+      "position": [
+        33.6,
+        34.4
+      ],
+      "size": [
+        6.6
+      ],
+      "color": "#7a4e27",
+      "fixed": true,
+      "members": [
+        "seed-41",
+        "seed-42",
+        "seed-43",
+        "seed-44"
+      ]
+    },
+    {
+      "id": "north-pit-6",
+      "kind": "bowl",
+      "position": [
+        26,
+        34.4
+      ],
+      "size": [
+        6.6
+      ],
+      "color": "#7a4e27",
+      "fixed": true,
+      "members": [
+        "seed-45",
+        "seed-46",
+        "seed-47",
+        "seed-48"
+      ]
+    },
+    {
+      "id": "north-store",
+      "kind": "bowl",
+      "position": [
+        17.000000000000004,
+        30
+      ],
+      "size": [
+        8,
+        19
+      ],
+      "color": "#7a4e27",
+      "fixed": true
+    }
+  ]
+}

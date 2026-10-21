@@ -200,6 +200,7 @@ function normalizeContainers(rawContainers, pieces, layers, image, template) {
     }
     const bag = container.kind === "bag" ? normalizeBag(container, where, image, template) : {};
     const deck = container.kind === "deck" ? normalizeSplay(container, where) : {};
+    const bowl = container.kind === "bowl" ? normalizeBowl(container, where) : {};
     // An infinite bag only takes back what it hands out.
     if (bag.template) accepts = [{ type: bag.template.type }];
 
@@ -217,8 +218,17 @@ function normalizeContainers(rawContainers, pieces, layers, image, template) {
       accepts,
       ...bag,
       ...deck,
+      ...bowl,
     };
   });
+}
+
+// A bowl is round, [diameter], or oval, [width, depth], in its color.
+function normalizeBowl(container, where) {
+  const [width, depth = width] = container.size || [];
+  if (!(width > 0 && depth > 0)) throw new ManifestError(`${where} needs a size: [diameter] or [width, depth].`);
+  if (container.color != null && !HEX_COLOR.test(container.color)) throw new ManifestError(`${where} color must be a hex color like "#c0392b".`);
+  return { size: [width, depth], shape: width === depth ? "circle" : "oval", color: container.color || null };
 }
 
 // How a deck starts splayed, if at all, and how far apart its cards fan.

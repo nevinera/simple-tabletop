@@ -24,3 +24,7 @@
   name: Global Domination
   description: Two to six players conquer a map of 42 territories. Place armies, roll to attack, and trade in card sets for more.
   thumbnail: thumbnail.svg
+- slug: mancala
+  name: Mancala
+  description: Two players sow seeds around twelve pits, capturing into their stores. Every pit shows its count.
+  thumbnail: thumbnail.svg

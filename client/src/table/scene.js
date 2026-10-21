@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { carried, landing, reachBounds, topOf } from "../state/footprint";
 import {
-  DICE_TRAY_FLOOR, HAND_TRAY_HEIGHT, fanSpots, findObject, handSlots, looseObjects, pieceDef,
+  BOWL_FLOOR, DICE_TRAY_FLOOR, HAND_TRAY_HEIGHT, fanSpots, findObject, handSlots, looseObjects, pieceDef,
 } from "../state/objects";
 import { fromTray } from "../state/trays";
 import { playerColor } from "../state/seats";
@@ -11,6 +11,7 @@ import { applyBagPlacement, buildBag } from "./bags";
 import { applyDeckPlacement, buildDeck, deckTopImage, setDeckTop } from "./decks";
 import { applyDiePlacement, buildDie, hideDie, setSwirling } from "./dice";
 import { buildDiceTray, placeDiceTray } from "./diceTrays";
+import { buildBowl, faceBowlCounter, placeBowl } from "./bowls";
 import { Easing } from "./easing";
 import { FELT_TILE_CM, feltTexture } from "./felt";
 import { buildTray, placeTray } from "./hands";
@@ -47,6 +48,7 @@ export class TableScene {
     this.deckGroups = new Map(); // deck, bag, or stack id -> group
     this.trays = new Map(); // hand id -> group
     this.diceTrays = new Map(); // tray id -> group
+    this.bowls = new Map(); // bowl id -> group
     this.rollsSeen = new Map(); // die id -> roll count already shown
     this.swirls = new Map(); // die id -> start time
     this.viewerSeat = null; // whose hand shows face-up
@@ -124,7 +126,7 @@ export class TableScene {
   render(real) {
     this.state = real;
     if (!this.manifest || !this.shown) return;
-    const state = this.#carriedView(real);
+    const state = this.#bowlView(this.#carriedView(real));
     const defs = Object.keys(state.pieces).map((id) => pieceDef(this.manifest, id));
     const ranks = stackRanks(defs, state.pieces);
     for (const def of defs) {
@@ -148,6 +150,7 @@ export class TableScene {
     for (const id of Object.keys(state.containers)) {
       const container = findObject(this.manifest, state, id);
       if (container.def.kind === "tray") this.#renderDiceTray(container, state);
+      if (container.def.kind === "bowl") this.#renderBowl(container);
       if (container.def.kind === "bag") {
         applyBagPlacement(this.#bagGroup(container), container.def, container.state, this.#hover(id));
       }
@@ -200,7 +203,7 @@ export class TableScene {
   // The id of the top object under a screen point, or null.
   pick(clientX, clientY) {
     this.#aim(clientX, clientY);
-    const targets = [...this.pieceMeshes.values(), ...this.deckGroups.values(), ...this.trays.values(), ...this.diceTrays.values()];
+    const targets = [...this.pieceMeshes.values(), ...this.deckGroups.values(), ...this.trays.values(), ...this.diceTrays.values(), ...this.bowls.values()];
     const hit = this.raycaster.intersectObjects(targets, true)
       .find(({ object }) => object.userData.objectId && shown(object));
     if (!hit) return null;
@@ -313,6 +316,7 @@ export class TableScene {
     for (const group of this.deckGroups.values()) {
       if (group.visible && group.userData.counter) faceCamera(group, this.camera.position);
     }
+    for (const group of this.bowls.values()) faceBowlCounter(group, this.camera.position);
     if (this.bounds) clampTarget(this.camera.position, this.controls.target, this.bounds);
     this.#fitNearPlane();
     this.renderer.render(this.scene, this.camera);
@@ -408,7 +412,7 @@ export class TableScene {
   }
 
   #object3d(id) {
-    return this.pieceMeshes.get(id) || this.deckGroups.get(id) || this.diceTrays.get(id);
+    return this.pieceMeshes.get(id) || this.deckGroups.get(id) || this.diceTrays.get(id) || this.bowls.get(id);
   }
 
   // Eases everything to where render() put it, except what you're moving: what
@@ -419,7 +423,7 @@ export class TableScene {
       const object = state.pieces[id] || state.containers[id];
       return mine(object) || mine(state.containers[object?.containerId]) || this.carriedByMe.has(id);
     };
-    for (const [id, object3d] of [...this.pieceMeshes, ...this.deckGroups, ...this.diceTrays]) {
+    for (const [id, object3d] of [...this.pieceMeshes, ...this.deckGroups, ...this.diceTrays, ...this.bowls]) {
       this.easing.settle(object3d, direct(id));
     }
   }
@@ -464,6 +468,36 @@ export class TableScene {
     const { x, y } = die.drag || die;
     const rest = die.drag ? { x: die.x, y: die.y, base: def.layer.base + (die.z || 0) } : null;
     applyDiePlacement(mesh, def, die, { x, y, base: def.layer.base }, { ...this.#hover(def.id), rest });
+  }
+
+  // The table with what's in each bowl laid on its floor, as if loose, so
+  // it draws and picks like anything else. What someone drags out keeps
+  // its drag, and rests in the bowl until it's let go.
+  #bowlView(state) {
+    let pieces = null;
+    for (const [id, bowl] of Object.entries(state.containers)) {
+      if (!bowl.spots || findObject(this.manifest, state, id).def.kind !== "bowl") continue;
+      const pose = { ...bowl, ...(bowl.drag || {}) };
+      const lift = bowl.heldBy ? (this.#hover(id).floor || 0) + HELD_LIFT : bowl.z || 0;
+      pieces ||= { ...state.pieces };
+      for (const member of bowl.members) {
+        const spot = bowl.spots[member];
+        if (!spot || !pieces[member]) continue;
+        const [x, y] = fromTray(pose, spot);
+        pieces[member] = { ...pieces[member], containerId: null, x, y, z: lift + BOWL_FLOOR };
+      }
+    }
+    return pieces ? { ...state, pieces } : state;
+  }
+
+  #renderBowl(bowl) {
+    let group = this.bowls.get(bowl.id);
+    if (!group) {
+      group = buildBowl(bowl.id, bowl.def);
+      this.bowls.set(bowl.id, group);
+      this.content.add(group);
+    }
+    placeBowl(group, bowl.def, bowl.state, { floor: this.#hover(bowl.id).floor, lift: HELD_LIFT });
   }
 
   #renderDiceTray(tray, state) {
@@ -688,6 +722,7 @@ export class TableScene {
     this.deckGroups.clear();
     this.trays.clear();
     this.diceTrays.clear();
+    this.bowls.clear();
     this.swirls.clear();
     this.building?.clear();
   }

@@ -282,7 +282,7 @@ function withZ(state, { kind, id }, z) {
   return { ...state, [key]: { ...state[key], [id]: { ...state[key][id], z } } };
 }
 
-const CONTAINER_TARGETS = ["deck", "bag", "hand", "tray", "stack"];
+const CONTAINER_TARGETS = ["deck", "bag", "hand", "tray", "bowl", "stack"];
 
 // The area a dragged object can move over: the table, plus the hand trays
 // around it. Returns { minX, maxX, minY, maxY }.
@@ -343,7 +343,7 @@ function spot(object) {
 // tray takes dice while it has room.
 function takes(manifest, state, container, piece, playerId) {
   if (container.state.heldBy || !accepts(container.def, piece.def)) return false;
-  if (container.def.kind === "tray") {
+  if (container.def.kind === "tray" || container.def.kind === "bowl") {
     const dice = container.state.members.filter((id) => id !== piece.id).map((id) => pieceDef(manifest, id));
     return hasRoom(container.def, dice, piece.def);
   }

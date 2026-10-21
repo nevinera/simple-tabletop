@@ -84,7 +84,7 @@ export function initialState(manifest) {
     };
     if (container.template) containers[container.id].spawned = 0;
     if (container.kind === "deck") Object.assign(containers[container.id], { splay: container.splay, splayDistance: null });
-    if (container.kind === "tray") {
+    if (container.kind === "tray" || container.kind === "bowl") {
       // The same starting layout in every browser.
       const dice = container.members.map((id) => pieceDef(manifest, id));
       containers[container.id].spots = scatter(container, dice, seededRandom(container.id)) || {};
@@ -163,7 +163,8 @@ function reachableMember(state, object, action) {
   const containerId = object.state.containerId;
   if (containerId === ownHand(state, action.playerId)) return CARD_ACTIONS.includes(action.type);
   const container = state.containers[containerId];
-  const tray = object.def.shape === "die" && container.spots;
+  // Dice in a tray and anything in a bowl lie in the open.
+  const tray = Boolean(container.spots);
   const free = !container.heldBy || container.heldBy === action.playerId;
   if (container.splay && free) return CARD_ACTIONS.includes(action.type);
   return Boolean(tray && free && [...MEMBER_ACTIONS, "roll"].includes(action.type));

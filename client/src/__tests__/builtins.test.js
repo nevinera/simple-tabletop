@@ -123,6 +123,35 @@ describe("global domination", () => {
   });
 });
 
+describe("mancala", () => {
+  const raw = JSON.parse(readFileSync(join(BUILTINS, "mancala", "manifest.json"), "utf8"));
+  const manifest = normalizeManifest(raw, "https://example.com/builtins/mancala/manifest.json");
+
+  it("starts with four seeds in each of twelve pits, and sows one into the next", () => {
+    let state = initialState(manifest);
+    const pits = Object.keys(state.containers).filter((id) => id.includes("-pit-"));
+    expect(pits).toHaveLength(12);
+    for (const pit of pits) expect(state.containers[pit].members).toHaveLength(4);
+    expect(state.containers["south-store"].members).toEqual([]);
+    const [seed] = state.containers["south-pit-1"].members;
+    const next = state.containers["south-pit-2"];
+    state = applyAction(manifest, state, { type: "grab", id: seed, playerId: "me" }).state;
+    state = applyAction(manifest, state, { type: "drop", id: seed, x: next.x, y: next.y, playerId: "me" }).state;
+    expect(state.containers["south-pit-2"].members).toHaveLength(5);
+    expect(state.containers["south-pit-1"].members).toHaveLength(3);
+  });
+
+  it("holds every seed in one store", () => {
+    let state = initialState(manifest);
+    const store = state.containers["south-store"];
+    for (const seed of Object.keys(state.pieces).filter((id) => id.startsWith("seed-"))) {
+      state = applyAction(manifest, state, { type: "grab", id: seed, playerId: "me" }).state;
+      state = applyAction(manifest, state, { type: "drop", id: seed, x: store.x, y: store.y, playerId: "me" }).state;
+    }
+    expect(state.containers["south-store"].members).toHaveLength(48);
+  });
+});
+
 describe("snapping on boards", () => {
   const load = (slug) => normalizeManifest(JSON.parse(readFileSync(join(BUILTINS, slug, "manifest.json"), "utf8")),
     `https://example.com/builtins/${slug}/manifest.json`);

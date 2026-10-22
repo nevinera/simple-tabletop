@@ -1,16 +1,20 @@
 import { useState } from "react";
 import { fetchManifest } from "../manifest/manifest";
 import { initialState } from "../state/actions";
-import { startGame } from "../server/api";
+import { deleteGame, startGame } from "../server/api";
+import { Account, closesIn } from "./Account";
 import { recentModules, rememberName, rememberedName } from "../browserMemory";
 import { readSave, restoreState } from "../state/saveFile";
 
 // The front page: get back to a table this browser joined, or start one from
 // a built-in module, one you played recently, a manifest URL you paste, or a
 // saved table's file.
-// tables is [{ path, name, playerName }], newest visit first, and builtIns
-// [{ url, name, description, thumbnailUrl }] from config/builtins.yml.
-export function Home({ tables, builtIns }) {
+// tables is [{ path, name, playerName, owned, expiresAt }], newest visit
+// first, then the signed-in user's other tables. builtIns is
+// [{ url, name, description, thumbnailUrl }] from config/builtins.yml, and
+// account says who's signed in (see Account).
+export function Home({ tables: initialTables, builtIns, account = NO_ACCOUNT }) {
+  const [tables, setTables] = useState(initialTables);
   const absolute = (url) => new URL(url, window.location.href).href;
   // Built-ins are offered on their own, and a built-in that's no longer
   // offered is gone.
@@ -59,6 +63,16 @@ export function Home({ tables, builtIns }) {
     }
   };
 
+  const remove = async (table) => {
+    if (!window.confirm(`Delete ${table.name} for everyone at it?`)) return;
+    try {
+      await deleteGame(table.path.split("/").pop());
+      setTables((current) => current.filter((other) => other.path !== table.path));
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const option = (module, label, detail) => (
     <label key={module.url} className="home-module">
       <input type="radio" name="module" checked={selected === module.url} onChange={() => setSelected(module.url)} />
@@ -74,6 +88,8 @@ export function Home({ tables, builtIns }) {
         <p>Card and board games in the browser, without the physics.</p>
       </header>
 
+      <Account account={account} />
+
       {tables.length > 0 && (
         <section className="home-section" aria-label="Your tables">
           <h2>Your tables</h2>
@@ -81,7 +97,13 @@ export function Home({ tables, builtIns }) {
             {tables.map((table) => (
               <li key={table.path}>
                 <a href={table.path}>{table.name}</a>
-                <span className="home-module-detail">as {table.playerName}</span>
+                {table.playerName && <span className="home-module-detail">as {table.playerName}</span>}
+                {closesIn(table.expiresAt) && <span className="home-module-detail">· {closesIn(table.expiresAt)}</span>}
+                {table.owned && (
+                  <button type="button" className="home-table-delete" aria-label={`Delete ${table.name}`} onClick={() => remove(table)}>
+                    Delete
+                  </button>
+                )}
               </li>
             ))}
           </ul>
@@ -152,6 +174,8 @@ export function Home({ tables, builtIns }) {
     </div>
   );
 }
+
+const NO_ACCOUNT = { user: null, signInAvailable: false, maxGames: 0, alert: null };
 
 // What a picked save will do: which module it resumes, from when, and what
 // it leaves out because the module changed.

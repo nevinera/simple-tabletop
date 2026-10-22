@@ -13,7 +13,7 @@ module PlayerCookie
   # Every player this browser has been, newest table visit first.
   def browser_players
     token = browser_token
-    token ? Player.where(browser_token: token).includes(:game).order(seen_at: :desc, id: :desc) : Player.none
+    token ? Player.where(browser_token: token).includes(game: :user).order(seen_at: :desc, id: :desc) : Player.none
   end
 
   def browser_token = cookies.signed[COOKIE]

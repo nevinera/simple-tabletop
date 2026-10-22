@@ -25,6 +25,15 @@ RSpec.describe GameChannel, type: :channel do
     expect(subscription).to be_rejected
   end
 
+  it "keeps the game alive when someone sits down or plays" do
+    game.update_columns(active_at: 2.hours.ago)
+    subscribe_as(host)
+    expect(game.reload.active_at).to be_within(5.seconds).of(Time.current)
+    game.update_columns(active_at: 2.hours.ago)
+    act(base: 0, rows: { "pieces" => { "AS" => piece } })
+    expect(game.reload.active_at).to be_within(5.seconds).of(Time.current)
+  end
+
   it "sends a snapshot on subscribing" do
     subscribe_as(host)
     expect(transmissions.last).to include("type" => "snapshot", "sequence" => 0)

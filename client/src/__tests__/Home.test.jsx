@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { Home } from "../ui/Home";
-import { startGame } from "../server/api";
+import { deleteGame, startGame } from "../server/api";
+import { closesIn } from "../ui/Account";
 import { rememberModule } from "../browserMemory";
 
-vi.mock("../server/api", () => ({ startGame: vi.fn() }));
+vi.mock("../server/api", () => ({ startGame: vi.fn(), deleteGame: vi.fn() }));
 vi.mock("../manifest/manifest", async (importActual) => {
   const actual = await importActual();
   const raw = {
@@ -32,6 +33,40 @@ describe("Home", () => {
     render(<Home tables={[{ path: "/tables/01ABC", name: "Friday", playerName: "Sam" }]} builtIns={BUILT_INS} />);
     expect(screen.getByRole("link", { name: "Friday" }).getAttribute("href")).toBe("/tables/01ABC");
     expect(screen.getByText("as Sam")).toBeTruthy();
+  });
+
+  it("offers Google sign-in when the server has it", () => {
+    render(<Home tables={[]} builtIns={BUILT_INS} account={{ user: null, signInAvailable: true, maxGames: 10, alert: "Nope." }} />);
+    expect(screen.getByRole("button", { name: "Sign in with Google" }).closest("form").getAttribute("action")).toBe("/auth/google_oauth2");
+    expect(screen.getByRole("alert").textContent).toBe("Nope.");
+  });
+
+  it("shows nothing about accounts when sign-in isn't set up", () => {
+    render(<Home tables={[]} builtIns={BUILT_INS} />);
+    expect(screen.queryByRole("region", { name: "Account" })).toBeNull();
+  });
+
+  it("lets a signed-in user sign out and delete their tables", async () => {
+    deleteGame.mockResolvedValue({});
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const tables = [
+      { path: "/tables/01ABC", name: "Mine", playerName: "Sam", owned: true, expiresAt: null },
+      { path: "/tables/01DEF", name: "Theirs", playerName: "Sam", owned: false, expiresAt: null },
+    ];
+    render(<Home tables={tables} builtIns={BUILT_INS} account={{ user: { name: "Sam" }, signInAvailable: true, maxGames: 10 }} />);
+    expect(screen.getByRole("button", { name: "Sign out" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Delete Theirs" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Delete Mine" }));
+    await vi.waitFor(() => expect(screen.queryByRole("link", { name: "Mine" })).toBeNull());
+    expect(deleteGame).toHaveBeenCalledWith("01ABC");
+  });
+
+  it("says when a table closes", () => {
+    const now = Date.parse("2026-10-22T12:00:00Z");
+    expect(closesIn(null, now)).toBeNull();
+    expect(closesIn("2026-10-22T12:30:00Z", now)).toBe("closes within the hour");
+    expect(closesIn("2026-10-22T17:59:00Z", now)).toBe("closes in 5h");
+    expect(closesIn("2026-10-29T12:00:00Z", now)).toBe("closes in 7 days");
   });
 
   it("starts a table from the built-in module", async () => {

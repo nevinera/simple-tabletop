@@ -20,6 +20,7 @@ class GameChannel < ApplicationCable::Channel
     end
     GameChannel.broadcast_to(@player, { type: "connected", connectionId: @connection_id })
     @player.touch(:seen_at)
+    @game.mark_active!
     transmit_snapshot
   end
 

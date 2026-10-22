@@ -50,7 +50,37 @@ Each client fetches the manifest and its assets on its own.
    so a refresh or reconnect lands them back in the same seat.
 5. The player claims an empty seat. Nobody can touch the table without a seat.
 
-There are no accounts for now.
+Nobody needs an account to play. See [Accounts and expiry](#accounts-and-expiry) for what signing in adds.
+
+## Accounts and expiry
+
+Anyone can sign in with Google from the home page (`SessionsController`, through OmniAuth). A game started
+while signed in belongs to that user, and signing in claims the anonymous games this browser hosted.
+
+`GameLifetime` decides how long a game lasts. It expires once it's been idle too long, or once it's been
+around too long in all, whichever comes first:
+
+| Owner      | Idle      | In all    |
+|------------|-----------|-----------|
+| nobody     | 6 hours   | 72 hours  |
+| a user     | 72 hours  | 3 months  |
+| an admin   | never     | never     |
+
+A game is active when someone changes the table or opens it (`games.active_at`). `GameSweep` deletes expired
+games every 15 minutes (`SweepGamesJob` in `config/recurring.yml`, which needs `SOLID_QUEUE_IN_PUMA` set),
+or by hand with `bin/rails games:sweep`.
+
+A user owns at most 10 games at once, and can delete them from the home page. An admin has no limit.
+
+Sign-in needs `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, from an OAuth client whose redirect URI is
+`https://<host>/auth/google_oauth2/callback`. Without them, the home page doesn't offer it. The rest is rake
+tasks:
+
+```sh
+bin/rails "users:allow[sam@example.com]"     # once anyone is listed, only listed emails can sign in
+bin/rails "users:disallow[sam@example.com]"
+bin/rails "users:admin[eric@example.com]"     # after they've signed in once
+```
 
 ## Saving a table
 
@@ -75,6 +105,8 @@ made during play come from it.
 | `name`          |                                              |
 | `sequence`      | bumped on every change; see [Sync](#sync)    |
 | `seating`       | `four` or `eight`; see [Hands](#hands)       |
+| `user_id`       | the owner, or null for an anonymous game     |
+| `active_at`     | last change or visit; see [Accounts and expiry](#accounts-and-expiry) |
 
 ### `players`
 

@@ -5,6 +5,7 @@ class Game < ApplicationRecord
   SEATINGS = %w[four eight].freeze
   QUIET_AFTER = 30.seconds
 
+  belongs_to :user, optional: true
   has_many :players, dependent: :destroy
   has_many :pieces, dependent: :delete_all
   has_many :containers, dependent: :delete_all
@@ -14,21 +15,31 @@ class Game < ApplicationRecord
   validates :manifest_url, format: { with: %r{\Ahttps?://}, message: "must be an http or https URL" }
 
   before_validation { self.ulid ||= Ulid.generate }
+  before_create { self.active_at ||= Time.current }
 
   def to_param = ulid
 
   # ULIDs read the same in either case.
   def self.find_by_ulid!(ulid) = find_by!(ulid: ulid.to_s.upcase)
 
+  # When someone last changed the table or sat down at it. Games from before
+  # active_at existed fall back to their last update.
+  def last_active_at = active_at || updated_at
+
+  def expires_at = GameLifetime.expires_at(self)
+
+  def mark_active! = update_columns(active_at: Time.current)
+
   # Creates a game from the starting state the host's browser built from the
   # manifest, or from a saved table, with the host as its first player. A
   # saved table keeps its sequence, since ids made during play (like
-  # "#stack-12") come from it, and its seating.
-  def self.start!(manifest_url:, name:, host_name:, browser_token:, state:)
+  # "#stack-12") come from it, and its seating. A signed-in host's game is
+  # theirs.
+  def self.start!(manifest_url:, name:, host_name:, browser_token:, state:, user: nil)
     transaction do
       sequence = state[:sequence].is_a?(Integer) && state[:sequence].positive? ? state[:sequence] : 0
       seating = SEATINGS.include?(state[:seating]) ? state[:seating] : SEATINGS.first
-      game = create!(manifest_url:, name:, sequence:, seating:)
+      game = create!(manifest_url:, name:, sequence:, seating:, user:)
       game.replace_objects!(state)
       [ game, game.players.create!(name: host_name, host: true, browser_token:) ]
     end
@@ -50,7 +61,7 @@ class Game < ApplicationRecord
   # when it changed. Returns whether the change took.
   def apply_change!(base:, rows:)
     taken = transaction do
-      next false unless Game.where(id:, sequence: base).update_all("sequence = sequence + 1") == 1
+      next false unless Game.where(id:, sequence: base).update_all([ "sequence = sequence + 1, active_at = ?", Time.current ]) == 1
 
       write_rows!(Piece, rows["pieces"])
       write_rows!(Container, rows["containers"])

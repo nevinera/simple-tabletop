@@ -15,7 +15,8 @@ const el = document.getElementById("app");
 createRoot(el).render(
   <StrictMode>
     {el.dataset.page === "home"
-      ? <Home tables={JSON.parse(el.dataset.tables || "[]")} builtIns={JSON.parse(el.dataset.builtins || "[]")} />
+      ? <Home tables={JSON.parse(el.dataset.tables || "[]")} builtIns={JSON.parse(el.dataset.builtins || "[]")}
+        account={JSON.parse(el.dataset.account || "null") || undefined} />
       : <App manifestUrl={el.dataset.manifestUrl} game={gameFrom(el.dataset)} />}
   </StrictMode>
 );

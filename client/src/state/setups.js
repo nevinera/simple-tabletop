@@ -8,7 +8,9 @@
 //   deal:    lays out the top cards of a deck on spots
 //   state:   puts a card or board in one of its states
 // Steps pick what they work on with a selector (see selected). Anything in a
-// hand or held by a player stays where it is.
+// hand or held by a player stays where it is. A move or deal with
+// `relativeTo` measures its spots from that piece's or container's center,
+// turned as it's turned, wherever players have put it.
 
 import { addToContainer, addToTray, letGoOf, settleStack, topOfLayer, withObject, withoutMember } from "./actions";
 import { restingZ } from "./footprint";
@@ -58,7 +60,7 @@ const STEPS = {
         return;
       }
       const spot = step.to[Math.min(i, step.to.length - 1)];
-      next = place(manifest, next, object, spot, looks(step));
+      next = place(manifest, next, object, where(next, step, spot), looks(step));
     });
     return next;
   },
@@ -77,7 +79,7 @@ const STEPS = {
     for (const spot of step.to) {
       const [cardId] = next.containers[step.target].members;
       if (!cardId) break;
-      next = place(manifest, next, findObject(manifest, next, cardId), spot, { faceUp: true, ...looks(step) });
+      next = place(manifest, next, findObject(manifest, next, cardId), where(next, step, spot), { faceUp: true, ...looks(step) });
     }
     return next;
   },
@@ -105,6 +107,16 @@ export function selected(manifest, state, select) {
     const container = object.containerId && findObject(manifest, state, object.containerId);
     return container?.def.kind !== "hand" && !container?.state.heldBy;
   });
+}
+
+// A step's spot on the table: as given, or measured from its relativeTo
+// object if that's out on the table.
+function where(state, step, [x, y]) {
+  const from = step.relativeTo && (state.pieces[step.relativeTo] || state.containers[step.relativeTo]);
+  if (!from || from.x == null || from.containerId) return [x, y];
+  const radians = (from.rotation * Math.PI) / 180;
+  const [cos, sin] = [Math.cos(radians), Math.sin(radians)];
+  return [from.x + x * cos + y * sin, from.y - x * sin + y * cos];
 }
 
 // What a move or deal sets on everything it places.

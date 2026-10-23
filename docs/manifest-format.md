@@ -500,6 +500,11 @@ Steps run in order, each on the table the steps before it left. Each has exactly
 `move` and `deal` also take `faceUp`, `rotation`, and `locked`, set on everything they place. A deck moved with
 `faceUp` turns its cards that way too.
 
+With `"relativeTo": "some-id"`, a `move` or `deal` measures its spots from that piece's or container's center
+instead of the table's corner, turned as it's turned. That's for things that go on a board players may have
+moved, like tokens on a map: `{ "move": "token", "to": [-8, 3], "relativeTo": "map" }`. If the board isn't out on
+the table, the spots count from the table's corner as usual.
+
 Setups leave alone anything in a player's hand or held by a player. To clear away one region before setting
 out the next, start each region's setup by resetting every region's pieces.
 

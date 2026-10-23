@@ -44,6 +44,10 @@ const raw = {
       { move: "boss", into: "enemies" },
       { deal: "quests", to: [[40, 40], [50, 40]] },
     ] },
+    { id: "on-map", steps: [
+      { move: "boss", to: [5, -2], relativeTo: "map" },
+      { deal: "quests", to: [[-10, 0]], relativeTo: "map" },
+    ] },
     { id: "top", steps: [{ move: { in: "quests", count: 2 }, into: "region-deck" }] },
     { id: "south", steps: [
       { reset: { category: "north" } },
@@ -99,6 +103,16 @@ describe("setups", () => {
     expect(state.containers.quests.members).toEqual(["q2", "q3"]);
   });
 
+  it("measures spots from a piece, wherever it is and however it's turned", () => {
+    let state = initialState(manifest);
+    state = { ...state, pieces: { ...state.pieces, map: { ...state.pieces.map, x: 30, y: 30, rotation: 90 } } };
+    ({ state } = run(state, "on-map"));
+    expect(state.pieces.boss.x).toBeCloseTo(28);
+    expect(state.pieces.boss.y).toBeCloseTo(25);
+    expect(state.pieces.q1.x).toBeCloseTo(30);
+    expect(state.pieces.q1.y).toBeCloseTo(40);
+  });
+
   it("picks just the top of a container", () => {
     const { state } = run(initialState(manifest), "top");
     expect(state.containers["region-deck"].members).toEqual(["q1", "q2"]);
@@ -119,6 +133,8 @@ describe("setups", () => {
     expect(bad([{ state: "map", to: "West" }])).toThrow('no state of "map" called "West"');
     expect(bad([{ reset: "n1", shuffle: "quests" }])).toThrow("exactly one of");
     expect(bad([{ reset: { in: "quests", count: 0 } }])).toThrow("count must be");
+    expect(bad([{ shuffle: "quests", relativeTo: "map" }])).toThrow("relativeTo only goes with");
+    expect(bad([{ move: "n1", to: [1, 1], relativeTo: "moon" }])).toThrow('unknown piece or container "moon"');
     expect(normalizeManifest({ ...raw, setups: undefined }, "https://example.com/m.json").setups).toEqual([]);
   });
 });

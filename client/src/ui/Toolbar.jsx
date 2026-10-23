@@ -13,7 +13,7 @@ export function Toolbar({
   return (
     <nav className="toolbar" aria-label="Toolbar">
       <span className="toolbar-title">{title}</span>
-      <Menu id="game" label="Game" icon="♟" {...menus}>
+      <Menu id="game" label="Game" icon="🔗" {...menus}>
         {game ? (
           <>
             <p className="menu-note">Anyone with this link can join:</p>

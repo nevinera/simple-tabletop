@@ -1,5 +1,5 @@
 // Checks a manifest's setups (see state/setups.js) and puts each step in one
-// shape: { op, select | target, to, into, count, stateName, faceUp,
+// shape: { op, select | target, to, into, relativeTo, stateName, faceUp,
 // rotation, locked }.
 
 import { ManifestError } from "./manifest";
@@ -65,6 +65,13 @@ function normalizeStep(step, where, check) {
     if (!piece.states.some((s) => s.name === step.to)) throw new ManifestError(`${where} names no state of "${step.state}" called "${step.to}".`);
     out.target = piece.id;
     out.stateName = step.to;
+  }
+  if (step.relativeTo != null) {
+    if (!out.to) throw new ManifestError(`${where} relativeTo only goes with spots in to.`);
+    if (!check.pieceById.has(step.relativeTo) && !check.containerById.has(step.relativeTo)) {
+      throw new ManifestError(`${where} relativeTo names unknown piece or container "${step.relativeTo}".`);
+    }
+    out.relativeTo = step.relativeTo;
   }
   return out;
 }

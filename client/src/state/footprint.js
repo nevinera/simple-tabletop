@@ -114,6 +114,15 @@ export function landing(manifest, state, id, x, y, rotation, playerId) {
   return { z: Math.max(0, ...touching.map(topOf)) };
 }
 
+// How high object `id` rests at (x, y): on top of whatever holds things up
+// under it, overlapping or not. Setups place things this way.
+export function restingZ(manifest, state, id, x, y, rotation) {
+  const object = findObject(manifest, state, id);
+  const mine = outline(object, x, y, rotation);
+  const under = layerMates(manifest, state, object).filter((other) => isSupport(other) && overlaps(mine, other.outline));
+  return Math.max(0, ...under.map(topOf));
+}
+
 // Whether other things can rest on an object.
 export function isSupport(object) {
   if (object.kind === "piece") return SUPPORT_PIECES.includes(object.def.kind);

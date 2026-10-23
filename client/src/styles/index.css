@@ -101,6 +101,38 @@ body,
 .layout-landscape .bar-button-label,
 .action-bar .bar-button-label { display: none; }
 
+/* On phones, a bar with more buttons than room scrolls. Menus there open
+   as fixed popovers (below), so the scrolling doesn't clip them. The grid
+   tracks can shrink below their content so the bars scroll instead of
+   pushing the table off screen, and the auto margins center the buttons
+   while still letting the first one scroll into view. */
+.app.layout-portrait { grid-template-columns: minmax(0, 1fr); }
+.app.layout-landscape { grid-template-rows: minmax(0, 1fr); }
+.layout-portrait .toolbar,
+.layout-portrait .action-bar {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.layout-landscape .toolbar,
+.layout-landscape .action-bar {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.layout-portrait .toolbar > *,
+.layout-portrait .action-bar > *,
+.layout-landscape .toolbar > *,
+.layout-landscape .action-bar > * { flex-shrink: 0; }
+.layout-portrait .toolbar > .toolbar-title { flex-shrink: 1; min-width: 0; }
+.layout-portrait .action-bar { justify-content: flex-start; }
+.layout-portrait .action-bar > :first-child { margin-left: auto; }
+.layout-portrait .action-bar > :last-child { margin-right: auto; }
+.layout-landscape .toolbar,
+.layout-landscape .action-bar { justify-content: flex-start; }
+.layout-landscape .action-bar > :first-child { margin-top: auto; }
+.layout-landscape .action-bar > :last-child { margin-bottom: auto; }
+
 /* Menus open away from their bar. */
 .menu { position: relative; }
 
@@ -133,6 +165,17 @@ body,
   bottom: auto;
   transform: translate(-50%, -50%);
 }
+
+/* A popover taller than the screen scrolls, and the bar it opened from
+   draws over the other bar, so neither hides it. */
+.layout-portrait .menu-panel,
+.layout-landscape .menu-panel {
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+.toolbar:has(.menu-panel),
+.action-bar:has(.menu-panel) { z-index: 30; }
 
 .menu-row {
   display: flex;

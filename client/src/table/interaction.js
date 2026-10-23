@@ -191,6 +191,13 @@ export class PieceInteraction {
     return this.#dispatch("setCounter", id, changes).ok;
   }
 
+  // Runs one of the module's setups on the whole table. The seed makes its
+  // shuffles come out the same in every browser.
+  setup(setupId) {
+    const seed = Math.random().toString(36).slice(2) || "0";
+    return this.store.dispatch({ type: "setup", playerId: this.playerId, setupId, seed }).ok;
+  }
+
   // Deals count cards from a deck to every seated player's hand.
   deal(deckId, count) {
     return this.#dispatch("deal", deckId, { count }).ok;

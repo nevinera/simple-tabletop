@@ -265,6 +265,8 @@ export default function App({ manifestUrl, game = null }) {
         title={manifest?.name || "Simple Tabletop"}
         documents={manifest?.documents}
         onSave={manifest && store ? saveTable : null}
+        setups={manifest?.setups}
+        onSetup={tableInteraction ? (setupId) => tableInteraction.setup(setupId) : null}
         layout={layout}
         menus={menus}
         showActionBar={desktopActionBar}

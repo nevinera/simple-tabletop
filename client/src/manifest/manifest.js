@@ -9,6 +9,7 @@ import {
 } from "../state/objects";
 import { MEEPLE_DEPTH, PAWN_HEIGHTS, PAWN_SHAPES } from "../state/pawnShapes";
 import { DEFAULT_SCORE_PLAYERS, noteError, playersError } from "../state/notes";
+import { normalizeSetups } from "./setups";
 
 export const DEFAULT_TABLE_COLOR = "#2e6b3f";
 const LAYER_IDS = ["board", "pieces"];
@@ -82,6 +83,12 @@ export function normalizeManifest(raw, baseUrl) {
     return piece;
   });
 
+  const containers = normalizeContainers(raw.containers || [], pieces, layers, image, (bagId, type) => {
+    if (!raw.pieceTypes?.[type]) throw new ManifestError(`Container "${bagId}" infinite names unknown piece type "${type}".`);
+    const id = `${bagId}#template`;
+    return normalizePiece({ id, type }, raw, layers, image, new Set([id]), dieTypes);
+  });
+
   return {
     id: raw.id,
     name: raw.name,
@@ -93,15 +100,12 @@ export function normalizeManifest(raw, baseUrl) {
     maxSeats: raw.seats ? raw.seats.length : normalizeMaxSeats(raw.maxSeats),
     seats: raw.seats ? normalizeSeats(raw.seats) : madeUpSeats(),
     pieces,
-    containers: normalizeContainers(raw.containers || [], pieces, layers, image, (bagId, type) => {
-      if (!raw.pieceTypes?.[type]) throw new ManifestError(`Container "${bagId}" infinite names unknown piece type "${type}".`);
-      const id = `${bagId}#template`;
-      return normalizePiece({ id, type }, raw, layers, image, new Set([id]), dieTypes);
-    }),
+    containers,
     labels: (raw.labels || []).map((label, i) => normalizeLabel(label, i, layers)),
     documents: normalizeDocuments(raw.documents, resolve),
     maxStackShown: normalizeStackShown(raw.maxStackShown),
     snaps: (raw.snaps || []).map(normalizeSnaps),
+    setups: normalizeSetups(raw.setups, pieces, containers),
   };
 }
 

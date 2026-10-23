@@ -96,6 +96,7 @@ Modules are data only. They place pieces and describe how they look. They can't 
 | `labels`        | no       | text drawn on the table; see [Labels](#labels)           |
 | `documents`     | no       | rulebooks and other files to link to; see [Documents](#documents) |
 | `snaps`         | no       | spots pieces jump to when dropped near them; see [Snaps](#snaps) |
+| `setups`        | no       | ways to lay out the table, run from the Game menu; see [Setups](#setups) |
 | `maxStackShown` | no       | how many pieces tall a stack draws before showing a count, 1 to 20; defaults to 5. At 1, every stack shows its count |
 
 ## Table
@@ -455,6 +456,51 @@ Docs menu in the toolbar links to each one, and it opens in a new tab.
 ```
 
 A `url` resolves relative to the manifest, like images, and must be http or https.
+
+## Setups
+
+A setup lays out the table in one go, like a campaign's next region or a game's opening deal. Seated players run
+one from the Game menu, and it moves things for everyone at once. A module can have up to 50.
+
+```json
+"setups": [
+  {
+    "id": "skyrim",
+    "name": "Skyrim",
+    "description": "Clears the last region away and sets out Skyrim's decks.",
+    "steps": [
+      { "reset": { "category": "region" } },
+      { "state": "overland-map", "to": "Skyrim" },
+      { "move": "skyrim-delves", "to": [53, 40], "faceUp": false },
+      { "shuffle": "skyrim-delves" },
+      { "move": { "category": "skyrim enemies" }, "into": "enemy-bag" },
+      { "deal": "guilds", "to": [[40, 60], [47, 60], [54, 60]] }
+    ]
+  }
+]
+```
+
+Steps run in order, each on the table the steps before it left. Each has exactly one of these:
+
+| Step      | What it does |
+|-----------|--------------|
+| `reset`   | Puts what it picks back where the manifest starts it: into its starting container, or onto its starting spot, turned and locked as it started. A piece an infinite bag handed out goes back into the bag. |
+| `move`    | Moves what it picks onto `to`, a spot `[x, y]` or a list of spots, one per thing picked in order (extras share the last), or `into` a container. A deck moved `into` another gives it all its cards. |
+| `shuffle` | Shuffles a deck or bag. |
+| `deal`    | Lays out the top card of a deck on each spot in `to`, face up. |
+| `state`   | Puts a card or board in the state named by `to` (see [Card states](#card-states)). |
+
+`reset` and `move` pick what they work on with one of:
+
+- an id, of a piece or a container, or a list of them;
+- `{ "category": "..." }`, every piece in that category;
+- `{ "in": "container-id" }`, whatever is in that container when the step runs.
+
+`move` and `deal` also take `faceUp`, `rotation`, and `locked`, set on everything they place. A deck moved with
+`faceUp` turns its cards that way too.
+
+Setups leave alone anything in a player's hand or held by a player. To clear away one region before setting
+out the next, start each region's setup by resetting every region's pieces.
 
 ## Labels
 

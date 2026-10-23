@@ -198,6 +198,7 @@ rides on it, draws as moving with it.
 | `deal`     | deal `count` cards from a deck to every seated player's hand, one at a time clockwise from the dealer's left, the dealer last |
 | `stackUp`  | pile loose pieces (`others`) on this one: a deck for cards of a type, a stack for alike tiles, chips, or tokens |
 | `release`  | let go without changing anything                               |
+| `setup`    | run one of the manifest's setups (`setupId`) on the whole table; its `seed` makes the shuffles come out the same in every browser (see `state/setups.js`) |
 
 `flip`, `rotate`, and `lock` also work on things nobody holds, so players can act on what they're pointing at.
 Nobody can act on something someone else holds. Locked things can't move, flip, or rotate, but a locked deck can

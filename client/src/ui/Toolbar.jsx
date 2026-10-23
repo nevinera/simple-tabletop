@@ -3,8 +3,12 @@ import { Menu } from "./Menu";
 export function Toolbar({
   title, layout, menus, showActionBar, setShowActionBar, seatName, onLeaveSeat, handsEnabled, handStripVisible,
   setHandStripVisible, soundOn, setSoundOn, trayRollScatters, setTrayRollScatters, helpOpen, setHelpOpen, game, onHost,
-  documents = [], onSave,
+  documents = [], onSave, setups = [], onSetup,
 }) {
+  // A setup moves things for everyone, so it asks first.
+  const runSetup = (setup) => {
+    if (window.confirm(`Set up ${setup.name}? This rearranges the table for everyone.`)) onSetup(setup.id);
+  };
   const inviteUrl = game && `${window.location.origin}/tables/${game.token}`;
   return (
     <nav className="toolbar" aria-label="Toolbar">
@@ -26,6 +30,17 @@ export function Toolbar({
         )}
         {onSave && (
           <button type="button" className="menu-item" onClick={onSave}>Save to a file</button>
+        )}
+        {setups.length > 0 && (
+          <>
+            <p className="menu-note">{onSetup ? "Set up the table:" : "Take a seat to set up the table."}</p>
+            {setups.map((setup) => (
+              <button key={setup.id} type="button" className="menu-item" disabled={!onSetup} title={setup.description || undefined}
+                onClick={() => runSetup(setup)}>
+                {setup.name}
+              </button>
+            ))}
+          </>
         )}
       </Menu>
       <Menu id="seat" label="Seat" icon="🪑" disabled={!seatName} {...menus}>

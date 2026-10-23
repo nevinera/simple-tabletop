@@ -48,6 +48,7 @@ import { nearestFree, scatter, seededRandom, toTray } from "./trays";
 import { snapSpot } from "./snaps";
 import { noteError, playersError, roundsError } from "./notes";
 import { handId, openSeats, seatOf } from "./seats";
+import { runSetup } from "./setups";
 
 const LAID_OUT_GAP = 0.5; // cm between cards laid out from a hand
 
@@ -115,7 +116,8 @@ export function initialState(manifest) {
 // { ok: false, reason, state } with the state unchanged. A rejection for
 // overlapping another object also carries blocked: true.
 //
-// join carries { type, playerId, seatId }, and leave { type, playerId }.
+// join carries { type, playerId, seatId }, leave { type, playerId }, and
+// setup { type, playerId, setupId, seed }.
 // Every other action carries { type, id, playerId }, where id names a piece
 // or a container, plus:
 //   drag:     { x, y }
@@ -188,6 +190,15 @@ const SEAT_HANDLERS = {
         sequence: state.sequence + 1,
       },
     };
+  },
+
+  // Runs one of the manifest's setups (see state/setups.js). seed makes its
+  // shuffles come out the same in every browser.
+  setup({ manifest, state, action }) {
+    if (typeof action.seed !== "string" || !action.seed) return reject(state, "setup needs a seed.");
+    const result = runSetup(manifest, state, action.setupId, action.seed);
+    if (!result.ok) return reject(state, result.reason);
+    return { ok: true, state: settle(manifest, { ...result.state, sequence: state.sequence + 1 }) };
   },
 
   leave({ state, action }) {
@@ -633,7 +644,7 @@ function carryAlong(manifest, before, result, id, playerId, { dx = 0, dy = 0, dz
 }
 
 // What changes when a player lets go of something.
-function letGoOf(object) {
+export function letGoOf(object) {
   const changes = { heldBy: null, drag: null };
   if (object.state.carrying) changes.carrying = null;
   return changes;
@@ -747,7 +758,7 @@ function mergeDeck(manifest, state, deck, intoId, changes, tuck = false) {
 // top, or at `index`, turned to face the way the deck does. A hand takes it
 // face-up, at `index` or where `point` falls among its cards. A bag
 // takes it as it is, and an infinite bag takes it off the table for good.
-function addToContainer(manifest, state, piece, containerId, changes, index = null, point = null) {
+export function addToContainer(manifest, state, piece, containerId, changes, index = null, point = null) {
   const without = withoutMember(state, piece);
   const container = findObject(manifest, without, containerId);
   if (container.def.template) {
@@ -796,7 +807,7 @@ function formStack(state, piece, underId, changes, tuck = false) {
 
 // After a draw: a stack down to one piece stops being a stack, leaving that
 // piece loose where the stack was.
-function settleStack(manifest, result, containerId) {
+export function settleStack(manifest, result, containerId) {
   const stack = result.ok && result.state.containers[containerId];
   if (!stack || stack.members.length !== 1 || findObject(manifest, result.state, containerId).def.kind !== "stack") return result;
   const [lastId] = stack.members;
@@ -835,7 +846,7 @@ function newPiece(def) {
 
 // Drops a die in a tray: where it lands if it fits there, or else the free
 // spot nearest that.
-function addToTray(manifest, state, die, trayId, changes, point) {
+export function addToTray(manifest, state, die, trayId, changes, point) {
   const without = withoutMember(state, die);
   const tray = without.containers[trayId];
   const placed = tray.members.map((id) => ({ def: pieceDef(manifest, id), spot: tray.spots[id] }));
@@ -848,7 +859,7 @@ function addToTray(manifest, state, die, trayId, changes, point) {
   return save(withTray, die, { ...changes, containerId: trayId, x: null, y: null });
 }
 
-function withoutMember(state, piece) {
+export function withoutMember(state, piece) {
   const from = piece.state.containerId;
   if (!from) return state;
   const container = state.containers[from];
@@ -878,7 +889,7 @@ function leaveSeat(state, playerId) {
   return { ...next, players };
 }
 
-function topOfLayer(manifest, state, layerId) {
+export function topOfLayer(manifest, state, layerId) {
   let top = -1;
   for (const [id, piece] of Object.entries(state.pieces)) {
     if (pieceDef(manifest, id).layer.id === layerId && !piece.containerId) top = Math.max(top, piece.stackOrder);
@@ -898,7 +909,7 @@ function unsaved(state, object, changes) {
   return { ok: true, state: withObject(state, object, changes) };
 }
 
-function withObject(state, { kind, id }, changes) {
+export function withObject(state, { kind, id }, changes) {
   const key = kind === "piece" ? "pieces" : "containers";
   return { ...state, [key]: { ...state[key], [id]: { ...state[key][id], ...changes } } };
 }

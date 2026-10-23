@@ -31,18 +31,18 @@ export function Toolbar({
         {onSave && (
           <button type="button" className="menu-item" onClick={onSave}>Save to a file</button>
         )}
-        {setups.length > 0 && (
-          <>
-            <p className="menu-note">{onSetup ? "Set up the table:" : "Take a seat to set up the table."}</p>
-            {setups.map((setup) => (
-              <button key={setup.id} type="button" className="menu-item" disabled={!onSetup} title={setup.description || undefined}
-                onClick={() => runSetup(setup)}>
-                {setup.name}
-              </button>
-            ))}
-          </>
-        )}
       </Menu>
+      {setups.length > 0 && (
+        <Menu id="setup" label="Setup" icon="🧰" {...menus}>
+          <p className="menu-note">{onSetup ? "Lays out the table for everyone:" : "Take a seat to set up the table."}</p>
+          {setups.map((setup) => (
+            <button key={setup.id} type="button" className="menu-item" disabled={!onSetup} title={setup.description || undefined}
+              onClick={() => runSetup(setup)}>
+              {setup.name}
+            </button>
+          ))}
+        </Menu>
+      )}
       <Menu id="seat" label="Seat" icon="🪑" disabled={!seatName} {...menus}>
         <p className="menu-note">You're sitting at {seatName}.</p>
         <button type="button" className="menu-item" onClick={onLeaveSeat}>Change seat</button>

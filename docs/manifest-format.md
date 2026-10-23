@@ -96,7 +96,7 @@ Modules are data only. They place pieces and describe how they look. They can't 
 | `labels`        | no       | text drawn on the table; see [Labels](#labels)           |
 | `documents`     | no       | rulebooks and other files to link to; see [Documents](#documents) |
 | `snaps`         | no       | spots pieces jump to when dropped near them; see [Snaps](#snaps) |
-| `setups`        | no       | ways to lay out the table, run from the Game menu; see [Setups](#setups) |
+| `setups`        | no       | ways to lay out the table, run from the Setup menu; see [Setups](#setups) |
 | `maxStackShown` | no       | how many pieces tall a stack draws before showing a count, 1 to 20; defaults to 5. At 1, every stack shows its count |
 
 ## Table
@@ -460,7 +460,7 @@ A `url` resolves relative to the manifest, like images, and must be http or http
 ## Setups
 
 A setup lays out the table in one go, like a campaign's next region or a game's opening deal. Seated players run
-one from the Game menu, and it moves things for everyone at once. A module can have up to 50.
+one from the Setup menu, and it moves things for everyone at once. A module can have up to 50.
 
 ```json
 "setups": [

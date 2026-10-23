@@ -31,7 +31,7 @@ describe("Toolbar setups", () => {
     const onSetup = vi.fn();
     const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
     render(<Bar setups={setups} onSetup={onSetup} />);
-    fireEvent.click(screen.getByRole("button", { name: /Game/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Setup" }));
     fireEvent.click(screen.getByRole("button", { name: "Skyrim" }));
     expect(onSetup).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Skyrim" }));
@@ -39,9 +39,14 @@ describe("Toolbar setups", () => {
     confirm.mockRestore();
   });
 
+  it("has no Setup menu without setups", () => {
+    render(<Bar />);
+    expect(screen.queryByRole("button", { name: "Setup" })).toBeNull();
+  });
+
   it("asks an unseated player to sit first", () => {
     render(<Bar setups={setups} onSetup={null} />);
-    fireEvent.click(screen.getByRole("button", { name: /Game/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Setup" }));
     expect(screen.getByText("Take a seat to set up the table.")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Skyrim" }).disabled).toBe(true);
   });

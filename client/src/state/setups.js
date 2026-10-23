@@ -92,11 +92,12 @@ const STEPS = {
 // in a hand or held:
 //   { ids }:      these, in this order
 //   { category }: every piece in the category
-//   { in }:       what's in a container now, top first
+//   { in }:       what's in a container now, top first, or with { count },
+//                 just that many from the top
 export function selected(manifest, state, select) {
   let ids;
   if (select.ids) ids = select.ids;
-  else if (select.in) ids = state.containers[select.in]?.members || [];
+  else if (select.in) ids = (state.containers[select.in]?.members || []).slice(0, select.count ?? Infinity);
   else ids = Object.keys(state.pieces).filter((id) => pieceDef(manifest, id)?.categories?.includes(select.category));
   return ids.filter((id) => {
     const object = state.pieces[id] || state.containers[id];
@@ -115,15 +116,24 @@ function looks(step) {
 
 // The container the manifest starts a piece in, if any.
 function homeOf(manifest, id) {
-  return manifest.containers.find((container) => container.members.includes(id))?.id || null;
+  return startsOf(manifest).homes.get(id) || null;
+}
+
+// Per manifest: each piece's starting container, and which pieces it lists.
+const starts = new WeakMap();
+function startsOf(manifest) {
+  if (!starts.has(manifest)) {
+    const homes = new Map(manifest.containers.flatMap((container) => container.members.map((id) => [id, container.id])));
+    starts.set(manifest, { homes, listed: new Set(manifest.pieces.map((piece) => piece.id)) });
+  }
+  return starts.get(manifest);
 }
 
 // A piece back where it starts: in its container, or on its spot, as the
 // manifest has it. A piece an infinite bag handed out goes back for good.
 function resetPiece(manifest, state, piece, home) {
   const def = piece.def;
-  const listed = manifest.pieces.some((p) => p.id === piece.id);
-  if (!listed) return putInto(manifest, state, piece, piece.id.slice(0, piece.id.indexOf("#")), {});
+  if (!startsOf(manifest).listed.has(piece.id)) return putInto(manifest, state, piece, piece.id.slice(0, piece.id.indexOf("#")), {});
   const changes = { rotation: def.rotation, faceUp: def.faceUp, locked: def.fixed };
   if (home) return piece.state.containerId === home ? state : putInto(manifest, state, piece, home, changes);
   if (!def.position) return state;

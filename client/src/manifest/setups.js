@@ -69,7 +69,7 @@ function normalizeStep(step, where, check) {
   return out;
 }
 
-// An id, a list of ids, { category }, or { in: containerId }.
+// An id, a list of ids, { category }, or { in: containerId, count }.
 function normalizeSelect(select, where, check) {
   const known = (id) => check.pieceById.has(id) || check.containerById.has(id);
   if (typeof select === "string" || Array.isArray(select)) {
@@ -82,7 +82,12 @@ function normalizeSelect(select, where, check) {
     if (!check.categories.has(select.category)) throw new ManifestError(`${where} names unknown category "${select.category}".`);
     return { category: select.category };
   }
-  if (typeof select?.in === "string") return { in: container(select.in, where, check) };
+  if (typeof select?.in === "string") {
+    if (select.count != null && !(Number.isInteger(select.count) && select.count > 0)) {
+      throw new ManifestError(`${where} count must be a whole number, 1 or more.`);
+    }
+    return { in: container(select.in, where, check), ...(select.count != null ? { count: select.count } : {}) };
+  }
   throw new ManifestError(`${where} must pick an id, a list of ids, { category }, or { in }.`);
 }
 

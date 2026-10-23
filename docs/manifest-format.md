@@ -494,7 +494,8 @@ Steps run in order, each on the table the steps before it left. Each has exactly
 
 - an id, of a piece or a container, or a list of them;
 - `{ "category": "..." }`, every piece in that category;
-- `{ "in": "container-id" }`, whatever is in that container when the step runs.
+- `{ "in": "container-id" }`, whatever is in that container when the step runs, or with `"count": 4`, just
+  that many from the top.
 
 `move` and `deal` also take `faceUp`, `rotation`, and `locked`, set on everything they place. A deck moved with
 `faceUp` turns its cards that way too.

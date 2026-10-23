@@ -44,6 +44,7 @@ const raw = {
       { move: "boss", into: "enemies" },
       { deal: "quests", to: [[40, 40], [50, 40]] },
     ] },
+    { id: "top", steps: [{ move: { in: "quests", count: 2 }, into: "region-deck" }] },
     { id: "south", steps: [
       { reset: { category: "north" } },
       { reset: ["q1", "q2", "q3"] },
@@ -98,6 +99,12 @@ describe("setups", () => {
     expect(state.containers.quests.members).toEqual(["q2", "q3"]);
   });
 
+  it("picks just the top of a container", () => {
+    const { state } = run(initialState(manifest), "top");
+    expect(state.containers["region-deck"].members).toEqual(["q1", "q2"]);
+    expect(state.containers.quests.members).toEqual(["q3"]);
+  });
+
   it("refuses an unknown setup or a missing seed", () => {
     expect(run(initialState(manifest), "west").ok).toBe(false);
     expect(applyAction(manifest, initialState(manifest), { type: "setup", playerId: "p1", setupId: "north" }).ok).toBe(false);
@@ -111,6 +118,7 @@ describe("setups", () => {
     expect(bad([{ shuffle: "n1" }])).toThrow('unknown container "n1"');
     expect(bad([{ state: "map", to: "West" }])).toThrow('no state of "map" called "West"');
     expect(bad([{ reset: "n1", shuffle: "quests" }])).toThrow("exactly one of");
+    expect(bad([{ reset: { in: "quests", count: 0 } }])).toThrow("count must be");
     expect(normalizeManifest({ ...raw, setups: undefined }, "https://example.com/m.json").setups).toEqual([]);
   });
 });
